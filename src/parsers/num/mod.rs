@@ -132,6 +132,37 @@ impl Parser for Bool {
     }
 }
 
+#[derive(Clone)]
+pub struct F32LE;
+
+impl Parser for F32LE {
+    type Output = f32;
+
+    fn name(&self) -> String {
+        "le_f32".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = f32::from_le_bytes(*bytes);
+
+        // Move input along
+        *input = rest;
+
+        const BYTE_SIZE: usize = std::mem::size_of::<f32>();
+        let annotation = Annotation::success(&self.name(), 0..BYTE_SIZE, value, vec![]);
+
+        Ok((value, annotation))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
