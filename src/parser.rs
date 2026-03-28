@@ -42,3 +42,23 @@ where
         (**self).parse(input)
     }
 }
+
+/// Blanket impl to allow passing parsers by reference
+impl<P> Parser for &mut P
+where
+    P: Parser,
+{
+    type Output = P::Output;
+
+    fn name(&self) -> String {
+        (**self).name()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        (**self).spec()
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        (**self).parse(input)
+    }
+}
