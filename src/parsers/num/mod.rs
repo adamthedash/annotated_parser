@@ -1,5 +1,10 @@
 use crate::{Annotation, Parser, ParserSpec, Result};
 
+#[cfg(feature = "f16")]
+mod nightly_floats;
+#[cfg(feature = "f16")]
+pub use nightly_floats::F16LE;
+
 #[derive(Clone)]
 pub struct U32LE;
 

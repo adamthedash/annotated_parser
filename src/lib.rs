@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "f16", feature(f16))]
+
 mod adapter;
 mod annotation;
 pub mod combinators;
