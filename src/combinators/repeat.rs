@@ -1,3 +1,5 @@
+use num_traits::AsPrimitive;
+
 use crate::{FoldResult, combinators::delayed::DelayedValGet};
 use std::{fmt::Debug, marker::PhantomData};
 
@@ -67,21 +69,23 @@ pub struct RepeatVec<P, C> {
     count: C,
 }
 
-impl<P, C> RepeatVec<P, C>
+impl<P, C, V> RepeatVec<P, C>
 where
     P: Parser,
-    C: DelayedValGet<Value = usize>,
+    C: DelayedValGet<Value = V>,
+    V: AsPrimitive<usize>,
 {
     pub fn new(inner: P, count: C) -> Self {
         Self { inner, count }
     }
 }
 
-impl<P, C> Parser for RepeatVec<P, C>
+impl<P, C, V> Parser for RepeatVec<P, C>
 where
     P: Parser,
     P::Output: Debug,
-    C: DelayedValGet<Value = usize>,
+    C: DelayedValGet<Value = V>,
+    V: AsPrimitive<usize>,
 {
     type Output = Vec<P::Output>;
 
@@ -94,7 +98,7 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let count = *self.count.get();
+        let count = self.count.get().as_();
         let (offset, values, child_annotations) = (0..count).try_fold(
             (0, vec![], vec![]),
             |(offset, mut values, child_annotations), _| {

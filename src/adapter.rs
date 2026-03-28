@@ -1,3 +1,5 @@
+use num_traits::AsPrimitive;
+
 use crate::combinators::delayed::DelayedValGet;
 use std::fmt::{Debug, Display};
 
@@ -51,9 +53,10 @@ pub trait ParserAdapter: Parser + Sized {
         RepeatArray::new(self)
     }
 
-    fn repeat_vec<C>(self, count: C) -> RepeatVec<Self, C>
+    fn repeat_vec<C, V>(self, count: C) -> RepeatVec<Self, C>
     where
-        C: DelayedValGet<Value = usize>,
+        C: DelayedValGet<Value = V>,
+        V: AsPrimitive<usize>,
     {
         RepeatVec::new(self, count)
     }
