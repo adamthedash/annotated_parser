@@ -1,0 +1,149 @@
+use std::fmt::{Debug, Display};
+
+use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
+
+/// For fallible functions
+pub struct TryMap<I, F> {
+    inner: I,
+    func: F,
+}
+
+impl<I, F, O, E> TryMap<I, F>
+where
+    I: Parser,
+    F: FnMut(I::Output) -> std::result::Result<O, E>,
+    O: Debug,
+    E: Display,
+{
+    pub fn new(inner: I, func: F) -> Self {
+        Self { inner, func }
+    }
+}
+
+impl<I, F, O, E> Parser for TryMap<I, F>
+where
+    I: Parser,
+    F: FnMut(I::Output) -> std::result::Result<O, E>,
+    O: Debug,
+    E: Display,
+{
+    type Output = O;
+
+    fn name(&self) -> String {
+        "try_map".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.inner.spec()])
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let (data, span, child_annotations) =
+            self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
+
+        let out = match (self.func)(data) {
+            Ok(value) => value,
+            Err(e) => {
+                // Function application has failed, so fail annotation at this level
+                return Err(Annotation::invalid(
+                    &self.name(),
+                    span.clone(),
+                    format!("{}", e),
+                    child_annotations,
+                ));
+            }
+        };
+
+        let annotation = Annotation::success(&self.name(), span.clone(), &out, child_annotations);
+
+        Ok((out, annotation))
+    }
+}
+
+/// For infallible functions
+pub struct Map<I, F> {
+    inner: I,
+    func: F,
+}
+
+impl<I, F, O> Map<I, F>
+where
+    I: Parser,
+    F: FnMut(I::Output) -> O,
+    O: Debug,
+{
+    pub fn new(inner: I, func: F) -> Self {
+        Self { inner, func }
+    }
+}
+
+impl<I, F, O> Parser for Map<I, F>
+where
+    I: Parser,
+    F: FnMut(I::Output) -> O,
+    O: Debug,
+{
+    type Output = O;
+
+    fn name(&self) -> String {
+        "map".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.inner.spec()])
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let (data, span, child_annotations) =
+            self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
+
+        let out = (self.func)(data);
+
+        let annotation = Annotation::success(&self.name(), span.clone(), &out, child_annotations);
+
+        Ok((out, annotation))
+    }
+}
+
+/// For infallible functions. Doesn't introduce anything new in the spec. Can be used for simple
+/// functions where it would just add noise to track them in the annotations
+pub struct MapSilent<I, F> {
+    inner: I,
+    func: F,
+}
+
+impl<I, F, O> MapSilent<I, F>
+where
+    I: Parser,
+    F: FnMut(I::Output) -> O,
+    O: Debug,
+{
+    pub fn new(inner: I, func: F) -> Self {
+        Self { inner, func }
+    }
+}
+
+impl<I, F, O> Parser for MapSilent<I, F>
+where
+    I: Parser,
+    F: FnMut(I::Output) -> O,
+    O: Debug,
+{
+    type Output = O;
+
+    fn name(&self) -> String {
+        self.inner.name()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        self.inner.spec()
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let (data, annotation) = self.inner.parse(input)?;
+
+        let out = (self.func)(data);
+
+        Ok((out, annotation))
+    }
+}

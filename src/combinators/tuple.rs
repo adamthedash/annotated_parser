@@ -1,0 +1,61 @@
+use std::fmt::Debug;
+
+use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
+use paste::paste;
+
+/// Tuples of parsers
+macro_rules! impl_parser_for_tuple {
+    ( $( $P:ident ~ $idx:tt ),+ ) => {
+        paste! {
+            impl<$($P),+> Parser for ($($P,)+)
+            where
+                $(
+                    $P: Parser,
+                    $P::Output: Debug,
+                )+
+            {
+                type Output = ($($P::Output,)+);
+
+                fn name(&self) -> String {
+                    "tuple".to_owned()
+                }
+
+                fn spec(&self) -> ParserSpec {
+                    ParserSpec::new(self.name(), vec![$( self.$idx.spec() ),+])
+                }
+
+                fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+                    let child_annotations = vec![];
+                    let mut span_end = 0usize;
+
+                    $(
+                        let ([<out_ $idx>], span, child_annotations) =
+                            self.$idx
+                                .parse(input)
+                                .fold(child_annotations, span_end, &self.name(), $idx)?;
+                        span_end = span.end;
+                    )+
+
+                    let out = ($( [<out_ $idx>], )+);
+                    let annotation = Annotation::success(&self.name(), 0..span_end, &out, child_annotations);
+                    Ok((out, annotation))
+                }
+            }
+        }
+    };
+}
+
+// NOTE: Only implemented up to 12-tuples, since Debug is only implemented up to 12.
+// If more are needed, just nest the tuples.
+impl_parser_for_tuple!(A~0);
+impl_parser_for_tuple!(A~0, B~1);
+impl_parser_for_tuple!(A~0, B~1, C~2);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
+impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
