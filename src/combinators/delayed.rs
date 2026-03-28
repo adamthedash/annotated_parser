@@ -22,6 +22,7 @@ pub trait DelayedValGet {
     fn get(&self) -> impl Deref<Target = Self::Value>;
 }
 
+#[derive(Clone)]
 pub struct DelayedValDerived<T, F>(pub F)
 where
     F: Fn() -> T;
