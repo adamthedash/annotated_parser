@@ -20,6 +20,19 @@ pub trait DelayedValGet {
     type Value;
 
     fn get(&self) -> impl Deref<Target = Self::Value>;
+
+    /// Create a derived value by applying a function to this value
+    /// NOTE: There's currently no way to specify "If the provided func is Clone, then the return
+    /// is Clone". So just restrict ths to Clone func's for now.
+    fn map<O>(
+        self,
+        func: impl Fn(&Self::Value) -> O + Clone,
+    ) -> DelayedValDerived<O, impl Fn() -> O + Clone>
+    where
+        Self: Sized + Clone,
+    {
+        DelayedValDerived(move || func(&self.get()))
+    }
 }
 
 #[derive(Clone)]
