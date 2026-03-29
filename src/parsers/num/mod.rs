@@ -95,6 +95,36 @@ impl Parser for U8 {
     }
 }
 
+#[derive(Clone)]
+pub struct I8;
+
+impl Parser for I8 {
+    type Output = i8;
+
+    fn name(&self) -> String {
+        "i8".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = i8::from_le_bytes(*bytes);
+
+        // Move input along
+        *input = rest;
+
+        let annotation = Annotation::success(&self.name(), 0..1, value, vec![]);
+
+        Ok((value, annotation))
+    }
+}
+
 /// 0 or 1 stored in u8
 #[derive(Clone)]
 pub struct Bool;
