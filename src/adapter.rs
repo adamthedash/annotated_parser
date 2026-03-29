@@ -1,6 +1,9 @@
 use num_traits::AsPrimitive;
 
-use crate::combinators::delayed::DelayedValGet;
+use crate::combinators::{
+    Parameterize,
+    delayed::{DelayedValGet, DelayedValSet},
+};
 use std::fmt::{Debug, Display};
 
 use crate::{
@@ -86,6 +89,16 @@ pub trait ParserAdapter: Parser + Sized {
 
     fn trace(self, name: impl Into<String>) -> Trace<Self> {
         Trace::new(self, name)
+    }
+
+    fn parameterize<V, S>(self, parameters: V, param_input: S) -> Parameterize<S, V, Self>
+    where
+        S: DelayedValSet,
+        S::Value: Clone,
+        V: DelayedValGet<Value = Vec<S::Value>>,
+        Self::Output: Debug,
+    {
+        Parameterize::new(parameters, param_input, self)
     }
 }
 
