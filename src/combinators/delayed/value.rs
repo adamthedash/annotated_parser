@@ -1,39 +1,10 @@
+use super::{DelayedValGet, DelayedValSet};
 use std::{
     cell::{Ref, RefCell},
     fmt::Debug,
     ops::Deref,
     rc::Rc,
 };
-
-use crate::{Parser, ParserSpec, Result};
-
-/// For Write/owner side
-pub trait DelayedValSet {
-    type Value;
-
-    fn set(&self, value: Self::Value);
-    fn take(&self) -> Self::Value;
-}
-
-/// For Read side
-pub trait DelayedValGet {
-    type Value;
-
-    fn get(&self) -> impl Deref<Target = Self::Value>;
-
-    /// Create a derived value by applying a function to this value
-    /// NOTE: There's currently no way to specify "If the provided func is Clone, then the return
-    /// is Clone". So just restrict ths to Clone func's for now.
-    fn map<O>(
-        self,
-        func: impl Fn(&Self::Value) -> O + Clone,
-    ) -> DelayedValDerived<O, impl Fn() -> O + Clone>
-    where
-        Self: Sized + Clone,
-    {
-        DelayedValDerived(move || func(&self.get()))
-    }
-}
 
 #[derive(Clone)]
 pub struct DelayedValDerived<T, F>(pub F)
@@ -100,50 +71,5 @@ impl<T> Clone for DelayedVal<T> {
 impl<T> Default for DelayedVal<T> {
     fn default() -> Self {
         Self(Rc::new(RefCell::new(None)))
-    }
-}
-
-/// A parser whos output can be referenced before it has been executed
-pub struct Delayed<I>
-where
-    I: Parser,
-{
-    inner: I,
-    /// This will be populated / overwritten whenever the parser is ran.
-    value: DelayedVal<I::Output>,
-}
-
-impl<I: Parser> Delayed<I> {
-    pub fn new(inner: I) -> Self {
-        Self {
-            inner,
-            value: DelayedVal::default(),
-        }
-    }
-
-    /// Obtain a handle to the output of this parser. May or may not be initialised yet.
-    pub fn output(&self) -> DelayedVal<I::Output> {
-        self.value.clone()
-    }
-}
-
-impl<I: Parser> Parser for Delayed<I> {
-    type Output = DelayedVal<I::Output>;
-
-    fn name(&self) -> String {
-        self.inner.name()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        self.inner.spec()
-    }
-
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (out, anno) = self.inner.parse(input)?;
-
-        // Set the shared value
-        self.value.set(out);
-
-        Ok((self.value.clone(), anno))
     }
 }
