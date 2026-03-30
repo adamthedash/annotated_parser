@@ -1,4 +1,3 @@
-
 use num_traits::AsPrimitive;
 
 use crate::{Annotation, FoldResult, Parser, ParserSpec, Result, combinators::Checkpoint};
@@ -60,8 +59,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::AnnotationResult;
-    use crate::parsers::U16LE;
-    use crate::parsers::U32LE;
+    use crate::ByteParser;
 
     use super::*;
 
@@ -70,7 +68,7 @@ mod tests {
         let bytes = [2, 0, 0, 0, 1, 0, 2, 0];
         let input = &mut bytes.as_slice();
 
-        let mut parser = LengthRepeat::new(U32LE, U16LE);
+        let mut parser = LengthRepeat::new(u32::LE, u16::LE);
         let (value, anno) = parser.parse(input).unwrap();
         assert_eq!(value, vec![1, 2]);
         assert_eq!(anno.parser_id, "length_repeat");
@@ -89,7 +87,7 @@ mod tests {
         let bytes = [2, 0, 0, 0, 1, 0];
         let input = &mut bytes.as_slice();
 
-        let mut parser = LengthRepeat::new(U32LE, U16LE);
+        let mut parser = LengthRepeat::new(u32::LE, u16::LE);
         let anno = parser.parse(input).unwrap_err();
         assert_eq!(anno.parser_id, "length_repeat");
         assert_eq!(anno.children.len(), 3);
@@ -97,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_length_repeat_spec() {
-        let parser = LengthRepeat::new(U32LE, U16LE);
+        let parser = LengthRepeat::new(u32::LE, u16::LE);
         let spec = parser.spec();
 
         let expected = ParserSpec {

@@ -81,15 +81,14 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ByteParser;
     use crate::ParserAdapter;
-    use crate::parsers::U8;
-    use crate::parsers::U16LE;
 
     #[test]
     fn test_dispatch() {
         let mut input = [0, 1, 1, 1, 0].as_slice();
 
-        let disc_parser = U8.delay();
+        let disc_parser = u8::LE.delay();
         let dispatch = Dispatch::new(
             disc_parser.output(),
             |x| {
@@ -102,8 +101,8 @@ mod tests {
                 Some(index)
             },
             [
-                Box::new(U8), //
-                Box::new(U16LE.map(|x| x as u8)),
+                Box::new(u8::LE), //
+                Box::new(u16::LE.map(|x| x as u8)),
             ],
         );
 

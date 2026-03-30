@@ -12,4 +12,5 @@ pub use adapter::ParserAdapter;
 pub use annotation::{Annotation, AnnotationResult};
 pub use helpers::FoldResult;
 pub use parser::{Parser, Result};
+pub use parsers::ByteParser;
 pub use spec::ParserSpec;
