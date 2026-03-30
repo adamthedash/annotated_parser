@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 
 use num_traits::AsPrimitive;
 
@@ -23,7 +22,6 @@ where
     L: Parser,
     L::Output: AsPrimitive<usize>,
     V: Parser,
-    V::Output: Debug,
 {
     type Output = Vec<V::Output>;
 

@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 
 use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
 
@@ -8,7 +7,6 @@ pub struct Opt<I>(pub I);
 impl<I> Parser for Opt<I>
 where
     I: Parser,
-    I::Output: Debug,
 {
     type Output = Option<I::Output>;
 

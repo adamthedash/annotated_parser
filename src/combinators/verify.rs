@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 
 use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
 
@@ -11,7 +10,6 @@ pub struct Verify<P, F> {
 impl<P, F> Verify<P, F>
 where
     P: Parser,
-    P::Output: Debug,
     F: FnMut(&P::Output) -> bool,
 {
     pub fn new(inner: P, func: F) -> Self {
@@ -22,7 +20,6 @@ where
 impl<P, F> Parser for Verify<P, F>
 where
     P: Parser,
-    P::Output: Debug,
     F: FnMut(&P::Output) -> bool,
 {
     type Output = P::Output;

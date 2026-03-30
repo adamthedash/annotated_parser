@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 
 use crate::{
     Annotation, FoldResult, Parser, ParserSpec, Result, combinators::delayed::DelayedValGet,
@@ -27,7 +26,6 @@ impl<D, P> Parser for Cond<D, P>
 where
     D: DelayedValGet,
     P: Parser,
-    P::Output: Debug,
 {
     type Output = Option<P::Output>;
 

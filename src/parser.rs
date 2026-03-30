@@ -1,11 +1,12 @@
 use crate::Annotation;
 use crate::ParserSpec;
+use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<(T, Annotation), Annotation>;
 
 /// All parsing functions must implement this trait
 pub trait Parser {
-    type Output;
+    type Output: Debug;
 
     /// Simple name of the parser, should not include children or generics
     fn name(&self) -> String;

@@ -1,4 +1,3 @@
-use std::fmt::Debug;
 
 use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
 use paste::paste;
@@ -11,7 +10,6 @@ macro_rules! impl_parser_for_tuple {
             where
                 $(
                     $P: Parser,
-                    $P::Output: Debug,
                 )+
             {
                 type Output = ($($P::Output,)+);

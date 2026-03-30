@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::Deref};
+use std::ops::Deref;
 
 use crate::{
     Annotation, FoldResult, Parser, ParserSpec, Result,
@@ -22,7 +22,6 @@ where
     S: DelayedValSet,
     V: DelayedValGet<Value = Vec<S::Value>>,
     P: Parser,
-    P::Output: Debug,
 {
     pub fn new(parameters: V, parameter_input: S, parser: P) -> Self {
         Self {
@@ -39,7 +38,6 @@ where
     S::Value: Clone,
     V: DelayedValGet<Value = Vec<S::Value>>,
     P: Parser,
-    P::Output: Debug,
 {
     type Output = Vec<P::Output>;
 

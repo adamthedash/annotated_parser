@@ -82,7 +82,6 @@ pub trait ParserAdapter: Parser + Sized {
     fn verify<F>(self, func: F) -> Verify<Self, F>
     where
         F: FnMut(&Self::Output) -> bool,
-        Self::Output: Debug,
     {
         Verify::new(self, func)
     }
@@ -96,7 +95,6 @@ pub trait ParserAdapter: Parser + Sized {
         S: DelayedValSet,
         S::Value: Clone,
         V: DelayedValGet<Value = Vec<S::Value>>,
-        Self::Output: Debug,
     {
         Parameterize::new(parameters, param_input, self)
     }

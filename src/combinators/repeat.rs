@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::{FoldResult, combinators::delayed::DelayedValGet};
-use std::{fmt::Debug, marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::{Annotation, Parser, ParserSpec, Result};
 
@@ -26,7 +26,6 @@ where
 impl<const N: usize, P> Parser for RepeatArray<P, [P::Output; N]>
 where
     P: Parser,
-    P::Output: Debug,
 {
     type Output = [P::Output; N];
 
@@ -83,7 +82,6 @@ where
 impl<P, C, V> Parser for RepeatVec<P, C>
 where
     P: Parser,
-    P::Output: Debug,
     C: DelayedValGet<Value = V>,
     V: AsPrimitive<usize>,
 {
