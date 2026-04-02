@@ -107,6 +107,11 @@ impl Annotation {
             return Some(self);
         }
 
+        if !parser_id.starts_with(&self.parser_id) {
+            // Child parsers will start with this one as a prefix
+            return None;
+        }
+
         self.children
             .iter()
             .flat_map(|c| c.find_annotation(parser_id))
