@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
+use crate::{Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result};
 
 /// For fallible functions
 pub struct TryMap<I, F> {
@@ -58,6 +58,16 @@ where
 
         Ok((out, annotation))
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let (data, offset) = self.inner.parse_speedy(input).fold(0, &self.name(), 0)?;
+
+        let out = (self.func)(data)
+            // Function application has failed, so fail annotation at this level
+            .map_err(|e| Annotation::invalid(&self.name(), 0..offset, format!("{}", e), vec![]))?;
+
+        Ok((out, offset))
+    }
 }
 
 /// For infallible functions
@@ -103,6 +113,14 @@ where
 
         Ok((out, annotation))
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let (data, offset) = self.inner.parse_speedy(input).fold(0, &self.name(), 0)?;
+
+        let out = (self.func)(data);
+
+        Ok((out, offset))
+    }
 }
 
 /// For infallible functions. Doesn't introduce anything new in the spec. Can be used for simple
@@ -145,5 +163,13 @@ where
         let out = (self.func)(data);
 
         Ok((out, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let (data, offset) = self.inner.parse_speedy(input)?;
+
+        let out = (self.func)(data);
+
+        Ok((out, offset))
     }
 }

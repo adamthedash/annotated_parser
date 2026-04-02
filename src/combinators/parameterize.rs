@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result,
+    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result,
     combinators::delayed::{DelayedValGet, DelayedValSet},
 };
 
@@ -72,5 +72,26 @@ where
         let annotation = Annotation::success(&self.name(), span, &values, child_annotations);
 
         Ok((values, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let name = self.name();
+        let (values, offset) = self.parameters.get().deref().iter().try_fold(
+            (vec![], 0),
+            |(mut out_values, out_offet), value| {
+                // Move this iter's param into the param slot of the parser
+                self.parameter_input.set(value.clone());
+
+                // Apply inner parser
+                let (out_value, offset) =
+                    self.parser.parse_speedy(input).fold(out_offet, &name, 0)?;
+
+                out_values.push(out_value);
+
+                Ok((out_values, offset))
+            },
+        )?;
+
+        Ok((values, offset))
     }
 }

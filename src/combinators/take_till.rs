@@ -49,4 +49,23 @@ where
 
         Ok((bytes, annotation))
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let mut bytes = vec![];
+
+        // TODO: Could increase perf a bit by detecting EOF from inner parser
+        while self.inner.parse(input).is_err() {
+            // Advance one byte
+            let Some((byte, rest)) = input.split_first() else {
+                // EoF
+                return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            };
+
+            bytes.push(*byte);
+            *input = rest;
+        }
+
+        let offset = bytes.len();
+        Ok((bytes, offset))
+    }
 }

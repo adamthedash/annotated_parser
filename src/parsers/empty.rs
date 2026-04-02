@@ -18,4 +18,8 @@ impl Parser for Empty {
         let annotation = Annotation::success(&self.name(), 0..0, (), vec![]);
         Ok(((), annotation))
     }
+
+    fn parse_speedy(&mut self, _input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        Ok(((), 0))
+    }
 }

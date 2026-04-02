@@ -29,4 +29,19 @@ impl Parser for F16LE {
 
         Ok((value, annotation))
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = f16::from_le_bytes(*bytes);
+
+        // Move input along
+        *input = rest;
+
+        const BYTE_SIZE: usize = std::mem::size_of::<f16>();
+
+        Ok((value, BYTE_SIZE))
+    }
 }

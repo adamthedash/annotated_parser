@@ -1,6 +1,9 @@
 use num_traits::AsPrimitive;
 
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result, combinators::Checkpoint};
+use crate::{
+    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result, SpeedyResult,
+    combinators::Checkpoint,
+};
 
 pub struct LengthRepeat<L, V> {
     length: L,
@@ -53,6 +56,24 @@ where
         let annotation = Annotation::success(&self.name(), 0..offset, &values, child_annotations);
 
         Ok((values, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+        let (length, offset) = self.length.parse_speedy(input).fold(0, &self.name(), 0)?;
+
+        let (offset, values) =
+            (0..length.as_()).try_fold((offset, vec![]), |(offset, mut values), _| {
+                let (value, offset) =
+                    self.value
+                        .parse_speedy(input)
+                        .fold(offset, &self.name(), 1)?;
+
+                values.push(value);
+
+                Ok((offset, values))
+            })?;
+
+        Ok((values, offset))
     }
 }
 

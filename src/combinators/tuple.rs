@@ -1,5 +1,4 @@
-
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
+use crate::{Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result, SpeedyResult};
 use paste::paste;
 
 /// Tuples of parsers
@@ -37,6 +36,21 @@ macro_rules! impl_parser_for_tuple {
                     let out = ($( [<out_ $idx>], )+);
                     let annotation = Annotation::success(&self.name(), 0..span_end, &out, child_annotations);
                     Ok((out, annotation))
+                }
+
+                fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+                    let mut offset = 0usize;
+
+                    $(
+                        let ([<out_ $idx>], new_offset) =
+                            self.$idx
+                                .parse_speedy(input)
+                                .fold(offset, &self.name(), $idx)?;
+                        offset = new_offset;
+                    )+
+
+                    let out = ($( [<out_ $idx>], )+);
+                    Ok((out, offset))
                 }
             }
         }

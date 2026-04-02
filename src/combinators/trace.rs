@@ -33,4 +33,8 @@ impl<P: Parser> Parser for Trace<P> {
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         self.inner.parse(input)
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        self.inner.parse_speedy(input)
+    }
 }

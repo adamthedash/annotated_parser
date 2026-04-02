@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result, combinators::delayed::DelayedValGet,
+    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result,
+    combinators::delayed::DelayedValGet,
 };
 
 pub struct Dispatch<const N: usize, D, F, O>
@@ -75,6 +76,28 @@ where
         let annotation = Annotation::success(&self.name(), span, &value, child_annotations);
 
         Ok((value, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let discriminant = self.discriminant.get();
+
+        let Some(index) = (self.dispatch_func)(&discriminant) else {
+            return Err(Annotation::invalid(
+                &self.name(),
+                0..0,
+                format!("Unknown discriminant: {:?}", *discriminant),
+                vec![],
+            ));
+        };
+
+        let parser = self
+            .parsers
+            .get_mut(index)
+            .expect("Dispatch function produced index out of bounds");
+
+        let (value, offset) = parser.parse_speedy(input).fold(0, &self.name(), index)?;
+
+        Ok((value, offset))
     }
 }
 

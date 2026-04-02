@@ -1,5 +1,4 @@
-
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
+use crate::{Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result};
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
 pub struct Opt<I>(pub I);
@@ -23,11 +22,23 @@ where
 
         let (out, span, child_annotations) = match res {
             Ok((out, span, child_annotations)) => (Some(out), span, child_annotations),
+            // TODO: Should we be passing up child annotations here?
             Err(child_annotation) => (None, 0..0, vec![child_annotation]),
         };
 
         let annotation = Annotation::success(&self.name(), span, &out, child_annotations);
 
         Ok((out, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let res = self.0.parse_speedy(input).fold(0, &self.name(), 0);
+
+        let (out, offset) = match res {
+            Ok((out, offset)) => (Some(out), offset),
+            Err(_) => (None, 0),
+        };
+
+        Ok((out, offset))
     }
 }

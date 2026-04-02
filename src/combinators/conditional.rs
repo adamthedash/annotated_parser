@@ -1,6 +1,6 @@
-
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result, combinators::delayed::DelayedValGet,
+    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result,
+    combinators::delayed::DelayedValGet,
 };
 
 /// A parser which may or may not be ran depending on the result of some previous parser
@@ -52,5 +52,19 @@ where
         let annotation = Annotation::success(&self.name(), span, &value, child_annotations);
 
         Ok((value, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let value = self.value.get();
+
+        let (value, offset) = if (self.cond)(&value) {
+            let (value, offset) = self.inner.parse_speedy(input).fold(0, &self.name(), 0)?;
+
+            (Some(value), offset)
+        } else {
+            (None, 0)
+        };
+
+        Ok((value, offset))
     }
 }

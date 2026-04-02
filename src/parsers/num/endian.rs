@@ -37,6 +37,19 @@ where
 
         Ok((value, annotation))
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = T::from_le_bytes(bytes);
+
+        // Move input along
+        *input = rest;
+
+        Ok((value, N))
+    }
 }
 
 /// Big-endian parser for types which can be directly interpreted from a byte array
@@ -68,9 +81,22 @@ where
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(&self.name(), 0..1, &value, vec![]);
+        let annotation = Annotation::success(&self.name(), 0..N, &value, vec![]);
 
         Ok((value, annotation))
+    }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = T::from_be_bytes(bytes);
+
+        // Move input along
+        *input = rest;
+
+        Ok((value, N))
     }
 }
 
