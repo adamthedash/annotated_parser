@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{Annotation, AnnotationResult, Result, SpeedyResult};
+use crate::{Annotation, AnnotationResult, Result};
 
 pub trait FoldResult<T> {
     /// Fold the result of applying a child parser
@@ -48,17 +48,6 @@ impl<T> FoldResult<T> for Result<T> {
     }
 }
 
-pub trait FoldSpeedyResult<T> {
-    /// Fold the result of applying a child parser
-    fn fold(self, offset: usize, parent_name: &str, child_index: usize) -> SpeedyResult<T>;
-}
-
-impl<T> FoldSpeedyResult<T> for SpeedyResult<T> {
-    fn fold(self, offset: usize, parent_name: &str, child_index: usize) -> SpeedyResult<T> {
-        self.map_err(|a| fold_child_err(a, vec![], offset, parent_name, child_index))
-    }
-}
-
 /// Ok path of crate::Result<T>::fold
 pub fn fold_success(
     mut annotation: Annotation,
@@ -80,6 +69,7 @@ pub fn fold_success(
 }
 
 /// Error path of crate::Result<T>::fold
+#[inline(always)]
 pub fn fold_child_err(
     mut annotation: Annotation,
     mut child_annotations: Vec<Annotation>,

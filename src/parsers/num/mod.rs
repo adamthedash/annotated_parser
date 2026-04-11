@@ -48,4 +48,28 @@ impl Parser for Bool {
 
         Ok((value, annotation))
     }
+
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let Some((first, rest)) = input.split_first() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = match first {
+            0 => false,
+            1 => true,
+            x => {
+                return Err(Annotation::invalid(
+                    &self.name(),
+                    0..1,
+                    format!("Invalid bool value: {x}"),
+                    vec![],
+                ));
+            }
+        };
+
+        // Move input along
+        *input = rest;
+
+        Ok((value, 1))
+    }
 }

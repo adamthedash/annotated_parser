@@ -29,6 +29,7 @@ impl<const N: usize> Parser for TakeArray<N> {
         Ok((*value, annotation))
     }
 
+    #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
@@ -75,6 +76,7 @@ where
         Ok((value.to_vec(), annotation))
     }
 
+    #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let count = self.0.get().as_();
 

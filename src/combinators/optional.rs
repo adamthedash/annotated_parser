@@ -1,4 +1,4 @@
-use crate::{Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result};
+use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
 pub struct Opt<I>(pub I);
@@ -32,13 +32,10 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let res = self.0.parse_speedy(input).fold(0, &self.name(), 0);
-
-        let (out, offset) = match res {
-            Ok((out, offset)) => (Some(out), offset),
-            Err(_) => (None, 0),
+        let Ok((value, offset)) = self.0.parse_speedy(input) else {
+            return Ok((None, 0));
         };
 
-        Ok((out, offset))
+        Ok((Some(value), offset))
     }
 }

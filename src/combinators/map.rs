@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result};
+use crate::{Annotation, FoldResult, Parser, ParserSpec, Result, helpers::fold_child_err};
 
 /// For fallible functions
 pub struct TryMap<I, F> {
@@ -60,7 +60,10 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let (data, offset) = self.inner.parse_speedy(input).fold(0, &self.name(), 0)?;
+        let (data, offset) = self
+            .inner
+            .parse_speedy(input)
+            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), 0))?;
 
         let out = (self.func)(data)
             // Function application has failed, so fail annotation at this level
@@ -115,7 +118,10 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let (data, offset) = self.inner.parse_speedy(input).fold(0, &self.name(), 0)?;
+        let (data, offset) = self
+            .inner
+            .parse_speedy(input)
+            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), 0))?;
 
         let out = (self.func)(data);
 

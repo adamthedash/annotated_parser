@@ -1,4 +1,4 @@
-use crate::{Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result};
+use crate::{Annotation, FoldResult, Parser, ParserSpec, Result, helpers::fold_child_err};
 
 #[derive(Clone)]
 pub struct Verify<P, F> {
@@ -49,8 +49,12 @@ where
         Ok((value, annotation))
     }
 
+    #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let (value, offset) = self.inner.parse_speedy(input).fold(0, &self.name(), 0)?;
+        let (value, offset) = self
+            .inner
+            .parse_speedy(input)
+            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), 0))?;
 
         if !(self.func)(&value) {
             return Err(Annotation::invalid(

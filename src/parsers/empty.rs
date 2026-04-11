@@ -19,6 +19,7 @@ impl Parser for Empty {
         Ok(((), annotation))
     }
 
+    #[inline(always)]
     fn parse_speedy(&mut self, _input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         Ok(((), 0))
     }

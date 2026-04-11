@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
-use crate::{FoldResult, FoldSpeedyResult, combinators::delayed::DelayedValGet};
-use std::marker::PhantomData;
+use crate::{FoldResult, combinators::delayed::DelayedValGet, helpers::fold_child_err};
+use std::{marker::PhantomData, mem::MaybeUninit};
 
 use crate::{Annotation, Parser, ParserSpec, Result};
 
@@ -62,21 +62,34 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        // TODO: Allocate directly on the stack with MaybeUninit
-        let (values, offset) = (0..N).try_fold((vec![], 0), |(mut values, offset), _| {
-            let (value, offset) = self
-                .inner
-                .parse_speedy(input)
-                .fold(offset, &self.name(), 0)?;
+        let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
 
-            values.push(value);
+        let mut offset = 0;
+        for (i, value_out) in values.iter_mut().enumerate() {
+            match self.inner.parse_speedy(input) {
+                Ok((value, new_offset)) => {
+                    value_out.write(value);
+                    offset = new_offset;
+                }
+                Err(a) => {
+                    // Need to manually drop everything allocated up to now, otherwise we will leak
+                    // memory
+                    for value in values[..i].iter_mut() {
+                        // SAFETY: All values up until this one have been populated by the parser
+                        unsafe {
+                            value.assume_init_drop();
+                        }
+                    }
 
-            Ok((values, offset))
-        })?;
+                    let annotation = fold_child_err(a, vec![], offset, &self.name(), 0);
+                    return Err(annotation);
+                }
+            }
+        }
 
-        let values = values
-            .try_into()
-            .expect("Parser should have successfully applied N times above");
+        // SAFETY: All values have been populated by the parser, or the function has exited
+        // Ideally could use MaybeUninit::array_assume_init, but we are on stable
+        let values = values.map(|v| unsafe { v.assume_init() });
 
         Ok((values, offset))
     }
@@ -138,16 +151,21 @@ where
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let count = self.count.get().as_();
-        let (values, offset) = (0..count).try_fold((vec![], 0), |(mut values, offset), _| {
-            let (value, offset) = self
-                .inner
-                .parse_speedy(input)
-                .fold(offset, &self.name(), 0)?;
 
-            values.push(value);
-
-            Ok((values, offset))
-        })?;
+        let mut values = Vec::with_capacity(count);
+        let mut offset = 0;
+        for _ in 0..count {
+            match self.inner.parse_speedy(input) {
+                Ok((value, new_offset)) => {
+                    values.push(value);
+                    offset = new_offset;
+                }
+                Err(a) => {
+                    let annotation = fold_child_err(a, vec![], offset, &self.name(), 0);
+                    return Err(annotation);
+                }
+            }
+        }
 
         Ok((values, offset))
     }

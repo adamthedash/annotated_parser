@@ -1,8 +1,9 @@
 use std::ops::Deref;
 
 use crate::{
-    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result,
+    Annotation, FoldResult, Parser, ParserSpec, Result,
     combinators::delayed::{DelayedValGet, DelayedValSet},
+    helpers::fold_child_err,
 };
 
 /// A combinator which parameterises the inner parser with each value before running it
@@ -75,22 +76,23 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let name = self.name();
-        let (values, offset) = self.parameters.get().deref().iter().try_fold(
-            (vec![], 0),
-            |(mut out_values, out_offet), value| {
-                // Move this iter's param into the param slot of the parser
-                self.parameter_input.set(value.clone());
+        let parameters = self.parameters.get();
 
-                // Apply inner parser
-                let (out_value, offset) =
-                    self.parser.parse_speedy(input).fold(out_offet, &name, 0)?;
+        let mut values = Vec::with_capacity(parameters.len());
+        let mut offset = 0;
+        for param in parameters.iter() {
+            // Move this iter's param into the param slot of the parser
+            self.parameter_input.set(param.clone());
 
-                out_values.push(out_value);
+            // Apply inner parser
+            let value;
+            (value, offset) = self
+                .parser
+                .parse_speedy(input)
+                .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), 0))?;
 
-                Ok((out_values, offset))
-            },
-        )?;
+            values.push(value);
+        }
 
         Ok((values, offset))
     }

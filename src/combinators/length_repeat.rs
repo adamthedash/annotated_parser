@@ -1,8 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::{
-    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result, SpeedyResult,
-    combinators::Checkpoint,
+    Annotation, FoldResult, Parser, ParserSpec, Result, SpeedyResult, helpers::fold_child_err,
 };
 
 pub struct LengthRepeat<L, V> {
@@ -11,11 +10,11 @@ pub struct LengthRepeat<L, V> {
 }
 
 impl<L, V> LengthRepeat<L, V> {
-    pub fn new(length_parser: L, value_parser: V) -> Checkpoint<Self> {
-        Checkpoint(Self {
+    pub fn new(length_parser: L, value_parser: V) -> Self {
+        Self {
             length: length_parser,
             value: value_parser,
-        })
+        }
     }
 }
 
@@ -59,19 +58,22 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
-        let (length, offset) = self.length.parse_speedy(input).fold(0, &self.name(), 0)?;
+        let (length, mut offset) = self
+            .length
+            .parse_speedy(input)
+            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), 0))?;
+        let length = length.as_();
 
-        let (offset, values) =
-            (0..length.as_()).try_fold((offset, vec![]), |(offset, mut values), _| {
-                let (value, offset) =
-                    self.value
-                        .parse_speedy(input)
-                        .fold(offset, &self.name(), 1)?;
+        let mut values = Vec::with_capacity(length);
+        for _ in 0..length {
+            let value;
+            (value, offset) = self
+                .value
+                .parse_speedy(input)
+                .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), 1))?;
 
-                values.push(value);
-
-                Ok((offset, values))
-            })?;
+            values.push(value);
+        }
 
         Ok((values, offset))
     }

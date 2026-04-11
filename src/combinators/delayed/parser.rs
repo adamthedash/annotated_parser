@@ -46,6 +46,7 @@ impl<I: Parser> Parser for Delayed<I> {
         Ok((self.value.clone(), anno))
     }
 
+    #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let (out, offset) = self.inner.parse_speedy(input)?;
 

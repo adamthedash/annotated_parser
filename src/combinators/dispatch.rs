@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-    Annotation, FoldResult, FoldSpeedyResult, Parser, ParserSpec, Result,
-    combinators::delayed::DelayedValGet,
+    Annotation, FoldResult, Parser, ParserSpec, Result, combinators::delayed::DelayedValGet,
+    helpers::fold_child_err,
 };
 
 pub struct Dispatch<const N: usize, D, F, O>
@@ -95,7 +95,9 @@ where
             .get_mut(index)
             .expect("Dispatch function produced index out of bounds");
 
-        let (value, offset) = parser.parse_speedy(input).fold(0, &self.name(), index)?;
+        let (value, offset) = parser
+            .parse_speedy(input)
+            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), index))?;
 
         Ok((value, offset))
     }

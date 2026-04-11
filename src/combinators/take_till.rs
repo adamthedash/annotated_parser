@@ -51,21 +51,21 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let mut bytes = vec![];
+        let original = *input;
+        let mut end = 0;
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
         while self.inner.parse(input).is_err() {
-            // Advance one byte
-            let Some((byte, rest)) = input.split_first() else {
+            if end == input.len() {
                 // EoF
                 return Err(Annotation::incomplete(&self.name(), 0, vec![]));
-            };
+            }
 
-            bytes.push(*byte);
-            *input = rest;
+            // Advance one byte
+            end += 1;
+            *input = &input[1..];
         }
 
-        let offset = bytes.len();
-        Ok((bytes, offset))
+        Ok((original[..end].to_vec(), end))
     }
 }

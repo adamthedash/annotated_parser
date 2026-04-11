@@ -27,6 +27,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
         res
     }
 
+    #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;

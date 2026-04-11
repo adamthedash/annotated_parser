@@ -17,6 +17,7 @@ where
 {
     type Value = T;
 
+    #[inline(always)]
     fn get(&self) -> impl Deref<Target = Self::Value> {
         let value = (self.0)();
         Box::new(value)
@@ -29,9 +30,16 @@ where
 /// definition error, hence the use of expect rather than returning results.
 pub struct DelayedVal<T>(Rc<RefCell<Option<T>>>);
 
+impl<T> DelayedVal<T> {
+    pub fn with_value(value: T) -> Self {
+        Self(Rc::new(RefCell::new(Some(value))))
+    }
+}
+
 impl<T> DelayedValGet for DelayedVal<T> {
     type Value = T;
 
+    #[inline(always)]
     fn get(&self) -> impl Deref<Target = Self::Value> {
         let value = self.0.borrow();
 
@@ -42,6 +50,7 @@ impl<T> DelayedValGet for DelayedVal<T> {
 impl<T> DelayedValSet for DelayedVal<T> {
     type Value = T;
 
+    #[inline(always)]
     fn set(&self, value: Self::Value) {
         *self
             .0
@@ -49,6 +58,7 @@ impl<T> DelayedValSet for DelayedVal<T> {
             .expect("There shouldn't be any other active references to this") = Some(value);
     }
 
+    #[inline(always)]
     fn take(&self) -> Self::Value {
         self.0.take().expect("Value has not yet been set")
     }
