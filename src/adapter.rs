@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Parameterize,
+    Configured, Configuring, Parameterize,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -73,6 +73,23 @@ pub trait ParserAdapter: Parser + Sized {
         D: DelayedValGet,
     {
         Cond::new(value, cond, self)
+    }
+
+    fn configured<C>(self, cond: C) -> (Configured<Self>, impl Fn())
+    where
+        C: DelayedValGet<Value = bool>,
+    {
+        let parser = Configured::new(self);
+        let conf = parser.configure_with(cond);
+
+        (parser, conf)
+    }
+
+    fn configuring<F>(self, configurator: F) -> Configuring<Self, F>
+    where
+        F: Fn(),
+    {
+        Configuring::new(self, configurator)
     }
 
     fn optional(self) -> Opt<Self> {

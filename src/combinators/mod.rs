@@ -1,5 +1,6 @@
 mod checkpoint;
 mod conditional;
+mod configured;
 pub mod delayed;
 mod dispatch;
 mod length_repeat;
@@ -14,6 +15,7 @@ mod verify;
 
 pub use checkpoint::{Checkpoint, Peek};
 pub use conditional::Cond;
+pub use configured::{Configured, Configuring};
 pub use delayed::Delayed;
 pub use dispatch::Dispatch;
 pub use length_repeat::LengthRepeat;
