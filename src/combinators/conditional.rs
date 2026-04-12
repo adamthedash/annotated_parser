@@ -4,27 +4,26 @@ use crate::{
 };
 
 /// A parser which may or may not be ran depending on the result of some previous parser
-pub struct Cond<D, P>
+pub struct Cond<C, P>
 where
-    D: DelayedValGet,
+    C: DelayedValGet<Value = bool>,
 {
-    value: D,
-    cond: fn(&D::Value) -> bool,
+    cond: C,
     inner: P,
 }
 
-impl<D, P> Cond<D, P>
+impl<C, P> Cond<C, P>
 where
-    D: DelayedValGet,
+    C: DelayedValGet<Value = bool>,
 {
-    pub fn new(value: D, cond: fn(&D::Value) -> bool, inner: P) -> Self {
-        Self { value, cond, inner }
+    pub fn new(cond: C, inner: P) -> Self {
+        Self { cond, inner }
     }
 }
 
-impl<D, P> Parser for Cond<D, P>
+impl<C, P> Parser for Cond<C, P>
 where
-    D: DelayedValGet,
+    C: DelayedValGet<Value = bool>,
     P: Parser,
 {
     type Output = Option<P::Output>;
@@ -38,9 +37,7 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let value = self.value.get();
-
-        let (value, span, child_annotations) = if (self.cond)(&value) {
+        let (value, span, child_annotations) = if *self.cond.get() {
             let (value, span, child_annotations) =
                 self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
 
@@ -55,9 +52,7 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let value = self.value.get();
-
-        if !(self.cond)(&value) {
+        if !*self.cond.get() {
             return Ok((None, 0));
         }
 

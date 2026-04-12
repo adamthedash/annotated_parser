@@ -68,11 +68,11 @@ pub trait ParserAdapter: Parser + Sized {
         Delayed::new(self)
     }
 
-    fn run_if<D>(self, value: D, cond: fn(&D::Value) -> bool) -> Cond<D, Self>
+    fn run_if<C>(self, cond: C) -> Cond<C, Self>
     where
-        D: DelayedValGet,
+        C: DelayedValGet<Value = bool>,
     {
-        Cond::new(value, cond, self)
+        Cond::new(cond, self)
     }
 
     fn configured<C>(self, cond: C) -> (Configured<Self>, impl Fn())
