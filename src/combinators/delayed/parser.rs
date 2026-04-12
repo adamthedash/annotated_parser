@@ -1,5 +1,5 @@
-use super::DelayedValSet;
 use super::value::DelayedVal;
+use super::{DelayedParser, DelayedValSet};
 use crate::{Parser, ParserSpec, Result};
 
 /// A parser whos output can be referenced before it has been executed
@@ -18,11 +18,6 @@ impl<I: Parser> Delayed<I> {
             inner,
             value: DelayedVal::default(),
         }
-    }
-
-    /// Obtain a handle to the output of this parser. May or may not be initialised yet.
-    pub fn output(&self) -> DelayedVal<I::Output> {
-        self.value.clone()
     }
 }
 
@@ -54,5 +49,17 @@ impl<I: Parser> Parser for Delayed<I> {
         self.value.set(out);
 
         Ok((self.value.clone(), offset))
+    }
+}
+
+impl<P> DelayedParser for Delayed<P>
+where
+    P: Parser,
+{
+    type Value = P::Output;
+    type DelayedValue = Self::Output;
+
+    fn output(&self) -> Self::DelayedValue {
+        self.value.clone()
     }
 }

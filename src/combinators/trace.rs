@@ -1,4 +1,4 @@
-use crate::{Parser, ParserSpec, Result};
+use crate::{Parser, ParserSpec, Result, combinators::delayed::DelayedParser};
 
 /// For adding a user-friendly name to the spec
 #[derive(Clone)]
@@ -37,5 +37,17 @@ impl<P: Parser> Parser for Trace<P> {
     #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         self.inner.parse_speedy(input)
+    }
+}
+
+impl<P> DelayedParser for Trace<P>
+where
+    P: DelayedParser,
+{
+    type Value = P::Value;
+    type DelayedValue = P::DelayedValue;
+
+    fn output(&self) -> Self::DelayedValue {
+        self.inner.output()
     }
 }

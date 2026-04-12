@@ -1,6 +1,7 @@
 use crate::Annotation;
 use crate::AnnotationResult;
 use crate::ParserSpec;
+use crate::combinators::delayed::DelayedParser;
 use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<(T, Annotation), Annotation>;
@@ -81,6 +82,18 @@ where
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
         (**self).parse_speedy(input)
+    }
+}
+
+impl<P> DelayedParser for Box<P>
+where
+    P: DelayedParser,
+{
+    type Value = P::Value;
+    type DelayedValue = P::DelayedValue;
+
+    fn output(&self) -> Self::DelayedValue {
+        (**self).output()
     }
 }
 

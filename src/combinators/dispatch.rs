@@ -108,6 +108,7 @@ mod tests {
     use super::*;
     use crate::ByteParser;
     use crate::ParserAdapter;
+    use crate::combinators::delayed::DelayedParser;
 
     #[test]
     fn test_dispatch() {

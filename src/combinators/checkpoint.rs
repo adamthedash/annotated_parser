@@ -1,4 +1,4 @@
-use crate::{Parser, ParserSpec, Result};
+use crate::{Parser, ParserSpec, Result, combinators::delayed::DelayedParser};
 
 /// Wrapper which resets the input stream on failure
 pub struct Checkpoint<P>(pub P);
@@ -42,6 +42,18 @@ impl<P: Parser> Parser for Checkpoint<P> {
     }
 }
 
+impl<P> DelayedParser for Checkpoint<P>
+where
+    P: DelayedParser,
+{
+    type Value = P::Value;
+    type DelayedValue = P::DelayedValue;
+
+    fn output(&self) -> Self::DelayedValue {
+        self.0.output()
+    }
+}
+
 /// Wrapper which resets the input stream in all cases
 pub struct Peek<P>(pub P);
 
@@ -82,5 +94,17 @@ impl<P: Parser> Parser for Peek<P> {
         *input = checkpoint;
 
         res
+    }
+}
+
+impl<P> DelayedParser for Peek<P>
+where
+    P: DelayedParser,
+{
+    type Value = P::Value;
+    type DelayedValue = P::DelayedValue;
+
+    fn output(&self) -> Self::DelayedValue {
+        self.0.output()
     }
 }
