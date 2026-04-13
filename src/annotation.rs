@@ -6,8 +6,12 @@ use std::{
 #[derive(Debug)]
 pub struct Annotation {
     pub parser_id: String,
+    /// If this annotation is the child of another, this is the index of it within the parent
+    /// parser spec
+    pub child_index: Option<usize>,
     pub children: Vec<Annotation>,
     pub result: AnnotationResult,
+    materialized: bool,
 }
 
 #[derive(Debug)]
@@ -35,8 +39,10 @@ impl Annotation {
     fn new(parser_id: impl Into<String>, children: Vec<Self>, result: AnnotationResult) -> Self {
         Self {
             parser_id: parser_id.into(),
+            child_index: None,
             children,
             result,
+            materialized: false,
         }
     }
 
@@ -91,14 +97,46 @@ impl Annotation {
     }
 
     /// Helper function which updates child annotations with information from the parent parser
-    pub fn update_with_parent(&mut self, span_offset: usize, prefix: &str) {
+    fn update_with_parent(&mut self, mut offset: usize, prefix: &str) {
+        // Update this parser
+        // PERF: insert over format & re-assign to avoid lots of reallocs
+        if let Some(index) = self.child_index {
+            // format!("{prefix}[{index}]/{}", self.parser_id)
+            let index = index.to_string();
+            self.parser_id.reserve(prefix.len() + index.len() + 3);
+            self.parser_id.insert_str(0, "]/");
+            self.parser_id.insert_str(0, &index);
+            self.parser_id.insert(0, '[');
+        } else {
+            // format!("{prefix}/{}", self.parser_id)
+            self.parser_id.reserve(prefix.len() + 1);
+            self.parser_id.insert(0, '/');
+        };
         self.parser_id.insert_str(0, prefix);
 
-        self.result.shift_span(span_offset);
+        self.result.shift_span(offset);
+        (offset, _) = self.result.span();
 
+        // Update children
         for child in &mut self.children {
-            child.update_with_parent(span_offset, prefix);
+            child.update_with_parent(offset, &self.parser_id);
         }
+    }
+
+    /// Recursively updates all annotations in this tree, adjusting their span/offset and
+    /// materializing the full paths for parser IDs.
+    pub fn materialize(&mut self) {
+        assert!(
+            !self.materialized,
+            "Annotations can only be materialised once!"
+        );
+
+        // Update children
+        for child in &mut self.children {
+            child.update_with_parent(0, &self.parser_id);
+        }
+
+        self.materialized = true;
     }
 
     /// Recurse through the annotation tree and find the first instance that matches the given
@@ -121,6 +159,7 @@ impl Annotation {
 }
 
 impl AnnotationResult {
+    #[inline(always)]
     pub fn span(&self) -> (usize, Option<usize>) {
         use AnnotationResult::*;
         match self {
@@ -129,10 +168,13 @@ impl AnnotationResult {
         }
     }
 
+    #[inline(always)]
     pub fn is_ok(&self) -> bool {
         matches!(self, AnnotationResult::Success { .. })
     }
 
+    /// Shift the span/offset for this annotation forward
+    #[inline(always)]
     pub fn shift_span(&mut self, offset: usize) {
         use AnnotationResult::*;
         match self {

@@ -98,7 +98,7 @@ where
 
         let (value, offset) = parser
             .parse_speedy(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), index))?;
+            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), index))?;
 
         Ok((value, offset))
     }

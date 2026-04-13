@@ -79,7 +79,7 @@ where
         let (value, offset) = self
             .inner
             .parse_speedy(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), 0))?;
+            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
 
         Ok((Some(value), offset))
     }

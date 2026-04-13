@@ -101,7 +101,7 @@ where
                         }
                     }
 
-                    let annotation = fold_child_err(a, vec![], offset, &self.name(), 0);
+                    let annotation = fold_child_err(a, vec![], offset, self.name(), 0);
                     return Err(annotation);
                 }
             }
@@ -185,7 +185,7 @@ where
                     offset = new_offset;
                 }
                 Err(a) => {
-                    let annotation = fold_child_err(a, vec![], offset, &self.name(), 0);
+                    let annotation = fold_child_err(a, vec![], offset, self.name(), 0);
                     return Err(annotation);
                 }
             }

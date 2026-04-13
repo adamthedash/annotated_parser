@@ -64,7 +64,7 @@ where
         let (length, mut offset) = self
             .length
             .parse_speedy(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, &self.name(), 0))?;
+            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
         let length = length.as_();
 
         let mut values = Vec::with_capacity(length);
@@ -73,7 +73,7 @@ where
             (value, offset) = self
                 .value
                 .parse_speedy(input)
-                .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), 1))?;
+                .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 1))?;
 
             values.push(value);
         }
