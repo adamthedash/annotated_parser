@@ -33,7 +33,7 @@ where
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let (value, offset, child_annotations) =
-            self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
+            self.inner.parse(input).fold(vec![], 0, || self.name(), 0)?;
 
         if !(self.func)(&value) {
             return Err(Annotation::invalid(

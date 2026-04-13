@@ -37,10 +37,10 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let name = self.name();
-
         let (length, mut offset, mut child_annotations) =
-            self.length.parse(input).fold(vec![], 0, &name, 0)?;
+            self.length
+                .parse(input)
+                .fold(vec![], 0, || self.name(), 0)?;
         let length = length.as_();
         child_annotations.reserve(length);
 
@@ -50,12 +50,13 @@ where
             (value, offset, child_annotations) =
                 self.value
                     .parse(input)
-                    .fold(child_annotations, offset, &name, 1)?;
+                    .fold(child_annotations, offset, || self.name(), 1)?;
 
             values.push(value);
         }
 
-        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }

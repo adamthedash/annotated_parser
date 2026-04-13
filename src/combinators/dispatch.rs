@@ -71,7 +71,7 @@ where
             .expect("Dispatch function produced index out of bounds");
 
         let (value, offset, child_annotations) =
-            parser.parse(input).fold(vec![], 0, &self.name(), index)?;
+            parser.parse(input).fold(vec![], 0, || self.name(), index)?;
 
         let annotation =
             Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);

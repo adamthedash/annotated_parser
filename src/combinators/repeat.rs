@@ -40,8 +40,6 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let name = self.name();
-
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut child_annotations = Vec::with_capacity(N);
 
@@ -50,7 +48,7 @@ where
             match self
                 .inner
                 .parse(input)
-                .fold(child_annotations, offset, &name, 0)
+                .fold(child_annotations, offset, || self.name(), 0)
             {
                 Ok((value, new_offset, child_annos)) => {
                     value_out.write(value);
@@ -76,7 +74,8 @@ where
         // Ideally could use MaybeUninit::array_assume_init, but we are on stable
         let values = values.map(|v| unsafe { v.assume_init() });
 
-        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }
@@ -151,8 +150,6 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let name = self.name();
-
         let count = self.count.get().as_();
 
         let mut child_annotations = Vec::with_capacity(count);
@@ -163,12 +160,13 @@ where
             (value, offset, child_annotations) =
                 self.inner
                     .parse(input)
-                    .fold(child_annotations, offset, &name, 0)?;
+                    .fold(child_annotations, offset, || self.name(), 0)?;
 
             values.push(value);
         }
 
-        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }

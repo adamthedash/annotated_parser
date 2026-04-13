@@ -49,7 +49,6 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let name = self.name();
         let parameters = self.parameters.get();
 
         let mut child_annotations = Vec::with_capacity(parameters.len());
@@ -64,12 +63,13 @@ where
             (value, offset, child_annotations) =
                 self.parser
                     .parse(input)
-                    .fold(child_annotations, offset, &name, 0)?;
+                    .fold(child_annotations, offset, || self.name(), 0)?;
 
             values.push(value);
         }
 
-        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }

@@ -39,7 +39,7 @@ where
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let (value, offset, child_annotations) = if *self.cond.get() {
             let (value, offset, child_annotations) =
-                self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
+                self.inner.parse(input).fold(vec![], 0, || self.name(), 0)?;
 
             (Some(value), offset, child_annotations)
         } else {

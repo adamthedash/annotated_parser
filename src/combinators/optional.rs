@@ -18,7 +18,7 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let res = self.0.parse(input).fold(vec![], 0, &self.name(), 0);
+        let res = self.0.parse(input).fold(vec![], 0, || self.name(), 0);
 
         let (out, offset, child_annotations) = match res {
             Ok((out, offset, child_annotations)) => (Some(out), offset, child_annotations),

@@ -32,7 +32,7 @@ macro_rules! impl_parser_for_tuple {
                         ([<out_ $idx>], offset, child_annotations) =
                             self.$idx
                                 .parse(input)
-                                .fold(child_annotations, offset, &self.name(), $idx)?;
+                                .fold(child_annotations, offset, || self.name(), $idx)?;
                     )+
 
                     let out = ($( [<out_ $idx>], )+);

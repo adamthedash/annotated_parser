@@ -2,23 +2,31 @@ use std::ops::Range;
 
 use crate::{Annotation, AnnotationResult, Result};
 
-pub trait FoldResult<T> {
+pub trait FoldResult<T, P, S>
+where
+    P: FnOnce() -> S,
+    S: Into<String>,
+{
     /// Fold the result of applying a child parser
     fn fold(
         self,
         child_annotations: Vec<Annotation>,
         offset: usize,
-        parent_name: &str,
+        parent_name: P,
         child_index: usize,
     ) -> std::result::Result<(T, usize, Vec<Annotation>), Annotation>;
 }
 
-impl<T> FoldResult<T> for Result<T> {
+impl<T, P, S> FoldResult<T, P, S> for Result<T>
+where
+    P: FnOnce() -> S,
+    S: Into<String>,
+{
     fn fold(
         self,
         child_annotations: Vec<Annotation>,
         offset: usize,
-        parent_name: &str,
+        parent_name: P,
         child_index: usize,
     ) -> std::result::Result<(T, usize, Vec<Annotation>), Annotation> {
         match self {
@@ -33,7 +41,7 @@ impl<T> FoldResult<T> for Result<T> {
                     annotation,
                     child_annotations,
                     offset,
-                    parent_name,
+                    parent_name(),
                     child_index,
                 );
 
@@ -44,6 +52,7 @@ impl<T> FoldResult<T> for Result<T> {
 }
 
 /// Ok path of crate::Result<T>::fold
+#[inline(always)]
 pub fn fold_success(
     mut annotation: Annotation,
     mut child_annotations: Vec<Annotation>,
