@@ -52,7 +52,7 @@ where
             },
         )?;
 
-        let annotation = Annotation::success(&self.name(), 0..offset, &values, child_annotations);
+        let annotation = Annotation::success(self.name(), 0..offset, &values, child_annotations);
 
         Ok((values, annotation))
     }

@@ -37,14 +37,14 @@ where
 
         if !(self.func)(&value) {
             return Err(Annotation::invalid(
-                &self.name(),
+                self.name(),
                 span,
                 "Validation failure".to_owned(),
                 child_annotations,
             ));
         }
 
-        let annotation = Annotation::success(&self.name(), span, &value, child_annotations);
+        let annotation = Annotation::success(self.name(), span, &value, child_annotations);
 
         Ok((value, annotation))
     }
@@ -58,7 +58,7 @@ where
 
         if !(self.func)(&value) {
             return Err(Annotation::invalid(
-                &self.name(),
+                self.name(),
                 0..offset,
                 "Validation failure".to_owned(),
                 vec![],

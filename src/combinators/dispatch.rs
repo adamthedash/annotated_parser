@@ -58,7 +58,7 @@ where
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
             return Err(Annotation::invalid(
-                &self.name(),
+                self.name(),
                 0..0,
                 format!("Unknown discriminant: {:?}", *discriminant),
                 vec![],
@@ -73,7 +73,7 @@ where
         let (value, span, child_annotations) =
             parser.parse(input).fold(vec![], 0, &self.name(), index)?;
 
-        let annotation = Annotation::success(&self.name(), span, &value, child_annotations);
+        let annotation = Annotation::success(self.name(), span, &value, child_annotations);
 
         Ok((value, annotation))
     }
@@ -83,7 +83,7 @@ where
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
             return Err(Annotation::invalid(
-                &self.name(),
+                self.name(),
                 0..0,
                 format!("Unknown discriminant: {:?}", *discriminant),
                 vec![],

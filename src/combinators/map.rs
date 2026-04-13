@@ -46,7 +46,7 @@ where
             Err(e) => {
                 // Function application has failed, so fail annotation at this level
                 return Err(Annotation::invalid(
-                    &self.name(),
+                    self.name(),
                     span.clone(),
                     format!("{}", e),
                     child_annotations,
@@ -54,7 +54,7 @@ where
             }
         };
 
-        let annotation = Annotation::success(&self.name(), span.clone(), &out, child_annotations);
+        let annotation = Annotation::success(self.name(), span.clone(), &out, child_annotations);
 
         Ok((out, annotation))
     }
@@ -67,7 +67,7 @@ where
 
         let out = (self.func)(data)
             // Function application has failed, so fail annotation at this level
-            .map_err(|e| Annotation::invalid(&self.name(), 0..offset, format!("{}", e), vec![]))?;
+            .map_err(|e| Annotation::invalid(self.name(), 0..offset, format!("{}", e), vec![]))?;
 
         Ok((out, offset))
     }
@@ -112,7 +112,7 @@ where
 
         let out = (self.func)(data);
 
-        let annotation = Annotation::success(&self.name(), span.clone(), &out, child_annotations);
+        let annotation = Annotation::success(self.name(), span.clone(), &out, child_annotations);
 
         Ok((out, annotation))
     }

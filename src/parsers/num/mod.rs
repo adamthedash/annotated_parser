@@ -25,7 +25,7 @@ impl Parser for Bool {
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         let value = match first {
@@ -33,7 +33,7 @@ impl Parser for Bool {
             1 => true,
             x => {
                 return Err(Annotation::invalid(
-                    &self.name(),
+                    self.name(),
                     0..1,
                     format!("Invalid bool value: {x}"),
                     vec![],
@@ -44,14 +44,14 @@ impl Parser for Bool {
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(&self.name(), 0..1, value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..1, value, vec![]);
 
         Ok((value, annotation))
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         let value = match first {
@@ -59,7 +59,7 @@ impl Parser for Bool {
             1 => true,
             x => {
                 return Err(Annotation::invalid(
-                    &self.name(),
+                    self.name(),
                     0..1,
                     format!("Invalid bool value: {x}"),
                     vec![],

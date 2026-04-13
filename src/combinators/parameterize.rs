@@ -70,7 +70,7 @@ where
             },
         )?;
 
-        let annotation = Annotation::success(&self.name(), span, &values, child_annotations);
+        let annotation = Annotation::success(self.name(), span, &values, child_annotations);
 
         Ok((values, annotation))
     }

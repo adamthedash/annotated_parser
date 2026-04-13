@@ -38,14 +38,14 @@ where
             // Advance one byte
             let Some((byte, rest)) = input.split_first() else {
                 // EoF
-                return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+                return Err(Annotation::incomplete(self.name(), 0, vec![]));
             };
 
             bytes.push(*byte);
             *input = rest;
         }
 
-        let annotation = Annotation::success(&self.name(), 0..bytes.len(), &bytes, vec![]);
+        let annotation = Annotation::success(self.name(), 0..bytes.len(), &bytes, vec![]);
 
         Ok((bytes, annotation))
     }
@@ -58,7 +58,7 @@ where
         while self.inner.parse(input).is_err() {
             if end == input.len() {
                 // EoF
-                return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+                return Err(Annotation::incomplete(self.name(), 0, vec![]));
             }
 
             // Advance one byte

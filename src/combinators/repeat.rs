@@ -29,10 +29,12 @@ where
 {
     type Output = [P::Output; N];
 
+    #[inline(always)]
     fn name(&self) -> String {
         format!("repeat({})", N)
     }
 
+    #[inline(always)]
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
@@ -56,7 +58,7 @@ where
             .try_into()
             .expect("Parser should have successfully applied N times above");
 
-        let annotation = Annotation::success(&self.name(), 0..offset, &values, child_annotations);
+        let annotation = Annotation::success(self.name(), 0..offset, &values, child_annotations);
 
         Ok((values, annotation))
     }
@@ -120,10 +122,12 @@ where
 {
     type Output = Vec<P::Output>;
 
+    #[inline(always)]
     fn name(&self) -> String {
         "repeat".to_owned()
     }
 
+    #[inline(always)]
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
@@ -144,7 +148,7 @@ where
             },
         )?;
 
-        let annotation = Annotation::success(&self.name(), 0..offset, &values, child_annotations);
+        let annotation = Annotation::success(self.name(), 0..offset, &values, child_annotations);
 
         Ok((values, annotation))
     }

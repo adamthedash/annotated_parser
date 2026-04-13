@@ -15,7 +15,7 @@ impl Parser for Empty {
     }
 
     fn parse(&mut self, _input: &mut &[u8]) -> Result<Self::Output> {
-        let annotation = Annotation::success(&self.name(), 0..0, (), vec![]);
+        let annotation = Annotation::success(self.name(), 0..0, (), vec![]);
         Ok(((), annotation))
     }
 

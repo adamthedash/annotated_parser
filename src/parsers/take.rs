@@ -9,22 +9,24 @@ pub struct TakeArray<const N: usize>;
 impl<const N: usize> Parser for TakeArray<N> {
     type Output = [u8; N];
 
+    #[inline(always)]
     fn name(&self) -> String {
         format!("take({})", N)
     }
 
+    #[inline(always)]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         *input = rest;
 
-        let annotation = Annotation::success(&self.name(), 0..N, value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..N, value, vec![]);
 
         Ok((*value, annotation))
     }
@@ -32,7 +34,7 @@ impl<const N: usize> Parser for TakeArray<N> {
     #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         *input = rest;
@@ -54,10 +56,12 @@ where
 {
     type Output = Vec<u8>;
 
+    #[inline(always)]
     fn name(&self) -> String {
         "take".to_owned()
     }
 
+    #[inline(always)]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
@@ -66,12 +70,12 @@ where
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         *input = rest;
 
-        let annotation = Annotation::success(&self.name(), 0..count, value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..count, value, vec![]);
 
         Ok((value.to_vec(), annotation))
     }
@@ -81,7 +85,7 @@ where
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         *input = rest;
