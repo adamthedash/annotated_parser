@@ -93,7 +93,7 @@ pub trait ParserAdapter: Parser + Sized {
     }
 
     fn optional(self) -> Opt<Self> {
-        Opt(self)
+        Opt::new(self)
     }
 
     fn verify<F>(self, func: F) -> Verify<Self, F>

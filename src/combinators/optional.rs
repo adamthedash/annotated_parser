@@ -1,7 +1,22 @@
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result};
+use crate::{
+    Annotation, FoldResult, Parser, ParserAdapter, ParserSpec, Result, combinators::Checkpoint,
+};
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
-pub struct Opt<I>(pub I);
+pub struct Opt<I> {
+    inner: Checkpoint<I>,
+}
+
+impl<I> Opt<I>
+where
+    I: Parser,
+{
+    pub fn new(inner: I) -> Self {
+        Self {
+            inner: inner.checkpoint(),
+        }
+    }
+}
 
 impl<I> Parser for Opt<I>
 where
@@ -14,11 +29,11 @@ where
     }
 
     fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.0.spec()])
+        ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let res = self.0.parse(input).fold(vec![], 0, || self.name(), 0);
+        let res = self.inner.parse(input).fold(vec![], 0, || self.name(), 0);
 
         let (out, offset, child_annotations) = match res {
             Ok((out, offset, child_annotations)) => (Some(out), offset, child_annotations),
@@ -33,10 +48,44 @@ where
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let Ok((value, offset)) = self.0.parse_speedy(input) else {
+        let Ok((value, offset)) = self.inner.parse_speedy(input) else {
             return Ok((None, 0));
         };
 
         Ok((Some(value), offset))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{ByteParser, Parser, ParserAdapter};
+    #[test]
+    fn test_some() {
+        let mut parser = u32::LE.optional();
+        let mut input = [0; 5].as_slice();
+
+        let (value, _) = parser.parse_speedy(&mut input).unwrap();
+        assert_eq!(value, Some(0));
+        assert_eq!(input, &[0]);
+    }
+
+    #[test]
+    fn test_none_incomplete() {
+        let mut parser = u32::LE.optional();
+        let mut input = [0; 3].as_slice();
+
+        let (value, _) = parser.parse_speedy(&mut input).unwrap();
+        assert_eq!(value, None);
+        assert_eq!(input, &[0; 3]);
+    }
+
+    #[test]
+    fn test_none_invalid() {
+        let mut parser = u32::LE.verify(|x| *x == 1).optional();
+        let mut input = [0; 5].as_slice();
+
+        let (value, _) = parser.parse_speedy(&mut input).unwrap();
+        assert_eq!(value, None);
+        assert_eq!(input, &[0; 5]);
     }
 }

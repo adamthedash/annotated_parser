@@ -35,7 +35,7 @@ pub trait Parser {
     /// Failure case only needs to return annotations for the failure branch.  
     /// Eg. for a LengthRepeat(u32, u16), if the 5th application of the u16 parser fails, the
     /// returned annotation should look roughly like:  
-    /// ```
+    /// ```ignore
     ///     Anno::Child {
     ///         name: "length_repeat",
     ///         start: 0,
