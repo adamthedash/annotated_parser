@@ -12,9 +12,11 @@ impl<const N: usize, T> Parser for LE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug,
+    T: 'static,
 {
     type Output = T;
 
+    #[inline(always)]
     fn name(&self) -> String {
         format!("le_{}", std::any::type_name::<T>())
     }
@@ -25,7 +27,7 @@ where
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         let value = T::from_le_bytes(bytes);
@@ -33,7 +35,7 @@ where
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(&self.name(), 0..N, &value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..N, &value, vec![]);
 
         Ok((value, annotation))
     }
@@ -41,7 +43,7 @@ where
     #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         let value = T::from_le_bytes(bytes);
@@ -64,6 +66,7 @@ where
 {
     type Output = T;
 
+    #[inline(always)]
     fn name(&self) -> String {
         format!("be_{}", std::any::type_name::<T>())
     }
@@ -74,7 +77,7 @@ where
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         let value = T::from_be_bytes(bytes);
@@ -82,7 +85,7 @@ where
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(&self.name(), 0..N, &value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..N, &value, vec![]);
 
         Ok((value, annotation))
     }
@@ -90,7 +93,7 @@ where
     #[inline(always)]
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+            return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
 
         let value = T::from_be_bytes(bytes);

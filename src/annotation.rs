@@ -35,16 +35,18 @@ pub enum AnnotationResult {
 }
 
 impl Annotation {
-    fn new(parser_id: &str, children: Vec<Self>, result: AnnotationResult) -> Self {
+    #[inline(always)]
+    fn new(parser_id: impl Into<String>, children: Vec<Self>, result: AnnotationResult) -> Self {
         Self {
-            parser_id: parser_id.to_owned(),
+            parser_id: parser_id.into(),
             children,
             result,
         }
     }
 
+    #[inline(always)]
     pub fn success(
-        parser_id: &str,
+        parser_id: impl Into<String>,
         span: Range<usize>,
         value: impl std::fmt::Debug,
         children: Vec<Self>,
@@ -59,16 +61,19 @@ impl Annotation {
         )
     }
 
-    pub fn incomplete(parser_id: &str, start: usize, children: Vec<Self>) -> Self {
+    #[inline(always)]
+    pub fn incomplete(parser_id: impl Into<String>, start: usize, children: Vec<Self>) -> Self {
         Self::new(parser_id, children, AnnotationResult::Incomplete { start })
     }
 
-    pub fn child(parser_id: &str, start: usize, children: Vec<Self>) -> Self {
+    #[inline(always)]
+    pub fn child(parser_id: impl Into<String>, start: usize, children: Vec<Self>) -> Self {
         Self::new(parser_id, children, AnnotationResult::Child { start })
     }
 
+    #[inline(always)]
     pub fn invalid(
-        parser_id: &str,
+        parser_id: impl Into<String>,
         span: Range<usize>,
         reason: String,
         children: Vec<Self>,
