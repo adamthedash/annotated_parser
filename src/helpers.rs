@@ -10,7 +10,7 @@ pub trait FoldResult<T> {
         offset: usize,
         parent_name: &str,
         child_index: usize,
-    ) -> std::result::Result<(T, Range<usize>, Vec<Annotation>), Annotation>;
+    ) -> std::result::Result<(T, usize, Vec<Annotation>), Annotation>;
 }
 
 impl<T> FoldResult<T> for Result<T> {
@@ -20,10 +20,10 @@ impl<T> FoldResult<T> for Result<T> {
         offset: usize,
         parent_name: &str,
         child_index: usize,
-    ) -> std::result::Result<(T, Range<usize>, Vec<Annotation>), Annotation> {
+    ) -> std::result::Result<(T, usize, Vec<Annotation>), Annotation> {
         match self {
             Ok((value, annotation)) => {
-                let (span, child_annotations) = fold_success(
+                let (offset, child_annotations) = fold_success(
                     annotation,
                     child_annotations,
                     offset,
@@ -31,7 +31,7 @@ impl<T> FoldResult<T> for Result<T> {
                     child_index,
                 );
 
-                Ok((value, span, child_annotations))
+                Ok((value, offset, child_annotations))
             }
             Err(annotation) => {
                 let annotation = fold_child_err(
@@ -55,17 +55,20 @@ pub fn fold_success(
     offset: usize,
     parent_name: &str,
     child_index: usize,
-) -> (Range<usize>, Vec<Annotation>) {
+) -> (usize, Vec<Annotation>) {
     let prefix = format!("{parent_name}[{child_index}]/");
     annotation.update_with_parent(offset, &prefix);
 
-    let AnnotationResult::Success { span, .. } = &annotation.result else {
+    let AnnotationResult::Success {
+        span: Range { end, .. },
+        ..
+    } = annotation.result
+    else {
         unreachable!("Child parser has succeeded");
     };
-    let span = span.clone();
 
     child_annotations.push(annotation);
-    (span, child_annotations)
+    (end, child_annotations)
 }
 
 /// Error path of crate::Result<T>::fold

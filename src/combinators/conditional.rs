@@ -37,16 +37,17 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (value, span, child_annotations) = if *self.cond.get() {
-            let (value, span, child_annotations) =
+        let (value, offset, child_annotations) = if *self.cond.get() {
+            let (value, offset, child_annotations) =
                 self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
 
-            (Some(value), span, child_annotations)
+            (Some(value), offset, child_annotations)
         } else {
-            (None, 0..0, vec![])
+            (None, 0, vec![])
         };
 
-        let annotation = Annotation::success(self.name(), span, value.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
 
         Ok((value, annotation))
     }

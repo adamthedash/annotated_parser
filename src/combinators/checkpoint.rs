@@ -86,8 +86,6 @@ impl<P: Parser> Parser for Peek<P> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
-        // TODO: On success this will return an annotation in the "future", so it might conflict
-        // with follow-on annotations. Maybe return 0-span annotation instead?
         let res = self.0.parse_speedy(input);
 
         // Reset input

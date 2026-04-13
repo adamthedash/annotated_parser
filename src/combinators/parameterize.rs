@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::{
     Annotation, FoldResult, Parser, ParserSpec, Result,
     combinators::delayed::{DelayedValGet, DelayedValSet},
@@ -52,25 +50,26 @@ where
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let name = self.name();
-        let (values, span, child_annotations) = self.parameters.get().deref().iter().try_fold(
-            (vec![], 0..0, vec![]),
-            |(mut out_values, out_span, child_annotations), value| {
-                // Move this iter's param into the param slot of the parser
-                self.parameter_input.set(value.clone());
+        let parameters = self.parameters.get();
 
-                // Apply inner parser
-                let (out_value, span, child_annotations) =
-                    self.parser
-                        .parse(input)
-                        .fold(child_annotations, out_span.end, &name, 0)?;
+        let mut child_annotations = Vec::with_capacity(parameters.len());
+        let mut values = Vec::with_capacity(parameters.len());
+        let mut offset = 0;
+        for param in parameters.iter() {
+            // Move this iter's param into the param slot of the parser
+            self.parameter_input.set(param.clone());
 
-                out_values.push(out_value);
+            // Apply inner parser
+            let value;
+            (value, offset, child_annotations) =
+                self.parser
+                    .parse(input)
+                    .fold(child_annotations, offset, &name, 0)?;
 
-                Ok((out_values, 0..span.end, child_annotations))
-            },
-        )?;
+            values.push(value);
+        }
 
-        let annotation = Annotation::success(self.name(), span, values.clone(), child_annotations);
+        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }

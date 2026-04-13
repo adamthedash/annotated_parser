@@ -38,7 +38,7 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (data, span, child_annotations) =
+        let (data, offset, child_annotations) =
             self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
 
         let out = match (self.func)(data) {
@@ -47,7 +47,7 @@ where
                 // Function application has failed, so fail annotation at this level
                 return Err(Annotation::invalid(
                     self.name(),
-                    span.clone(),
+                    0..offset,
                     format!("{}", e),
                     child_annotations,
                 ));
@@ -55,7 +55,7 @@ where
         };
 
         let annotation =
-            Annotation::success(self.name(), span.clone(), out.clone(), child_annotations);
+            Annotation::success(self.name(), 0..offset, out.clone(), child_annotations);
 
         Ok((out, annotation))
     }
@@ -108,15 +108,15 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (data, span, child_annotations) =
+        let (data, offset, child_annotations) =
             self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
 
-        let out = (self.func)(data);
+        let value = (self.func)(data);
 
         let annotation =
-            Annotation::success(self.name(), span.clone(), out.clone(), child_annotations);
+            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
 
-        Ok((out, annotation))
+        Ok((value, annotation))
     }
 
     fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {

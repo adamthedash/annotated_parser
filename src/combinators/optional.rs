@@ -20,13 +20,14 @@ where
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let res = self.0.parse(input).fold(vec![], 0, &self.name(), 0);
 
-        let (out, span, child_annotations) = match res {
-            Ok((out, span, child_annotations)) => (Some(out), span, child_annotations),
+        let (out, offset, child_annotations) = match res {
+            Ok((out, offset, child_annotations)) => (Some(out), offset, child_annotations),
             // TODO: Should we be passing up child annotations here?
-            Err(child_annotation) => (None, 0..0, vec![child_annotation]),
+            Err(child_annotation) => (None, 0, vec![child_annotation]),
         };
 
-        let annotation = Annotation::success(self.name(), span, out.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, out.clone(), child_annotations);
 
         Ok((out, annotation))
     }

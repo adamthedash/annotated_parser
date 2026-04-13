@@ -52,9 +52,9 @@ where
                 .parse(input)
                 .fold(child_annotations, offset, &name, 0)
             {
-                Ok((value, span, child_annos)) => {
+                Ok((value, new_offset, child_annos)) => {
                     value_out.write(value);
-                    offset = span.end;
+                    offset = new_offset;
                     child_annotations = child_annos;
                 }
                 Err(annotation) => {
@@ -154,19 +154,19 @@ where
         let name = self.name();
 
         let count = self.count.get().as_();
-        let (values, offset, child_annotations) = (0..count).try_fold(
-            (Vec::with_capacity(count), 0, Vec::with_capacity(count)),
-            |(mut values, offset, child_annotations), _| {
-                let (value, span, child_annotations) =
-                    self.inner
-                        .parse(input)
-                        .fold(child_annotations, offset, &name, 0)?;
 
-                values.push(value);
+        let mut child_annotations = Vec::with_capacity(count);
+        let mut values = Vec::with_capacity(count);
+        let mut offset = 0;
+        for _ in 0..count {
+            let value;
+            (value, offset, child_annotations) =
+                self.inner
+                    .parse(input)
+                    .fold(child_annotations, offset, &name, 0)?;
 
-                Ok((values, span.end, child_annotations))
-            },
-        )?;
+            values.push(value);
+        }
 
         let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
 

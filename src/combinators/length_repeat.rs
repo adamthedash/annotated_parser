@@ -26,34 +26,36 @@ where
 {
     type Output = Vec<V::Output>;
 
+    #[inline(always)]
     fn name(&self) -> String {
         "length_repeat".to_owned()
     }
 
+    #[inline(always)]
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (length, span, child_annotations) =
-            self.length.parse(input).fold(vec![], 0, &self.name(), 0)?;
+        let name = self.name();
 
-        let (offset, values, child_annotations) = (0..length.as_()).try_fold(
-            (span.end, vec![], child_annotations),
-            |(offset, mut values, child_annotations), _| {
-                let (value, span, child_annotations) =
-                    self.value
-                        .parse(input)
-                        .fold(child_annotations, offset, &self.name(), 1)?;
+        let (length, mut offset, mut child_annotations) =
+            self.length.parse(input).fold(vec![], 0, &name, 0)?;
+        let length = length.as_();
+        child_annotations.reserve(length);
 
-                values.push(value);
+        let mut values = Vec::with_capacity(length);
+        for _ in 0..length {
+            let value;
+            (value, offset, child_annotations) =
+                self.value
+                    .parse(input)
+                    .fold(child_annotations, offset, &name, 1)?;
 
-                Ok((span.end, values, child_annotations))
-            },
-        )?;
+            values.push(value);
+        }
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
+        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }

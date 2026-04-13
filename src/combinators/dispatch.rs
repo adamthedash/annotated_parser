@@ -70,10 +70,11 @@ where
             .get_mut(index)
             .expect("Dispatch function produced index out of bounds");
 
-        let (value, span, child_annotations) =
+        let (value, offset, child_annotations) =
             parser.parse(input).fold(vec![], 0, &self.name(), index)?;
 
-        let annotation = Annotation::success(self.name(), span, value.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
 
         Ok((value, annotation))
     }

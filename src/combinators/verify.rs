@@ -32,19 +32,20 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (value, span, child_annotations) =
+        let (value, offset, child_annotations) =
             self.inner.parse(input).fold(vec![], 0, &self.name(), 0)?;
 
         if !(self.func)(&value) {
             return Err(Annotation::invalid(
                 self.name(),
-                span,
+                0..offset,
                 "Validation failure".to_owned(),
                 child_annotations,
             ));
         }
 
-        let annotation = Annotation::success(self.name(), span, value.clone(), child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
 
         Ok((value, annotation))
     }

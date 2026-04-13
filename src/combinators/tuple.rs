@@ -24,19 +24,19 @@ macro_rules! impl_parser_for_tuple {
                 }
 
                 fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-                    let child_annotations = vec![];
-                    let mut span_end = 0usize;
+                    let mut child_annotations = vec![];
+                    let mut offset = 0usize;
 
                     $(
-                        let ([<out_ $idx>], span, child_annotations) =
+                        let [<out_ $idx>];
+                        ([<out_ $idx>], offset, child_annotations) =
                             self.$idx
                                 .parse(input)
-                                .fold(child_annotations, span_end, &self.name(), $idx)?;
-                        span_end = span.end;
+                                .fold(child_annotations, offset, &self.name(), $idx)?;
                     )+
 
                     let out = ($( [<out_ $idx>], )+);
-                    let annotation = Annotation::success(&self.name(), 0..span_end, out.clone(), child_annotations);
+                    let annotation = Annotation::success(&self.name(), 0..offset, out.clone(), child_annotations);
                     Ok((out, annotation))
                 }
 
