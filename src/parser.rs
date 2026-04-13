@@ -9,7 +9,7 @@ pub type SpeedyResult<T> = std::result::Result<(T, usize), Annotation>;
 
 /// All parsing functions must implement this trait
 pub trait Parser {
-    type Output: Debug;
+    type Output: Debug + Clone + 'static;
 
     /// Simple name of the parser, should not include children or generics
     // TODO: Change this to a CoW so we're not constantly copying `&'static str`s

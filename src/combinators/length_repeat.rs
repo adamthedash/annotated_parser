@@ -52,7 +52,8 @@ where
             },
         )?;
 
-        let annotation = Annotation::success(self.name(), 0..offset, &values, child_annotations);
+        let annotation =
+            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }
@@ -102,7 +103,7 @@ mod tests {
         };
 
         assert_eq!(*span, 0..8);
-        assert_eq!(value, "[1, 2]");
+        assert_eq!(format!("{value:?}"), "[1, 2]");
     }
 
     #[test]

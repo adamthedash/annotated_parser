@@ -1,4 +1,7 @@
-use std::{fmt::Display, ops::Range};
+use std::{
+    fmt::{Debug, Display},
+    ops::Range,
+};
 
 #[derive(Debug)]
 pub struct Annotation {
@@ -11,27 +14,20 @@ pub struct Annotation {
 pub enum AnnotationResult {
     Success {
         span: Range<usize>,
-        value: String,
+        value: Box<dyn Debug>,
     },
 
     /// Not enough data for the parser
-    Incomplete {
-        start: usize,
-    },
+    Incomplete { start: usize },
 
     /// Child parser has failed for any reason
-    Child {
-        start: usize,
-    },
+    Child { start: usize },
 
     /// Enough data, but data was unexpected
     /// Eg. parse_digit("A")
     /// Child parsers have succeeded, but something at this level has failed
     /// Eg. Length-take of chars suceeded, but resulting string was in the expected format
-    Invalid {
-        span: Range<usize>,
-        reason: String,
-    },
+    Invalid { span: Range<usize>, reason: String },
 }
 
 impl Annotation {
@@ -48,7 +44,7 @@ impl Annotation {
     pub fn success(
         parser_id: impl Into<String>,
         span: Range<usize>,
-        value: impl std::fmt::Debug,
+        value: impl std::fmt::Debug + 'static,
         children: Vec<Self>,
     ) -> Self {
         Self::new(
@@ -56,7 +52,7 @@ impl Annotation {
             children,
             AnnotationResult::Success {
                 span,
-                value: format!("{value:?}"),
+                value: Box::new(value),
             },
         )
     }
@@ -153,7 +149,7 @@ impl Display for AnnotationResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AnnotationResult::*;
         match self {
-            Success { value, .. } => f.write_str(value),
+            Success { value, .. } => write!(f, "{:?}", value),
             Incomplete { .. } => f.write_str("ERR(INCOMPLETE)"),
             Child { .. } => f.write_str("ERR(CHILD)"),
             Invalid { reason, .. } => write!(f, "ERR({reason})"),

@@ -26,7 +26,7 @@ where
             Err(child_annotation) => (None, 0..0, vec![child_annotation]),
         };
 
-        let annotation = Annotation::success(self.name(), span, &out, child_annotations);
+        let annotation = Annotation::success(self.name(), span, out.clone(), child_annotations);
 
         Ok((out, annotation))
     }

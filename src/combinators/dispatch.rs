@@ -41,7 +41,7 @@ where
     D: DelayedValGet,
     D::Value: Debug,
     F: Fn(&D::Value) -> Option<usize>,
-    O: Debug,
+    O: Debug + Clone + 'static,
 {
     type Output = O;
 
@@ -73,7 +73,7 @@ where
         let (value, span, child_annotations) =
             parser.parse(input).fold(vec![], 0, &self.name(), index)?;
 
-        let annotation = Annotation::success(self.name(), span, &value, child_annotations);
+        let annotation = Annotation::success(self.name(), span, value.clone(), child_annotations);
 
         Ok((value, annotation))
     }

@@ -26,7 +26,7 @@ impl<const N: usize> Parser for TakeArray<N> {
 
         *input = rest;
 
-        let annotation = Annotation::success(self.name(), 0..N, value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..N, *value, vec![]);
 
         Ok((*value, annotation))
     }
@@ -72,12 +72,13 @@ where
         let Some((value, rest)) = input.split_at_checked(count) else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
+        let value = value.to_vec();
 
         *input = rest;
 
-        let annotation = Annotation::success(self.name(), 0..count, value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..count, value.clone(), vec![]);
 
-        Ok((value.to_vec(), annotation))
+        Ok((value, annotation))
     }
 
     #[inline(always)]

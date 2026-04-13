@@ -11,14 +11,14 @@ pub struct LE<T>(PhantomData<T>);
 impl<const N: usize, T> Parser for LE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
-    T: Debug,
-    T: 'static,
+    T: Debug + Clone + 'static,
 {
     type Output = T;
 
     #[inline(always)]
     fn name(&self) -> String {
-        format!("le_{}", std::any::type_name::<T>())
+        // Concat is slightly faster than format!
+        ["le_", std::any::type_name::<T>()].concat()
     }
 
     fn spec(&self) -> ParserSpec {
@@ -35,7 +35,7 @@ where
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(self.name(), 0..N, &value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..N, value.clone(), vec![]);
 
         Ok((value, annotation))
     }
@@ -62,13 +62,14 @@ pub struct BE<T>(PhantomData<T>);
 impl<const N: usize, T> Parser for BE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
-    T: Debug,
+    T: Debug + Clone + 'static,
 {
     type Output = T;
 
     #[inline(always)]
     fn name(&self) -> String {
-        format!("be_{}", std::any::type_name::<T>())
+        // Concat is slightly faster than format!
+        ["be_", std::any::type_name::<T>()].concat()
     }
 
     fn spec(&self) -> ParserSpec {
@@ -85,7 +86,7 @@ where
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(self.name(), 0..N, &value, vec![]);
+        let annotation = Annotation::success(self.name(), 0..N, value.clone(), vec![]);
 
         Ok((value, annotation))
     }

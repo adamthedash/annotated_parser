@@ -45,7 +45,7 @@ where
             *input = rest;
         }
 
-        let annotation = Annotation::success(self.name(), 0..bytes.len(), &bytes, vec![]);
+        let annotation = Annotation::success(self.name(), 0..bytes.len(), bytes.clone(), vec![]);
 
         Ok((bytes, annotation))
     }

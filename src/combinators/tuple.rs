@@ -36,7 +36,7 @@ macro_rules! impl_parser_for_tuple {
                     )+
 
                     let out = ($( [<out_ $idx>], )+);
-                    let annotation = Annotation::success(&self.name(), 0..span_end, &out, child_annotations);
+                    let annotation = Annotation::success(&self.name(), 0..span_end, out.clone(), child_annotations);
                     Ok((out, annotation))
                 }
 

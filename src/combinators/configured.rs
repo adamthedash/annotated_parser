@@ -66,7 +66,7 @@ where
             (None, 0..0, vec![])
         };
 
-        let annotation = Annotation::success(self.name(), span, &value, child_annotations);
+        let annotation = Annotation::success(self.name(), span, value.clone(), child_annotations);
         Ok((value, annotation))
     }
 

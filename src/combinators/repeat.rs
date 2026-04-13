@@ -40,25 +40,43 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (values, offset, child_annotations) = (0..N).try_fold(
-            (vec![], 0, vec![]),
-            |(mut values, offset, child_annotations), _| {
-                let (value, span, child_annotations) =
-                    self.inner
-                        .parse(input)
-                        .fold(child_annotations, offset, &self.name(), 0)?;
+        let name = self.name();
 
-                values.push(value);
+        let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
+        let mut child_annotations = Vec::with_capacity(N);
 
-                Ok((values, span.end, child_annotations))
-            },
-        )?;
+        let mut offset = 0;
+        for (i, value_out) in values.iter_mut().enumerate() {
+            match self
+                .inner
+                .parse(input)
+                .fold(child_annotations, offset, &name, 0)
+            {
+                Ok((value, span, child_annos)) => {
+                    value_out.write(value);
+                    offset = span.end;
+                    child_annotations = child_annos;
+                }
+                Err(annotation) => {
+                    // Need to manually drop everything allocated up to now, otherwise we will leak
+                    // memory
+                    for value in values[..i].iter_mut() {
+                        // SAFETY: All values up until this one have been populated by the parser
+                        unsafe {
+                            value.assume_init_drop();
+                        }
+                    }
 
-        let values = values
-            .try_into()
-            .expect("Parser should have successfully applied N times above");
+                    return Err(annotation);
+                }
+            }
+        }
 
-        let annotation = Annotation::success(self.name(), 0..offset, &values, child_annotations);
+        // SAFETY: All values have been populated by the parser, or the function has exited
+        // Ideally could use MaybeUninit::array_assume_init, but we are on stable
+        let values = values.map(|v| unsafe { v.assume_init() });
+
+        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }
@@ -133,14 +151,16 @@ where
     }
 
     fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let name = self.name();
+
         let count = self.count.get().as_();
         let (values, offset, child_annotations) = (0..count).try_fold(
-            (vec![], 0, vec![]),
+            (Vec::with_capacity(count), 0, Vec::with_capacity(count)),
             |(mut values, offset, child_annotations), _| {
                 let (value, span, child_annotations) =
                     self.inner
                         .parse(input)
-                        .fold(child_annotations, offset, &self.name(), 0)?;
+                        .fold(child_annotations, offset, &name, 0)?;
 
                 values.push(value);
 
@@ -148,7 +168,7 @@ where
             },
         )?;
 
-        let annotation = Annotation::success(self.name(), 0..offset, &values, child_annotations);
+        let annotation = Annotation::success(name, 0..offset, values.clone(), child_annotations);
 
         Ok((values, annotation))
     }

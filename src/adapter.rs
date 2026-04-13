@@ -19,7 +19,7 @@ pub trait ParserAdapter: Parser + Sized {
     fn map<F, O>(self, func: F) -> Map<Self, F>
     where
         F: FnMut(Self::Output) -> O,
-        O: Debug,
+        O: Debug + Clone + 'static,
     {
         Map::new(self, func)
     }
@@ -27,7 +27,7 @@ pub trait ParserAdapter: Parser + Sized {
     fn map_silent<F, O>(self, func: F) -> MapSilent<Self, F>
     where
         F: FnMut(Self::Output) -> O,
-        O: Debug,
+        O: Debug + Clone + 'static,
     {
         MapSilent::new(self, func)
     }
@@ -35,7 +35,7 @@ pub trait ParserAdapter: Parser + Sized {
     fn try_map<F, O, E>(self, func: F) -> TryMap<Self, F>
     where
         F: FnMut(Self::Output) -> std::result::Result<O, E>,
-        O: Debug,
+        O: Debug + Clone + 'static,
         E: Display,
     {
         TryMap::new(self, func)

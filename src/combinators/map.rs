@@ -12,7 +12,7 @@ impl<I, F, O, E> TryMap<I, F>
 where
     I: Parser,
     F: FnMut(I::Output) -> std::result::Result<O, E>,
-    O: Debug,
+    O: Debug + Clone + 'static,
     E: Display,
 {
     pub fn new(inner: I, func: F) -> Self {
@@ -24,7 +24,7 @@ impl<I, F, O, E> Parser for TryMap<I, F>
 where
     I: Parser,
     F: FnMut(I::Output) -> std::result::Result<O, E>,
-    O: Debug,
+    O: Debug + Clone + 'static,
     E: Display,
 {
     type Output = O;
@@ -54,7 +54,8 @@ where
             }
         };
 
-        let annotation = Annotation::success(self.name(), span.clone(), &out, child_annotations);
+        let annotation =
+            Annotation::success(self.name(), span.clone(), out.clone(), child_annotations);
 
         Ok((out, annotation))
     }
@@ -83,7 +84,7 @@ impl<I, F, O> Map<I, F>
 where
     I: Parser,
     F: FnMut(I::Output) -> O,
-    O: Debug,
+    O: Debug + Clone + 'static,
 {
     pub fn new(inner: I, func: F) -> Self {
         Self { inner, func }
@@ -94,7 +95,7 @@ impl<I, F, O> Parser for Map<I, F>
 where
     I: Parser,
     F: FnMut(I::Output) -> O,
-    O: Debug,
+    O: Debug + Clone + 'static,
 {
     type Output = O;
 
@@ -112,7 +113,8 @@ where
 
         let out = (self.func)(data);
 
-        let annotation = Annotation::success(self.name(), span.clone(), &out, child_annotations);
+        let annotation =
+            Annotation::success(self.name(), span.clone(), out.clone(), child_annotations);
 
         Ok((out, annotation))
     }
@@ -140,7 +142,7 @@ impl<I, F, O> MapSilent<I, F>
 where
     I: Parser,
     F: FnMut(I::Output) -> O,
-    O: Debug,
+    O: Debug + Clone + 'static,
 {
     pub fn new(inner: I, func: F) -> Self {
         Self { inner, func }
@@ -151,7 +153,7 @@ impl<I, F, O> Parser for MapSilent<I, F>
 where
     I: Parser,
     F: FnMut(I::Output) -> O,
-    O: Debug,
+    O: Debug + Clone + 'static,
 {
     type Output = O;
 
