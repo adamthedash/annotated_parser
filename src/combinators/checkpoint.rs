@@ -3,7 +3,12 @@ use crate::{AnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedPa
 /// Wrapper which resets the input stream on failure
 pub struct Checkpoint<P>(pub P);
 
-impl<P: Parser> Parser for Checkpoint<P> {
+impl<'a, P> Parser<'a> for Checkpoint<P>
+where
+    P: Parser<'a>,
+{
+    type Input = P::Input;
+
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -14,7 +19,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -28,7 +33,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -57,7 +62,12 @@ where
 /// Wrapper which resets the input stream in all cases
 pub struct Peek<P>(pub P);
 
-impl<P: Parser> Parser for Peek<P> {
+impl<'a, P> Parser<'a> for Peek<P>
+where
+    P: Parser<'a>,
+{
+    type Input = P::Input;
+
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -68,7 +78,7 @@ impl<P: Parser> Parser for Peek<P> {
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -82,7 +92,7 @@ impl<P: Parser> Parser for Peek<P> {
         res
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 

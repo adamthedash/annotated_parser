@@ -8,9 +8,9 @@ pub struct Opt<I> {
     inner: Checkpoint<I>,
 }
 
-impl<I> Opt<I>
+impl<'a, I> Opt<I>
 where
-    I: Parser,
+    I: Parser<'a>,
 {
     pub fn new(inner: I) -> Self {
         Self {
@@ -19,10 +19,12 @@ where
     }
 }
 
-impl<I> Parser for Opt<I>
+impl<'a, I> Parser<'a> for Opt<I>
 where
-    I: Parser,
+    I: Parser<'a>,
 {
+    type Input = I::Input;
+
     type Output = Option<I::Output>;
 
     fn name(&self) -> String {
@@ -33,7 +35,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let res = self
             .inner
             .annotate(input)
@@ -51,7 +53,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let Ok((value, offset)) = self.inner.parse(input) else {
             return Ok((None, 0));
         };
