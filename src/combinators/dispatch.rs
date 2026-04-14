@@ -5,38 +5,28 @@ use crate::{
     combinators::delayed::DelayedValGet, helpers::fold_child_err,
 };
 
-pub struct Dispatch<'a, const N: usize, I, D, F, O> {
+pub struct Dispatch<'a, const N: usize, I, D, O> {
     discriminant: D,
-    dispatch_func: F,
     parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N],
 }
 
-impl<'a, const N: usize, I, D, F, O> Dispatch<'a, N, I, D, F, O>
+impl<'a, const N: usize, I, D, O> Dispatch<'a, N, I, D, O>
 where
-    D: DelayedValGet,
-    D::Value: Debug,
-    F: Fn(&D::Value) -> Option<usize>,
+    D: DelayedValGet<Value = Option<usize>>,
     O: Debug,
 {
-    pub fn new(
-        discriminant: D,
-        dispatch_func: F,
-        parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N],
-    ) -> Self {
+    pub fn new(discriminant: D, parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N]) -> Self {
         Self {
             discriminant,
-            dispatch_func,
             parsers,
         }
     }
 }
 
-impl<'a, const N: usize, I, D, F, O> Parser<'a> for Dispatch<'a, N, I, D, F, O>
+impl<'a, const N: usize, I, D, O> Parser<'a> for Dispatch<'a, N, I, D, O>
 where
     I: Copy + 'a,
-    D: DelayedValGet,
-    D::Value: Debug,
-    F: Fn(&D::Value) -> Option<usize>,
+    D: DelayedValGet<Value = Option<usize>>,
     O: Debug + Clone + 'static,
 {
     type Input = I;
@@ -52,13 +42,11 @@ where
     }
 
     fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
-        let discriminant = self.discriminant.get();
-
-        let Some(index) = (self.dispatch_func)(&discriminant) else {
+        let Some(index) = *self.discriminant.get() else {
             return Err(Annotation::invalid(
                 self.name(),
                 0..0,
-                format!("Unknown discriminant: {:?}", *discriminant),
+                "Unknown discriminant".to_string(),
                 vec![],
             ));
         };
@@ -80,13 +68,11 @@ where
     }
 
     fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
-        let discriminant = self.discriminant.get();
-
-        let Some(index) = (self.dispatch_func)(&discriminant) else {
+        let Some(index) = *self.discriminant.get() else {
             return Err(Annotation::invalid(
                 self.name(),
                 0..0,
-                format!("Unknown discriminant: {:?}", *discriminant),
+                "Unknown discriminant".to_string(),
                 vec![],
             ));
         };
@@ -117,8 +103,7 @@ mod tests {
 
         let disc_parser = u8::LE.delay();
         let dispatch = Dispatch::new(
-            disc_parser.output(),
-            |x| {
+            disc_parser.output().map(|x| {
                 let index = match x {
                     0 => 0,
                     1 => 1,
@@ -126,7 +111,7 @@ mod tests {
                 };
 
                 Some(index)
-            },
+            }),
             [
                 Box::new(u8::LE), //
                 Box::new(u16::LE.map(|x| x as u8)),
