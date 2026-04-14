@@ -23,10 +23,12 @@ where
     }
 }
 
-impl<const N: usize, P> Parser for RepeatArray<P, [P::Output; N]>
+impl<'a, const N: usize, P> Parser<'a> for RepeatArray<P, [P::Output; N]>
 where
-    P: Parser,
+    P: Parser<'a>,
 {
+    type Input = P::Input;
+
     type Output = [P::Output; N];
 
     #[inline(always)]
@@ -39,7 +41,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut child_annotations = Vec::with_capacity(N);
 
@@ -80,7 +82,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
 
         let mut offset = 0;

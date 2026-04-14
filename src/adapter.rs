@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Tail-call adapters for combinators
-pub trait ParserAdapter: Parser + Sized {
+pub trait ParserAdapter<'a>: Parser<'a> + Sized {
     fn map<F, O>(self, func: F) -> Map<Self, F>
     where
         F: FnMut(Self::Output) -> O,
@@ -45,7 +45,7 @@ pub trait ParserAdapter: Parser + Sized {
         Checkpoint(self)
     }
 
-    fn into_box(self) -> Box<dyn Parser<Output = Self::Output>>
+    fn into_box(self) -> Box<dyn Parser<'a, Input = Self::Input, Output = Self::Output>>
     where
         Self: 'static,
     {

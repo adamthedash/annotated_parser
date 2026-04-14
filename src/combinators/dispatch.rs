@@ -5,7 +5,7 @@ use crate::{
     combinators::delayed::DelayedValGet, helpers::fold_child_err,
 };
 
-pub struct Dispatch<const N: usize, D, F, O>
+pub struct Dispatch<const N: usize, I, D, F, O>
 where
     D: DelayedValGet,
     F: Fn(&D::Value) -> Option<usize>,
@@ -13,10 +13,10 @@ where
 {
     discriminant: D,
     dispatch_func: F,
-    parsers: [Box<dyn Parser<Output = O>>; N],
+    parsers: [Box<dyn for<'b> Parser<'b, Input = I, Output = O>>; N],
 }
 
-impl<const N: usize, D, F, O> Dispatch<N, D, F, O>
+impl<const N: usize, I, D, F, O> Dispatch<N, I, D, F, O>
 where
     D: DelayedValGet,
     D::Value: Debug,
@@ -26,7 +26,7 @@ where
     pub fn new(
         discriminant: D,
         dispatch_func: F,
-        parsers: [Box<dyn Parser<Output = O>>; N],
+        parsers: [Box<dyn for<'a> Parser<'a, Input = I, Output = O>>; N],
     ) -> Self {
         Self {
             discriminant,
@@ -36,13 +36,16 @@ where
     }
 }
 
-impl<const N: usize, D, F, O> Parser for Dispatch<N, D, F, O>
+impl<const N: usize, I, D, F, O> Parser<'_> for Dispatch<N, I, D, F, O>
 where
+    I: Copy,
     D: DelayedValGet,
     D::Value: Debug,
     F: Fn(&D::Value) -> Option<usize>,
     O: Debug + Clone + 'static,
 {
+    type Input = I;
+
     type Output = O;
 
     fn name(&self) -> String {
@@ -53,7 +56,7 @@ where
         ParserSpec::new(self.name(), self.parsers.iter().map(Parser::spec).collect())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut I) -> AnnotatedResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
@@ -81,7 +84,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut I) -> crate::ParseResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {

@@ -23,7 +23,11 @@ impl<T> IntoAnnotation for AnnotatedResult<T> {
 pub type ParseResult<T> = std::result::Result<(T, usize), Annotation>;
 
 /// All parsing functions must implement this trait
-pub trait Parser {
+pub trait Parser<'a> {
+    /// Copy as it needs to be cheap to checkpoint
+    type Input: Copy + 'a;
+
+    /// Debug/Clone as we store a copy in the return annotations
     type Output: Debug + Clone + 'static;
 
     /// Simple name of the parser, should not include children or generics
@@ -34,7 +38,7 @@ pub trait Parser {
     fn spec(&self) -> ParserSpec;
 
     /// Parse and return both the output value and annotations
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output>;
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output>;
 
     /// "Fast" implementation of the parser, only producing annotations on error
     /// Default impl just runs the slow version and strips off annotations.  
@@ -54,7 +58,7 @@ pub trait Parser {
     ///         ]
     ///     }
     /// ````
-    fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
         match self.annotate(input) {
             Ok((v, a)) => {
                 let AnnotationResult::Success { span, .. } = a.result else {
@@ -69,10 +73,12 @@ pub trait Parser {
 }
 
 /// Blanket impl for boxed parsers
-impl<P> Parser for Box<P>
+impl<'a, P> Parser<'a> for Box<P>
 where
-    P: Parser + ?Sized,
+    P: Parser<'a> + ?Sized,
 {
+    type Input = P::Input;
+
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -83,11 +89,11 @@ where
         (**self).spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         (**self).annotate(input)
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
         (**self).parse(input)
     }
 }
