@@ -56,7 +56,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) = if self.enabled.load(Ordering::Relaxed) {
             let (value, offset, child_annotations) =
                 self.inner
@@ -73,7 +73,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         if !self.enabled.load(Ordering::Relaxed) {
             return Ok((None, 0));
         }
@@ -122,13 +122,13 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
         let res = self.inner.annotate(input)?;
         (self.configurator)();
         Ok(res)
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let res = self.inner.parse(input)?;
         (self.configurator)();
         Ok(res)

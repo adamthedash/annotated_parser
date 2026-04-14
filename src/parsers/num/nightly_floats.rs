@@ -1,4 +1,4 @@
-use crate::{Annotation, ByteParser, Parser, ParserSpec, Result};
+use crate::{AnnotatedResult, Annotation, ByteParser, ParseResult, Parser, ParserSpec};
 
 #[derive(Clone)]
 pub struct F16LE;
@@ -14,7 +14,7 @@ impl Parser for F16LE {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };
@@ -31,7 +31,7 @@ impl Parser for F16LE {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };
@@ -61,7 +61,7 @@ impl Parser for F16BE {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };
@@ -78,7 +78,7 @@ impl Parser for F16BE {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };

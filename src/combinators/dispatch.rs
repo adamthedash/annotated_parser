@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result, combinators::delayed::DelayedValGet,
-    helpers::fold_child_err,
+    AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec,
+    combinators::delayed::DelayedValGet, helpers::fold_child_err,
 };
 
 pub struct Dispatch<const N: usize, D, F, O>
@@ -53,7 +53,7 @@ where
         ParserSpec::new(self.name(), self.parsers.iter().map(Parser::spec).collect())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
@@ -81,7 +81,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {

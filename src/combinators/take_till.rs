@@ -1,4 +1,4 @@
-use crate::{Annotation, Parser, ParserSpec, Result, combinators::Peek};
+use crate::{AnnotatedResult, Annotation, Parser, ParserSpec, combinators::Peek};
 
 /// Keep taking bytes until the inner parser succeeds
 /// On success, input is moved to the start of where the inner parser has succeeded
@@ -30,7 +30,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let mut bytes = vec![];
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
@@ -50,7 +50,7 @@ where
         Ok((bytes, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 

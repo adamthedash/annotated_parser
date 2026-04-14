@@ -1,4 +1,4 @@
-use crate::{Annotation, Parser, ParserSpec, Result};
+use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 
 mod endian;
 #[cfg(feature = "f16")]
@@ -23,7 +23,7 @@ impl Parser for Bool {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -49,7 +49,7 @@ impl Parser for Bool {
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };

@@ -1,5 +1,6 @@
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result, SpeedyResult, helpers::fold_child_err,
+    AnnotatedResult, Annotation, FoldResult, ParseResult, Parser, ParserSpec,
+    helpers::fold_child_err,
 };
 use paste::paste;
 
@@ -23,7 +24,7 @@ macro_rules! impl_parser_for_tuple {
                     ParserSpec::new(self.name(), vec![$( self.$idx.spec() ),+])
                 }
 
-                fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+                fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
                     let mut child_annotations = vec![];
                     let mut offset = 0usize;
 
@@ -41,7 +42,7 @@ macro_rules! impl_parser_for_tuple {
                 }
 
                 #[inline(always)]
-                fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+                fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
                     let mut offset = 0usize;
 
                     $(

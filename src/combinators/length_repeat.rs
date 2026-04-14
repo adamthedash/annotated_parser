@@ -1,7 +1,8 @@
 use num_traits::AsPrimitive;
 
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result, SpeedyResult, helpers::fold_child_err,
+    AnnotatedResult, Annotation, FoldResult, ParseResult, Parser, ParserSpec,
+    helpers::fold_child_err,
 };
 
 pub struct LengthRepeat<L, V> {
@@ -36,7 +37,7 @@ where
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let (length, mut offset, mut child_annotations) =
             self.length
                 .annotate(input)
@@ -61,7 +62,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
         let (length, mut offset) = self
             .length
             .parse(input)

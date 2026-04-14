@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result, helpers::fold_child_err};
+use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
 
 /// For fallible functions
 pub struct TryMap<I, F> {
@@ -37,7 +37,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -62,7 +62,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
             .parse(input)
@@ -109,7 +109,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -123,7 +123,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
             .parse(input)
@@ -169,7 +169,7 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let (data, annotation) = self.inner.annotate(input)?;
 
         let out = (self.func)(data);
@@ -177,7 +177,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self.inner.parse(input)?;
 
         let out = (self.func)(data);

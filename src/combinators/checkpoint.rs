@@ -1,4 +1,4 @@
-use crate::{Parser, ParserSpec, Result, combinators::delayed::DelayedParser};
+use crate::{AnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedParser};
 
 /// Wrapper which resets the input stream on failure
 pub struct Checkpoint<P>(pub P);
@@ -14,7 +14,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -28,7 +28,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -68,7 +68,7 @@ impl<P: Parser> Parser for Peek<P> {
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -82,7 +82,7 @@ impl<P: Parser> Parser for Peek<P> {
         res
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 

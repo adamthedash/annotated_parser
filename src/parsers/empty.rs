@@ -1,4 +1,4 @@
-use crate::{Annotation, Parser, ParserSpec, Result};
+use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 
 /// Always succeeds, consumes nothing
 pub struct Empty;
@@ -14,13 +14,13 @@ impl Parser for Empty {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, _input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, _input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let annotation = Annotation::success(self.name(), 0..0, (), vec![]);
         Ok(((), annotation))
     }
 
     #[inline(always)]
-    fn parse(&mut self, _input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, _input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         Ok(((), 0))
     }
 }

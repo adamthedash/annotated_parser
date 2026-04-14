@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{Annotation, AnnotationResult, Result};
+use crate::{AnnotatedResult, Annotation, AnnotationResult};
 
 pub trait FoldResult<T, P, S>
 where
@@ -17,7 +17,7 @@ where
     ) -> std::result::Result<(T, usize, Vec<Annotation>), Annotation>;
 }
 
-impl<T, P, S> FoldResult<T, P, S> for Result<T>
+impl<T, P, S> FoldResult<T, P, S> for AnnotatedResult<T>
 where
     P: FnOnce() -> S,
     S: Into<String>,

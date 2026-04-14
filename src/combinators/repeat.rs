@@ -3,7 +3,7 @@ use num_traits::AsPrimitive;
 use crate::{FoldResult, combinators::delayed::DelayedValGet, helpers::fold_child_err};
 use std::{marker::PhantomData, mem::MaybeUninit};
 
-use crate::{Annotation, Parser, ParserSpec, Result};
+use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 
 /// Compile-time repeat
 pub struct RepeatArray<P, O> {
@@ -39,7 +39,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut child_annotations = Vec::with_capacity(N);
 
@@ -80,7 +80,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
 
         let mut offset = 0;
@@ -149,7 +149,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut child_annotations = Vec::with_capacity(count);
@@ -171,7 +171,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut values = Vec::with_capacity(count);

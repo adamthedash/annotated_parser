@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, Result,
+    AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec,
     combinators::delayed::{DelayedValGet, DelayedValSet},
     helpers::fold_child_err,
 };
@@ -48,7 +48,7 @@ where
         ParserSpec::new(self.name(), vec![self.parser.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let parameters = self.parameters.get();
 
         let mut child_annotations = Vec::with_capacity(parameters.len());
@@ -74,7 +74,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let parameters = self.parameters.get();
 
         let mut values = Vec::with_capacity(parameters.len());

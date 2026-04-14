@@ -1,4 +1,4 @@
-use crate::{Parser, ParserSpec, Result, combinators::delayed::DelayedParser};
+use crate::{AnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedParser};
 
 /// For adding a user-friendly name to the spec
 #[derive(Clone)]
@@ -30,12 +30,12 @@ impl<P: Parser> Parser for Trace<P> {
         self.inner.spec().with_friendly(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         self.inner.annotate(input)
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         self.inner.parse(input)
     }
 }

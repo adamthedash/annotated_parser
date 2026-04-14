@@ -1,4 +1,4 @@
-use crate::{Annotation, FoldResult, Parser, ParserSpec, Result, helpers::fold_child_err};
+use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
 
 #[derive(Clone)]
 pub struct Verify<P, F> {
@@ -31,7 +31,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -53,7 +53,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let (value, offset) = self
             .inner
             .parse(input)

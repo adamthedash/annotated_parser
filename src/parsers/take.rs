@@ -1,7 +1,7 @@
 use crate::combinators::delayed::DelayedValGet;
 use num_traits::AsPrimitive;
 
-use crate::{Annotation, Parser, ParserSpec, Result};
+use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 
 /// Take a fixed amount of bytes into an array
 pub struct TakeArray<const N: usize>;
@@ -19,7 +19,7 @@ impl<const N: usize> Parser for TakeArray<N> {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -32,7 +32,7 @@ impl<const N: usize> Parser for TakeArray<N> {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -66,7 +66,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {
@@ -82,7 +82,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {
