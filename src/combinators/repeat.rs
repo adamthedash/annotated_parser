@@ -12,9 +12,9 @@ pub struct RepeatArray<P, O> {
     _output: PhantomData<O>,
 }
 
-impl<const N: usize, P> RepeatArray<P, [P::Output; N]>
+impl<'a, const N: usize, P> RepeatArray<P, [P::Output; N]>
 where
-    P: Parser,
+    P: Parser<'a>,
 {
     pub fn new(inner: P) -> Self {
         Self {
@@ -123,9 +123,9 @@ pub struct RepeatVec<P, C> {
     count: C,
 }
 
-impl<P, C, V> RepeatVec<P, C>
+impl<'a, P, C, V> RepeatVec<P, C>
 where
-    P: Parser,
+    P: Parser<'a>,
     C: DelayedValGet<Value = V>,
     V: AsPrimitive<usize>,
 {
@@ -134,12 +134,13 @@ where
     }
 }
 
-impl<P, C, V> Parser for RepeatVec<P, C>
+impl<'a, P, C, V> Parser<'a> for RepeatVec<P, C>
 where
-    P: Parser,
+    P: Parser<'a>,
     C: DelayedValGet<Value = V>,
     V: AsPrimitive<usize>,
 {
+    type Input = P::Input;
     type Output = Vec<P::Output>;
 
     #[inline(always)]
@@ -152,7 +153,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut child_annotations = Vec::with_capacity(count);
@@ -174,7 +175,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut values = Vec::with_capacity(count);

@@ -7,7 +7,10 @@ pub struct Trace<P> {
     name: String,
 }
 
-impl<P: Parser> Trace<P> {
+impl<'a, P> Trace<P>
+where
+    P: Parser<'a>,
+{
     pub fn new(inner: P, name: impl Into<String>) -> Self {
         Self {
             inner,
@@ -16,7 +19,11 @@ impl<P: Parser> Trace<P> {
     }
 }
 
-impl<P: Parser> Parser for Trace<P> {
+impl<'a, P> Parser<'a> for Trace<P>
+where
+    P: Parser<'a>,
+{
+    type Input = P::Input;
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -30,12 +37,12 @@ impl<P: Parser> Parser for Trace<P> {
         self.inner.spec().with_friendly(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         self.inner.annotate(input)
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         self.inner.parse(input)
     }
 }
