@@ -8,16 +8,15 @@ pub struct TryMap<I, F> {
     func: F,
 }
 
-impl<'a, I, F, O, E> TryMap<I, F>
+pub(crate) fn try_map<'a, I, F, O, E>(inner: I, func: F) -> TryMap<I, F>
 where
     I: Parser<'a>,
     F: FnMut(I::Output) -> std::result::Result<O, E>,
     O: Debug + Clone + 'static,
     E: Display,
 {
-    pub fn new(inner: I, func: F) -> Self {
-        Self { inner, func }
-    }
+    // NOTE: Free function so we don't need to pass more types to the TryMap struct
+    TryMap { inner, func }
 }
 
 impl<'a, I, F, O, E> Parser<'a> for TryMap<I, F>
@@ -84,15 +83,14 @@ pub struct Map<I, F> {
     func: F,
 }
 
-impl<'a, I, F, O> Map<I, F>
+pub(crate) fn map<'a, I, F, O>(inner: I, func: F) -> Map<I, F>
 where
     I: Parser<'a>,
     F: FnMut(I::Output) -> O,
     O: Debug + Clone + 'static,
 {
-    pub fn new(inner: I, func: F) -> Self {
-        Self { inner, func }
-    }
+    // NOTE: Free function so we don't need to pass more types to the Map struct
+    Map { inner, func }
 }
 
 impl<'a, I, F, O> Parser<'a> for Map<I, F>
@@ -146,15 +144,14 @@ pub struct MapSilent<I, F> {
     func: F,
 }
 
-impl<'a, I, F, O> MapSilent<I, F>
+pub(crate) fn map_silent<'a, I, F, O>(inner: I, func: F) -> MapSilent<I, F>
 where
     I: Parser<'a>,
     F: FnMut(I::Output) -> O,
     O: Debug + Clone + 'static,
 {
-    pub fn new(inner: I, func: F) -> Self {
-        Self { inner, func }
-    }
+    // NOTE: Free function so we don't need to pass more types to the MapSilent struct
+    MapSilent { inner, func }
 }
 
 impl<'a, I, F, O> Parser<'a> for MapSilent<I, F>

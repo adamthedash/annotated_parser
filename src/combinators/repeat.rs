@@ -8,6 +8,7 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 /// Compile-time repeat
 pub struct RepeatArray<P, O> {
     inner: P,
+    // Needed to constrain N
     _output: PhantomData<O>,
 }
 
