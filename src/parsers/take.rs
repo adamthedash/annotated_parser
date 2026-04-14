@@ -6,7 +6,9 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 /// Take a fixed amount of bytes into an array
 pub struct TakeArray<const N: usize>;
 
-impl<const N: usize> Parser for TakeArray<N> {
+impl<'a, const N: usize> Parser<'a> for TakeArray<N> {
+    type Input = &'a [u8];
+
     type Output = [u8; N];
 
     #[inline(always)]
@@ -19,7 +21,7 @@ impl<const N: usize> Parser for TakeArray<N> {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -32,7 +34,7 @@ impl<const N: usize> Parser for TakeArray<N> {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -49,11 +51,13 @@ where
     D: DelayedValGet,
     D::Value: AsPrimitive<usize>;
 
-impl<D> Parser for TakeVec<D>
+impl<'a, D> Parser<'a> for TakeVec<D>
 where
     D: DelayedValGet,
     D::Value: AsPrimitive<usize>,
 {
+    type Input = &'a [u8];
+
     type Output = Vec<u8>;
 
     #[inline(always)]
@@ -66,7 +70,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {
@@ -82,7 +86,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {

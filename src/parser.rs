@@ -111,10 +111,12 @@ where
 }
 
 /// Blanket impl to allow passing parsers by reference
-impl<P> Parser for &mut P
+impl<'a, P> Parser<'a> for &mut P
 where
-    P: Parser,
+    P: Parser<'a>,
 {
+    type Input = P::Input;
+
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -125,11 +127,11 @@ where
         (**self).spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         (**self).annotate(input)
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
         (**self).parse(input)
     }
 }

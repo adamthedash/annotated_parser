@@ -12,7 +12,9 @@ pub use endian::{BE, ByteParser, LE};
 #[derive(Clone)]
 pub struct Bool;
 
-impl Parser for Bool {
+impl<'a> Parser<'a> for Bool {
+    type Input = &'a [u8];
+
     type Output = bool;
 
     fn name(&self) -> String {
@@ -23,7 +25,7 @@ impl Parser for Bool {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -49,7 +51,7 @@ impl Parser for Bool {
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };

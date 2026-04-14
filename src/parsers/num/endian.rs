@@ -2,10 +2,7 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use num_traits::FromBytes;
 
-use crate::{
-    AnnotatedResult, Annotation, Parser, ParserAdapter, ParserSpec,
-    combinators::{Dispatch, delayed::DelayedVal},
-};
+use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 
 /// Little-endian parser for types which can be directly interpreted from a byte array
 #[derive(Clone)]
@@ -67,11 +64,13 @@ where
 #[derive(Clone)]
 pub struct BE<T>(PhantomData<T>);
 
-impl<const N: usize, T> Parser for BE<T>
+impl<'a, const N: usize, T> Parser<'a> for BE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug + Clone + 'static,
 {
+    type Input = &'a [u8];
+
     type Output = T;
 
     #[inline(always)]
@@ -84,7 +83,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -100,7 +99,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
