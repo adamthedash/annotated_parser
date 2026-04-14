@@ -107,8 +107,11 @@ where
 }
 
 pub trait ByteParser: Sized {
-    const LE: LE<Self>;
-    const BE: BE<Self>;
+    type LEParser;
+    type BEParser;
+
+    const LE: Self::LEParser;
+    const BE: Self::BEParser;
 }
 
 impl<const N: usize, T> ByteParser for T
@@ -116,6 +119,9 @@ where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug,
 {
-    const LE: LE<Self> = LE(PhantomData);
-    const BE: BE<Self> = BE(PhantomData);
+    type LEParser = LE<Self>;
+    type BEParser = BE<Self>;
+
+    const LE: Self::LEParser = LE(PhantomData);
+    const BE: Self::BEParser = BE(PhantomData);
 }

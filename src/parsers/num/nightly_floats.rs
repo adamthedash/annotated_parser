@@ -1,4 +1,4 @@
-use crate::{Annotation, Parser, ParserSpec, Result};
+use crate::{Annotation, ByteParser, Parser, ParserSpec, Result};
 
 #[derive(Clone)]
 pub struct F16LE;
@@ -45,4 +45,59 @@ impl Parser for F16LE {
 
         Ok((value, BYTE_SIZE))
     }
+}
+
+#[derive(Clone)]
+pub struct F16BE;
+
+impl Parser for F16BE {
+    type Output = f16;
+
+    fn name(&self) -> String {
+        "be_f16".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
+    }
+
+    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = f16::from_be_bytes(*bytes);
+
+        // Move input along
+        *input = rest;
+
+        const BYTE_SIZE: usize = std::mem::size_of::<f16>();
+        let annotation = Annotation::success(&self.name(), 0..BYTE_SIZE, value, vec![]);
+
+        Ok((value, annotation))
+    }
+
+    #[inline(always)]
+    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let Some((bytes, rest)) = input.split_first_chunk() else {
+            return Err(Annotation::incomplete(&self.name(), 0, vec![]));
+        };
+
+        let value = f16::from_be_bytes(*bytes);
+
+        // Move input along
+        *input = rest;
+
+        const BYTE_SIZE: usize = std::mem::size_of::<f16>();
+
+        Ok((value, BYTE_SIZE))
+    }
+}
+
+impl ByteParser for f16 {
+    type LEParser = F16LE;
+    type BEParser = F16BE;
+
+    const LE: Self::LEParser = F16LE;
+    const BE: Self::BEParser = F16BE;
 }
