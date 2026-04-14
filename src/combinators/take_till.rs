@@ -7,19 +7,20 @@ pub struct TakeTill<P> {
     inner: Peek<P>,
 }
 
-impl<P> TakeTill<P>
+impl<'a, P> TakeTill<P>
 where
-    P: Parser,
+    P: Parser<'a>,
 {
     pub fn new(inner: P) -> Self {
         Self { inner: Peek(inner) }
     }
 }
 
-impl<P> Parser for TakeTill<P>
+impl<'a, P> Parser<'a> for TakeTill<P>
 where
-    P: Parser,
+    P: Parser<'a, Input = &'a [u8]>,
 {
+    type Input = &'a [u8];
     type Output = Vec<u8>;
 
     fn name(&self) -> String {
@@ -30,7 +31,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let mut bytes = vec![];
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
@@ -50,7 +51,7 @@ where
         Ok((bytes, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 

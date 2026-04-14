@@ -47,9 +47,9 @@ where
     }
 }
 
-impl<P> DelayedParser for Trace<P>
+impl<'a, P> DelayedParser<'a> for Trace<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<'a>,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;

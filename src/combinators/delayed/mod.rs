@@ -37,7 +37,7 @@ pub trait DelayedValGet {
 }
 
 /// For the Delayed combinator and passthroughs
-pub trait DelayedParser: Parser {
+pub trait DelayedParser<'a>: Parser<'a> {
     type Value;
     type DelayedValue;
 

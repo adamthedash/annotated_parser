@@ -3,16 +3,19 @@ use super::{DelayedParser, DelayedValSet};
 use crate::{AnnotatedResult, Parser, ParserSpec};
 
 /// A parser whos output can be referenced before it has been executed
-pub struct Delayed<I>
+pub struct Delayed<'a, I>
 where
-    I: Parser,
+    I: Parser<'a>,
 {
     inner: I,
     /// This will be populated / overwritten whenever the parser is ran.
     value: DelayedVal<I::Output>,
 }
 
-impl<I: Parser> Delayed<I> {
+impl<'a, I> Delayed<'a, I>
+where
+    I: Parser<'a>,
+{
     pub fn new(inner: I) -> Self {
         Self {
             inner,
@@ -21,7 +24,11 @@ impl<I: Parser> Delayed<I> {
     }
 }
 
-impl<I: Parser> Parser for Delayed<I> {
+impl<'a, I> Parser<'a> for Delayed<'a, I>
+where
+    I: Parser<'a>,
+{
+    type Input = I::Input;
     type Output = DelayedVal<I::Output>;
 
     fn name(&self) -> String {
@@ -32,7 +39,7 @@ impl<I: Parser> Parser for Delayed<I> {
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let (out, anno) = self.inner.annotate(input)?;
 
         // Set the shared value
@@ -42,7 +49,7 @@ impl<I: Parser> Parser for Delayed<I> {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let (out, offset) = self.inner.parse(input)?;
 
         // Set the shared value
@@ -52,9 +59,9 @@ impl<I: Parser> Parser for Delayed<I> {
     }
 }
 
-impl<P> DelayedParser for Delayed<P>
+impl<'a, P> DelayedParser<'a> for Delayed<'a, P>
 where
-    P: Parser,
+    P: Parser<'a>,
 {
     type Value = P::Output;
     type DelayedValue = Self::Output;

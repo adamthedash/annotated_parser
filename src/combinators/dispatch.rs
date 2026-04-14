@@ -5,15 +5,10 @@ use crate::{
     combinators::delayed::DelayedValGet, helpers::fold_child_err,
 };
 
-pub struct Dispatch<const N: usize, I, D, F, O>
-where
-    D: DelayedValGet,
-    F: Fn(&D::Value) -> Option<usize>,
-    O: Debug,
-{
+pub struct Dispatch<const N: usize, I, D, F, O> {
     discriminant: D,
     dispatch_func: F,
-    parsers: [Box<dyn for<'b> Parser<'b, Input = I, Output = O>>; N],
+    parsers: [Box<dyn for<'a> Parser<'a, Input = I, Output = O>>; N],
 }
 
 impl<const N: usize, I, D, F, O> Dispatch<N, I, D, F, O>
@@ -36,9 +31,9 @@ where
     }
 }
 
-impl<const N: usize, I, D, F, O> Parser<'_> for Dispatch<N, I, D, F, O>
+impl<'a, const N: usize, I, D, F, O> Parser<'a> for Dispatch<N, I, D, F, O>
 where
-    I: Copy,
+    I: Copy + 'a,
     D: DelayedValGet,
     D::Value: Debug,
     F: Fn(&D::Value) -> Option<usize>,

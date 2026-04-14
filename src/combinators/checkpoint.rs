@@ -47,9 +47,9 @@ where
     }
 }
 
-impl<P> DelayedParser for Checkpoint<P>
+impl<'a, P> DelayedParser<'a> for Checkpoint<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<'a>,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;
@@ -105,9 +105,9 @@ where
     }
 }
 
-impl<P> DelayedParser for Peek<P>
+impl<'a, P> DelayedParser<'a> for Peek<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<'a>,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;

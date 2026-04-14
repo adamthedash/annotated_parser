@@ -10,17 +10,14 @@ use crate::{
 
 /// Parser which can be externally enabled/disabled rather than checking a delayed value each
 /// execution
-pub struct Configured<P>
-where
-    P: Parser,
-{
+pub struct Configured<P> {
     enabled: Arc<AtomicBool>,
     inner: P,
 }
 
-impl<P> Configured<P>
+impl<'a, P> Configured<P>
 where
-    P: Parser,
+    P: Parser<'a>,
 {
     pub fn new(inner: P) -> Self {
         Self {
@@ -42,10 +39,11 @@ where
     }
 }
 
-impl<P> Parser for Configured<P>
+impl<'a, P> Parser<'a> for Configured<P>
 where
-    P: Parser,
+    P: Parser<'a>,
 {
+    type Input = P::Input;
     type Output = Option<P::Output>;
 
     fn name(&self) -> String {
@@ -56,7 +54,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> crate::AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) = if self.enabled.load(Ordering::Relaxed) {
             let (value, offset, child_annotations) =
                 self.inner
@@ -73,7 +71,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         if !self.enabled.load(Ordering::Relaxed) {
             return Ok((None, 0));
         }
@@ -94,9 +92,9 @@ pub struct Configuring<P, F> {
     configurator: F,
 }
 
-impl<P, F> Configuring<P, F>
+impl<'a, P, F> Configuring<P, F>
 where
-    P: Parser,
+    P: Parser<'a>,
     F: Fn(),
 {
     pub fn new(inner: P, configurator: F) -> Self {
@@ -107,11 +105,12 @@ where
     }
 }
 
-impl<P, F> Parser for Configuring<P, F>
+impl<'a, P, F> Parser<'a> for Configuring<P, F>
 where
-    P: Parser,
+    P: Parser<'a>,
     F: Fn(),
 {
+    type Input = P::Input;
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -122,13 +121,13 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> crate::AnnotatedResult<Self::Output> {
         let res = self.inner.annotate(input)?;
         (self.configurator)();
         Ok(res)
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let res = self.inner.parse(input)?;
         (self.configurator)();
         Ok(res)
