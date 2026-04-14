@@ -5,13 +5,13 @@ use crate::{
     combinators::delayed::DelayedValGet, helpers::fold_child_err,
 };
 
-pub struct Dispatch<const N: usize, I, D, F, O> {
+pub struct Dispatch<'a, const N: usize, I, D, F, O> {
     discriminant: D,
     dispatch_func: F,
-    parsers: [Box<dyn for<'a> Parser<'a, Input = I, Output = O>>; N],
+    parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N],
 }
 
-impl<const N: usize, I, D, F, O> Dispatch<N, I, D, F, O>
+impl<'a, const N: usize, I, D, F, O> Dispatch<'a, N, I, D, F, O>
 where
     D: DelayedValGet,
     D::Value: Debug,
@@ -21,7 +21,7 @@ where
     pub fn new(
         discriminant: D,
         dispatch_func: F,
-        parsers: [Box<dyn for<'a> Parser<'a, Input = I, Output = O>>; N],
+        parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N],
     ) -> Self {
         Self {
             discriminant,
@@ -31,7 +31,7 @@ where
     }
 }
 
-impl<'a, const N: usize, I, D, F, O> Parser<'a> for Dispatch<N, I, D, F, O>
+impl<'a, const N: usize, I, D, F, O> Parser<'a> for Dispatch<'a, N, I, D, F, O>
 where
     I: Copy + 'a,
     D: DelayedValGet,
@@ -51,7 +51,7 @@ where
         ParserSpec::new(self.name(), self.parsers.iter().map(Parser::spec).collect())
     }
 
-    fn annotate(&mut self, input: &mut I) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
@@ -79,7 +79,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut I) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {

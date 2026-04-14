@@ -98,9 +98,9 @@ where
     }
 }
 
-impl<P> DelayedParser for Box<P>
+impl<'a, P> DelayedParser<'a> for Box<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<'a>,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;

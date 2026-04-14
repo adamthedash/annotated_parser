@@ -121,7 +121,7 @@ pub trait ByteParser: Sized {
     const BE: Self::BEParser;
 }
 
-impl<'a, const N: usize, T> ByteParser for T
+impl<const N: usize, T> ByteParser for T
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug,

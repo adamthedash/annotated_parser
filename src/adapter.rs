@@ -3,6 +3,7 @@ use num_traits::AsPrimitive;
 use crate::combinators::{
     Configured, Configuring, Parameterize,
     delayed::{DelayedValGet, DelayedValSet},
+    map, map_silent, try_map,
 };
 use std::fmt::{Debug, Display};
 
@@ -21,7 +22,7 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         F: FnMut(Self::Output) -> O,
         O: Debug + Clone + 'static,
     {
-        Map::new(self, func)
+        map(self, func)
     }
 
     fn map_silent<F, O>(self, func: F) -> MapSilent<Self, F>
@@ -29,7 +30,7 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         F: FnMut(Self::Output) -> O,
         O: Debug + Clone + 'static,
     {
-        MapSilent::new(self, func)
+        map_silent(self, func)
     }
 
     fn try_map<F, O, E>(self, func: F) -> TryMap<Self, F>
@@ -38,7 +39,7 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         O: Debug + Clone + 'static,
         E: Display,
     {
-        TryMap::new(self, func)
+        try_map(self, func)
     }
 
     fn checkpoint(self) -> Checkpoint<Self> {
@@ -64,7 +65,7 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         RepeatVec::new(self, count)
     }
 
-    fn delay(self) -> Delayed<Self> {
+    fn delay(self) -> Delayed<'a, Self> {
         Delayed::new(self)
     }
 
@@ -117,4 +118,4 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
     }
 }
 
-impl<P> ParserAdapter for P where P: Parser {}
+impl<'a, P> ParserAdapter<'a> for P where P: Parser<'a> {}
