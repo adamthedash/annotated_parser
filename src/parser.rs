@@ -5,6 +5,21 @@ use crate::combinators::delayed::DelayedParser;
 use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<(T, Annotation), Annotation>;
+
+pub trait IntoAnnotation {
+    /// Consume the result and return the annotation from either branch
+    fn into_annotation(self) -> Annotation;
+}
+
+impl<T> IntoAnnotation for Result<T> {
+    fn into_annotation(self) -> Annotation {
+        match self {
+            Ok((_, a)) => a,
+            Err(a) => a,
+        }
+    }
+}
+
 pub type SpeedyResult<T> = std::result::Result<(T, usize), Annotation>;
 
 /// All parsing functions must implement this trait
