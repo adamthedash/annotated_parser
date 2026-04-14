@@ -93,11 +93,3 @@ impl Parser for F16BE {
         Ok((value, BYTE_SIZE))
     }
 }
-
-impl ByteParser for f16 {
-    type LEParser = F16LE;
-    type BEParser = F16BE;
-
-    const LE: Self::LEParser = F16LE;
-    const BE: Self::BEParser = F16BE;
-}
