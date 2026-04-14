@@ -21,11 +21,12 @@ where
     }
 }
 
-impl<C, P> Parser for Cond<C, P>
+impl<'a, C, P> Parser<'a> for Cond<C, P>
 where
     C: DelayedValGet<Value = bool>,
-    P: Parser,
+    P: Parser<'a>,
 {
+    type Input = P::Input;
     type Output = Option<P::Output>;
 
     fn name(&self) -> String {
@@ -36,7 +37,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) = if *self.cond.get() {
             let (value, offset, child_annotations) =
                 self.inner
@@ -54,7 +55,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
         if !*self.cond.get() {
             return Ok((None, 0));
         }

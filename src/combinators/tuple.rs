@@ -6,27 +6,38 @@ use paste::paste;
 
 /// Tuples of parsers
 macro_rules! impl_parser_for_tuple {
-    ( $( $P:ident ~ $idx:tt ),+ ) => {
+    ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
         paste! {
-            impl<$($P),+> Parser for ($($P,)+)
+            impl<'a, $First $(, $P)*> Parser<'a> for ($First, $($P,)*)
             where
+                $First: Parser<'a>,
                 $(
-                    $P: Parser,
-                )+
+                    $P: Parser<'a, Input = $First::Input>,
+                )*
             {
-                type Output = ($($P::Output,)+);
+                type Input = $First::Input;
+                type Output = ($First::Output, $($P::Output,)*);
 
                 fn name(&self) -> String {
                     "tuple".to_owned()
                 }
 
                 fn spec(&self) -> ParserSpec {
-                    ParserSpec::new(self.name(), vec![$( self.$idx.spec() ),+])
+                    ParserSpec::new(self.name(), vec![
+                        self.$first_idx.spec(),
+                        $( self.$idx.spec(), )*
+                    ])
                 }
 
-                fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+                fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
                     let mut child_annotations = vec![];
                     let mut offset = 0usize;
+
+                    let [<out_ $first_idx>];
+                    ([<out_ $first_idx>], offset, child_annotations) =
+                        self.$first_idx
+                            .annotate(input)
+                            .fold(child_annotations, offset, || self.name(), $first_idx)?;
 
                     $(
                         let [<out_ $idx>];
@@ -34,16 +45,22 @@ macro_rules! impl_parser_for_tuple {
                             self.$idx
                                 .annotate(input)
                                 .fold(child_annotations, offset, || self.name(), $idx)?;
-                    )+
+                    )*
 
-                    let out = ($( [<out_ $idx>], )+);
+                    let out = ([<out_ $first_idx>], $( [<out_ $idx>], )*);
                     let annotation = Annotation::success(&self.name(), 0..offset, out.clone(), child_annotations);
                     Ok((out, annotation))
                 }
 
                 #[inline(always)]
-                fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
+                fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
                     let mut offset = 0usize;
+
+                    let [<out_ $first_idx>];
+                    ([<out_ $first_idx>], offset) =
+                        self.$first_idx
+                            .parse(input)
+                            .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), $first_idx))?;
 
                     $(
                         let [<out_ $idx>];
@@ -51,9 +68,9 @@ macro_rules! impl_parser_for_tuple {
                             self.$idx
                                 .parse(input)
                                 .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), $idx))?;
-                    )+
+                    )*
 
-                    let out = ($( [<out_ $idx>], )+);
+                    let out = ([<out_ $first_idx>], $( [<out_ $idx>], )*);
                     Ok((out, offset))
                 }
             }
