@@ -32,8 +32,11 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let res = self.inner.parse(input).fold(vec![], 0, || self.name(), 0);
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let res = self
+            .inner
+            .annotate(input)
+            .fold(vec![], 0, || self.name(), 0);
 
         let (out, offset, child_annotations) = match res {
             Ok((out, offset, child_annotations)) => (Some(out), offset, child_annotations),
@@ -47,8 +50,8 @@ where
         Ok((out, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let Ok((value, offset)) = self.inner.parse_speedy(input) else {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let Ok((value, offset)) = self.inner.parse(input) else {
             return Ok((None, 0));
         };
 
@@ -64,7 +67,7 @@ mod tests {
         let mut parser = u32::LE.optional();
         let mut input = [0; 5].as_slice();
 
-        let (value, _) = parser.parse_speedy(&mut input).unwrap();
+        let (value, _) = parser.parse(&mut input).unwrap();
         assert_eq!(value, Some(0));
         assert_eq!(input, &[0]);
     }
@@ -74,7 +77,7 @@ mod tests {
         let mut parser = u32::LE.optional();
         let mut input = [0; 3].as_slice();
 
-        let (value, _) = parser.parse_speedy(&mut input).unwrap();
+        let (value, _) = parser.parse(&mut input).unwrap();
         assert_eq!(value, None);
         assert_eq!(input, &[0; 3]);
     }
@@ -84,7 +87,7 @@ mod tests {
         let mut parser = u32::LE.verify(|x| *x == 1).optional();
         let mut input = [0; 5].as_slice();
 
-        let (value, _) = parser.parse_speedy(&mut input).unwrap();
+        let (value, _) = parser.parse(&mut input).unwrap();
         assert_eq!(value, None);
         assert_eq!(input, &[0; 5]);
     }

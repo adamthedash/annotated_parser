@@ -32,8 +32,8 @@ impl<I: Parser> Parser for Delayed<I> {
         self.inner.spec()
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        let (out, anno) = self.inner.parse(input)?;
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        let (out, anno) = self.inner.annotate(input)?;
 
         // Set the shared value
         self.value.set(out);
@@ -42,8 +42,8 @@ impl<I: Parser> Parser for Delayed<I> {
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        let (out, offset) = self.inner.parse_speedy(input)?;
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        let (out, offset) = self.inner.parse(input)?;
 
         // Set the shared value
         self.value.set(out);

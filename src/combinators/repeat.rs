@@ -39,7 +39,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut child_annotations = Vec::with_capacity(N);
 
@@ -47,7 +47,7 @@ where
         for (i, value_out) in values.iter_mut().enumerate() {
             match self
                 .inner
-                .parse(input)
+                .annotate(input)
                 .fold(child_annotations, offset, || self.name(), 0)
             {
                 Ok((value, new_offset, child_annos)) => {
@@ -80,12 +80,12 @@ where
         Ok((values, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
 
         let mut offset = 0;
         for (i, value_out) in values.iter_mut().enumerate() {
-            match self.inner.parse_speedy(input) {
+            match self.inner.parse(input) {
                 Ok((value, new_offset)) => {
                     value_out.write(value);
                     offset = new_offset;
@@ -149,7 +149,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let count = self.count.get().as_();
 
         let mut child_annotations = Vec::with_capacity(count);
@@ -159,7 +159,7 @@ where
             let value;
             (value, offset, child_annotations) =
                 self.inner
-                    .parse(input)
+                    .annotate(input)
                     .fold(child_annotations, offset, || self.name(), 0)?;
 
             values.push(value);
@@ -171,13 +171,13 @@ where
         Ok((values, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut values = Vec::with_capacity(count);
         let mut offset = 0;
         for _ in 0..count {
-            match self.inner.parse_speedy(input) {
+            match self.inner.parse(input) {
                 Ok((value, new_offset)) => {
                     values.push(value);
                     offset = new_offset;

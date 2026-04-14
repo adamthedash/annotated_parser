@@ -30,13 +30,13 @@ impl<P: Parser> Parser for Trace<P> {
         self.inner.spec().with_friendly(self.name())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        self.inner.parse(input)
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        self.inner.annotate(input)
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
-        self.inner.parse_speedy(input)
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+        self.inner.parse(input)
     }
 }
 

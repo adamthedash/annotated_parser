@@ -48,7 +48,7 @@ where
         ParserSpec::new(self.name(), vec![self.parser.spec()])
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let parameters = self.parameters.get();
 
         let mut child_annotations = Vec::with_capacity(parameters.len());
@@ -62,7 +62,7 @@ where
             let value;
             (value, offset, child_annotations) =
                 self.parser
-                    .parse(input)
+                    .annotate(input)
                     .fold(child_annotations, offset, || self.name(), 0)?;
 
             values.push(value);
@@ -74,7 +74,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let parameters = self.parameters.get();
 
         let mut values = Vec::with_capacity(parameters.len());
@@ -87,7 +87,7 @@ where
             let value;
             (value, offset) = self
                 .parser
-                .parse_speedy(input)
+                .parse(input)
                 .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 0))?;
 
             values.push(value);

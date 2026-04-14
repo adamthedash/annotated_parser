@@ -23,7 +23,7 @@ impl Parser for Bool {
         ParserSpec::empty(self.name())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -49,7 +49,7 @@ impl Parser for Bool {
         Ok((value, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };

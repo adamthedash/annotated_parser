@@ -23,7 +23,7 @@ macro_rules! impl_parser_for_tuple {
                     ParserSpec::new(self.name(), vec![$( self.$idx.spec() ),+])
                 }
 
-                fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+                fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
                     let mut child_annotations = vec![];
                     let mut offset = 0usize;
 
@@ -31,7 +31,7 @@ macro_rules! impl_parser_for_tuple {
                         let [<out_ $idx>];
                         ([<out_ $idx>], offset, child_annotations) =
                             self.$idx
-                                .parse(input)
+                                .annotate(input)
                                 .fold(child_annotations, offset, || self.name(), $idx)?;
                     )+
 
@@ -41,14 +41,14 @@ macro_rules! impl_parser_for_tuple {
                 }
 
                 #[inline(always)]
-                fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+                fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
                     let mut offset = 0usize;
 
                     $(
                         let [<out_ $idx>];
                         ([<out_ $idx>], offset) =
                             self.$idx
-                                .parse_speedy(input)
+                                .parse(input)
                                 .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), $idx))?;
                     )+
 

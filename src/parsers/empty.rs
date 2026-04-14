@@ -14,13 +14,13 @@ impl Parser for Empty {
         ParserSpec::empty(self.name())
     }
 
-    fn parse(&mut self, _input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, _input: &mut &[u8]) -> Result<Self::Output> {
         let annotation = Annotation::success(self.name(), 0..0, (), vec![]);
         Ok(((), annotation))
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, _input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, _input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         Ok(((), 0))
     }
 }

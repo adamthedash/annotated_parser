@@ -53,7 +53,7 @@ where
         ParserSpec::new(self.name(), self.parsers.iter().map(Parser::spec).collect())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
@@ -71,7 +71,9 @@ where
             .expect("Dispatch function produced index out of bounds");
 
         let (value, offset, child_annotations) =
-            parser.parse(input).fold(vec![], 0, || self.name(), index)?;
+            parser
+                .annotate(input)
+                .fold(vec![], 0, || self.name(), index)?;
 
         let annotation =
             Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
@@ -79,7 +81,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let discriminant = self.discriminant.get();
 
         let Some(index) = (self.dispatch_func)(&discriminant) else {
@@ -97,7 +99,7 @@ where
             .expect("Dispatch function produced index out of bounds");
 
         let (value, offset) = parser
-            .parse_speedy(input)
+            .parse(input)
             .map_err(|a| fold_child_err(a, vec![], 0, self.name(), index))?;
 
         Ok((value, offset))
@@ -134,6 +136,6 @@ mod tests {
         );
 
         let mut parser = (disc_parser, dispatch).repeat::<2>();
-        parser.parse(&mut input).unwrap();
+        parser.annotate(&mut input).unwrap();
     }
 }

@@ -14,11 +14,11 @@ impl<P: Parser> Parser for Checkpoint<P> {
         self.0.spec()
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
-        let res = self.0.parse(input);
+        let res = self.0.annotate(input);
         if res.is_err() {
             // Reset input
             *input = checkpoint;
@@ -28,11 +28,11 @@ impl<P: Parser> Parser for Checkpoint<P> {
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
-        let res = self.0.parse_speedy(input);
+        let res = self.0.parse(input);
         if res.is_err() {
             // Reset input
             *input = checkpoint;
@@ -68,13 +68,13 @@ impl<P: Parser> Parser for Peek<P> {
         self.0.spec()
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
         // TODO: On success this will return an annotation in the "future", so it might conflict
         // with follow-on annotations. Maybe return 0-span annotation instead?
-        let res = self.0.parse(input);
+        let res = self.0.annotate(input);
 
         // Reset input
         *input = checkpoint;
@@ -82,11 +82,11 @@ impl<P: Parser> Parser for Peek<P> {
         res
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
-        let res = self.0.parse_speedy(input);
+        let res = self.0.parse(input);
 
         // Reset input
         *input = checkpoint;

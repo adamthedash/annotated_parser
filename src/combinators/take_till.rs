@@ -30,11 +30,11 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let mut bytes = vec![];
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
-        while self.inner.parse(input).is_err() {
+        while self.inner.annotate(input).is_err() {
             // Advance one byte
             let Some((byte, rest)) = input.split_first() else {
                 // EoF
@@ -50,12 +50,12 @@ where
         Ok((bytes, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
-        while self.inner.parse(input).is_err() {
+        while self.inner.annotate(input).is_err() {
             if end == input.len() {
                 // EoF
                 return Err(Annotation::incomplete(self.name(), 0, vec![]));

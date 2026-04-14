@@ -19,15 +19,7 @@ pub trait Parser {
     fn spec(&self) -> ParserSpec;
 
     /// Parse and return both the output value and annotations
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output>;
-
-    /// Parse and just return the annotations
-    fn annotate(&mut self, mut input: &[u8]) -> Annotation {
-        match self.parse(&mut input) {
-            Ok((_, a)) => a,
-            Err(a) => a,
-        }
-    }
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output>;
 
     /// "Fast" implementation of the parser, only producing annotations on error
     /// Default impl just runs the slow version and strips off annotations.  
@@ -47,8 +39,8 @@ pub trait Parser {
     ///         ]
     ///     }
     /// ````
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
-        match self.parse(input) {
+    fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+        match self.annotate(input) {
             Ok((v, a)) => {
                 let AnnotationResult::Success { span, .. } = a.result else {
                     unreachable!("Parser succeeded");
@@ -76,12 +68,12 @@ where
         (**self).spec()
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        (**self).parse(input)
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        (**self).annotate(input)
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
-        (**self).parse_speedy(input)
+    fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+        (**self).parse(input)
     }
 }
 
@@ -112,11 +104,11 @@ where
         (**self).spec()
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
-        (**self).parse(input)
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+        (**self).annotate(input)
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
-        (**self).parse_speedy(input)
+    fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+        (**self).parse(input)
     }
 }

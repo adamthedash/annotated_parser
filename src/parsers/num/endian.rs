@@ -25,7 +25,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -41,7 +41,7 @@ where
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -76,7 +76,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -92,7 +92,7 @@ where
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };

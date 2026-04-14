@@ -19,7 +19,7 @@ impl<const N: usize> Parser for TakeArray<N> {
         ParserSpec::empty(self.name())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -32,7 +32,7 @@ impl<const N: usize> Parser for TakeArray<N> {
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let Some((value, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -66,7 +66,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {
@@ -82,7 +82,7 @@ where
     }
 
     #[inline(always)]
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::SpeedyResult<Self::Output> {
         let count = self.0.get().as_();
 
         let Some((value, rest)) = input.split_at_checked(count) else {

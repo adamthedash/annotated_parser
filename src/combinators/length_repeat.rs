@@ -36,10 +36,10 @@ where
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> Result<Self::Output> {
         let (length, mut offset, mut child_annotations) =
             self.length
-                .parse(input)
+                .annotate(input)
                 .fold(vec![], 0, || self.name(), 0)?;
         let length = length.as_();
         child_annotations.reserve(length);
@@ -49,7 +49,7 @@ where
             let value;
             (value, offset, child_annotations) =
                 self.value
-                    .parse(input)
+                    .annotate(input)
                     .fold(child_annotations, offset, || self.name(), 1)?;
 
             values.push(value);
@@ -61,10 +61,10 @@ where
         Ok((values, annotation))
     }
 
-    fn parse_speedy(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> SpeedyResult<Self::Output> {
         let (length, mut offset) = self
             .length
-            .parse_speedy(input)
+            .parse(input)
             .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
         let length = length.as_();
 
@@ -73,7 +73,7 @@ where
             let value;
             (value, offset) = self
                 .value
-                .parse_speedy(input)
+                .parse(input)
                 .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 1))?;
 
             values.push(value);
@@ -96,7 +96,7 @@ mod tests {
         let input = &mut bytes.as_slice();
 
         let mut parser = LengthRepeat::new(u32::LE, u16::LE);
-        let (value, anno) = parser.parse(input).unwrap();
+        let (value, anno) = parser.annotate(input).unwrap();
         assert_eq!(value, vec![1, 2]);
         assert_eq!(anno.parser_id, "length_repeat");
         assert_eq!(anno.children.len(), 3);
@@ -115,7 +115,7 @@ mod tests {
         let input = &mut bytes.as_slice();
 
         let mut parser = LengthRepeat::new(u32::LE, u16::LE);
-        let anno = parser.parse(input).unwrap_err();
+        let anno = parser.annotate(input).unwrap_err();
         assert_eq!(anno.parser_id, "length_repeat");
         assert_eq!(anno.children.len(), 3);
     }
