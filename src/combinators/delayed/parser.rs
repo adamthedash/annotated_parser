@@ -9,10 +9,7 @@ pub struct Delayed<I, O> {
     value: DelayedVal<O>,
 }
 
-impl<'a, I> Delayed<I, I::Output>
-where
-    I: Parser<'a>,
-{
+impl<I, O> Delayed<I, O> {
     pub fn new(inner: I) -> Self {
         Self {
             inner,
@@ -21,11 +18,10 @@ where
     }
 }
 
-impl<'a, I> Parser<'a> for Delayed<I, I::Output>
+impl<Input, I> Parser<Input> for Delayed<I, I::Output>
 where
-    I: Parser<'a>,
+    I: Parser<Input>,
 {
-    type Input = I::Input;
     type Output = DelayedVal<I::Output>;
 
     fn name(&self) -> String {
@@ -36,7 +32,7 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (out, anno) = self.inner.annotate(input)?;
 
         // Set the shared value
@@ -46,7 +42,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (out, offset) = self.inner.parse(input)?;
 
         // Set the shared value
@@ -56,9 +52,9 @@ where
     }
 }
 
-impl<'a, P> DelayedParser<'a> for Delayed<P, P::Output>
+impl<Input, P> DelayedParser<Input> for Delayed<P, P::Output>
 where
-    P: Parser<'a>,
+    P: Parser<Input>,
 {
     type Value = P::Output;
     type DelayedValue = Self::Output;
@@ -75,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_delayed() {
-        fn create_parser() -> impl for<'a> Parser<'a, Input = &'a [u8], Output = DelayedVal<u8>> {
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = DelayedVal<u8>> {
             u8::LE.delay()
         }
 

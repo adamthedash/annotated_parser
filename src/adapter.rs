@@ -3,7 +3,6 @@ use num_traits::AsPrimitive;
 use crate::combinators::{
     Configured, Configuring, Parameterize,
     delayed::{DelayedValGet, DelayedValSet},
-    map, map_silent, try_map,
 };
 use std::fmt::{Debug, Display};
 
@@ -16,13 +15,13 @@ use crate::{
 };
 
 /// Tail-call adapters for combinators
-pub trait ParserAdapter<'a>: Parser<'a> + Sized {
+pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     fn map<F, O>(self, func: F) -> Map<Self, F>
     where
         F: FnMut(Self::Output) -> O,
         O: Debug + Clone + 'static,
     {
-        map(self, func)
+        Map::new(self, func)
     }
 
     fn map_silent<F, O>(self, func: F) -> MapSilent<Self, F>
@@ -30,7 +29,7 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         F: FnMut(Self::Output) -> O,
         O: Debug + Clone + 'static,
     {
-        map_silent(self, func)
+        MapSilent::new(self, func)
     }
 
     fn try_map<F, O, E>(self, func: F) -> TryMap<Self, F>
@@ -39,18 +38,11 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         O: Debug + Clone + 'static,
         E: Display,
     {
-        try_map(self, func)
+        TryMap::new(self, func)
     }
 
     fn checkpoint(self) -> Checkpoint<Self> {
         Checkpoint(self)
-    }
-
-    fn into_box(self) -> Box<dyn Parser<'a, Input = Self::Input, Output = Self::Output>>
-    where
-        Self: 'static,
-    {
-        Box::new(self)
     }
 
     fn repeat<const N: usize>(self) -> RepeatArray<Self, [Self::Output; N]> {
@@ -118,4 +110,4 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
     }
 }
 
-impl<'a, P> ParserAdapter<'a> for P where P: Parser<'a> {}
+impl<Input, P> ParserAdapter<Input> for P where P: Parser<Input> {}

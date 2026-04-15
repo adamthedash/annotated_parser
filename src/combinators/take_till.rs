@@ -7,20 +7,16 @@ pub struct TakeTill<P> {
     inner: Peek<P>,
 }
 
-impl<'a, P> TakeTill<P>
-where
-    P: Parser<'a>,
-{
+impl<P> TakeTill<P> {
     pub fn new(inner: P) -> Self {
         Self { inner: Peek(inner) }
     }
 }
 
-impl<'a, P> Parser<'a> for TakeTill<P>
+impl<P> Parser<&[u8]> for TakeTill<P>
 where
-    P: Parser<'a, Input = &'a [u8]>,
+    P: for<'a> Parser<&'a [u8]>,
 {
-    type Input = &'a [u8];
     type Output = Vec<u8>;
 
     fn name(&self) -> String {
@@ -31,7 +27,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let mut bytes = vec![];
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
@@ -51,7 +47,7 @@ where
         Ok((bytes, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 
@@ -68,5 +64,30 @@ where
         }
 
         Ok((original[..end].to_vec(), end))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ByteParser;
+    use crate::adapter::ParserAdapter;
+
+    #[test]
+    fn test() {
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = u8> {
+            u8::LE.verify(|x| *x == 0)
+        }
+
+        fn use_parser() -> (Vec<u8>, Vec<u8>) {
+            let mut parser = TakeTill::new(create_parser());
+
+            let input = vec![0; 5];
+            let (value, _) = parser.parse(&mut input.as_slice()).unwrap();
+
+            (input, value)
+        }
+
+        use_parser();
     }
 }

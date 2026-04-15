@@ -7,8 +7,7 @@ use crate::{
 };
 
 /// Helper trait for interacting with tuples of parsers
-pub trait ParserTuple<'a> {
-    type Input: Copy + 'a;
+pub trait ParserTuple<Input> {
     type Output: Debug + Clone + 'static;
 
     /// Call Parser::spec on all child parsers
@@ -17,26 +16,24 @@ pub trait ParserTuple<'a> {
     /// Call Parser::annotate on a specific child parser
     fn annotate(
         &mut self,
-        input: &mut Self::Input,
+        input: &mut Input,
         index: usize,
     ) -> Option<AnnotatedResult<Self::Output>>;
 
     /// Call Parser::parse on a specific child parser
-    fn parse(&mut self, input: &mut Self::Input, index: usize)
-    -> Option<ParseResult<Self::Output>>;
+    fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>>;
 }
 
 macro_rules! impl_parser_tuple_for_tuple {
     ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
         paste! {
-            impl<'a, $First $(, $P)*> ParserTuple<'a> for ($First, $($P,)*)
+            impl<Input, $First $(, $P)*> ParserTuple<Input> for ($First, $($P,)*)
             where
-                $First: Parser<'a>,
+                $First: Parser<Input>,
                 $(
-                    $P: Parser<'a, Input = $First::Input, Output = $First::Output>,
+                    $P: Parser<Input, Output = $First::Output>,
                 )*
             {
-                type Input = $First::Input;
                 type Output = $First::Output;
 
                 #[inline(always)]
@@ -48,7 +45,7 @@ macro_rules! impl_parser_tuple_for_tuple {
                 }
 
                 #[inline(always)]
-                fn annotate(&mut self, input: &mut Self::Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
+                fn annotate(&mut self, input: &mut Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
                     match index {
                         $first_idx => Some(self.$first_idx.annotate(input)),
                         $( $idx => Some(self.$idx.annotate(input)), )*
@@ -57,7 +54,7 @@ macro_rules! impl_parser_tuple_for_tuple {
                 }
 
                 #[inline(always)]
-                fn parse(&mut self, input: &mut Self::Input, index: usize) -> Option<ParseResult<Self::Output>> {
+                fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>> {
                     match index {
                         $first_idx => Some(self.$first_idx.parse(input)),
                         $( $idx => Some(self.$idx.parse(input)), )*
@@ -99,13 +96,11 @@ where
     }
 }
 
-impl<'a, D, P> Parser<'a> for Dispatch<D, P>
+impl<Input, D, P> Parser<Input> for Dispatch<D, P>
 where
     D: DelayedValGet<Value = Option<usize>>,
-    P: ParserTuple<'a>,
+    P: ParserTuple<Input>,
 {
-    type Input = P::Input;
-
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -116,7 +111,7 @@ where
         ParserSpec::new(self.name(), self.parsers.specs())
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let Some(index) = *self.discriminant.get() else {
             return Err(Annotation::invalid(
                 self.name(),
@@ -143,7 +138,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let Some(index) = *self.discriminant.get() else {
             return Err(Annotation::invalid(
                 self.name(),
@@ -203,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_dispatch2() {
-        fn create_parser() -> impl for<'a> Parser<'a, Input = &'a [u8], Output = u8> {
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = u8> {
             Dispatch::new(
                 DelayedVal::with_value(Some(0)),
                 (

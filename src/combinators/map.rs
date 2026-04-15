@@ -8,26 +8,19 @@ pub struct TryMap<I, F> {
     func: F,
 }
 
-pub(crate) fn try_map<'a, I, F, O, E>(inner: I, func: F) -> TryMap<I, F>
-where
-    I: Parser<'a>,
-    F: FnMut(I::Output) -> std::result::Result<O, E>,
-    O: Debug + Clone + 'static,
-    E: Display,
-{
-    // NOTE: Free function so we don't need to pass more types to the TryMap struct
-    TryMap { inner, func }
+impl<I, F> TryMap<I, F> {
+    pub fn new(inner: I, func: F) -> Self {
+        Self { inner, func }
+    }
 }
 
-impl<'a, I, F, O, E> Parser<'a> for TryMap<I, F>
+impl<Input, I, F, O, E> Parser<Input> for TryMap<I, F>
 where
-    I: Parser<'a>,
+    I: Parser<Input>,
     F: FnMut(I::Output) -> std::result::Result<O, E>,
     O: Debug + Clone + 'static,
     E: Display,
 {
-    type Input = I::Input;
-
     type Output = O;
 
     fn name(&self) -> String {
@@ -38,7 +31,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -63,7 +56,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
             .parse(input)
@@ -78,29 +71,28 @@ where
 }
 
 /// For infallible functions
-pub struct Map<I, F> {
-    inner: I,
+pub struct Map<P, F> {
+    inner: P,
     func: F,
 }
 
-pub(crate) fn map<'a, I, F, O>(inner: I, func: F) -> Map<I, F>
-where
-    I: Parser<'a>,
-    F: FnMut(I::Output) -> O,
-    O: Debug + Clone + 'static,
-{
-    // NOTE: Free function so we don't need to pass more types to the Map struct
-    Map { inner, func }
+impl<P, F> Map<P, F> {
+    pub fn new<Input, O>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(P::Output) -> O,
+        O: Debug + Clone + 'static,
+    {
+        Self { inner, func }
+    }
 }
 
-impl<'a, I, F, O> Parser<'a> for Map<I, F>
+impl<Input, P, F, O> Parser<Input> for Map<P, F>
 where
-    I: Parser<'a>,
-    F: FnMut(I::Output) -> O,
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> O,
     O: Debug + Clone + 'static,
 {
-    type Input = I::Input;
-
     type Output = O;
 
     fn name(&self) -> String {
@@ -111,7 +103,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -125,7 +117,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
             .parse(input)
@@ -144,24 +136,18 @@ pub struct MapSilent<I, F> {
     func: F,
 }
 
-pub(crate) fn map_silent<'a, I, F, O>(inner: I, func: F) -> MapSilent<I, F>
-where
-    I: Parser<'a>,
-    F: FnMut(I::Output) -> O,
-    O: Debug + Clone + 'static,
-{
-    // NOTE: Free function so we don't need to pass more types to the MapSilent struct
-    MapSilent { inner, func }
+impl<I, F> MapSilent<I, F> {
+    pub fn new(inner: I, func: F) -> Self {
+        Self { inner, func }
+    }
 }
 
-impl<'a, I, F, O> Parser<'a> for MapSilent<I, F>
+impl<Input, I, F, O> Parser<Input> for MapSilent<I, F>
 where
-    I: Parser<'a>,
+    I: Parser<Input>,
     F: FnMut(I::Output) -> O,
     O: Debug + Clone + 'static,
 {
-    type Input = I::Input;
-
     type Output = O;
 
     fn name(&self) -> String {
@@ -172,7 +158,7 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, annotation) = self.inner.annotate(input)?;
 
         let out = (self.func)(data);
@@ -180,7 +166,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self.inner.parse(input)?;
 
         let out = (self.func)(data);

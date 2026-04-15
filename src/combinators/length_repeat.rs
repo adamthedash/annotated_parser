@@ -19,13 +19,12 @@ impl<L, V> LengthRepeat<L, V> {
     }
 }
 
-impl<'a, L, V> Parser<'a> for LengthRepeat<L, V>
+impl<Input, L, V> Parser<Input> for LengthRepeat<L, V>
 where
-    L: Parser<'a>,
+    L: Parser<Input>,
     L::Output: AsPrimitive<usize>,
-    V: Parser<'a, Input = L::Input>,
+    V: Parser<Input>,
 {
-    type Input = L::Input;
     type Output = Vec<V::Output>;
 
     #[inline(always)]
@@ -38,7 +37,7 @@ where
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (length, mut offset, mut child_annotations) =
             self.length
                 .annotate(input)
@@ -63,7 +62,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
         let (length, mut offset) = self
             .length
             .parse(input)

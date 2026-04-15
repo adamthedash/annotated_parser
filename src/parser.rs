@@ -23,10 +23,7 @@ impl<T> IntoAnnotation for AnnotatedResult<T> {
 pub type ParseResult<T> = std::result::Result<(T, usize), Annotation>;
 
 /// All parsing functions must implement this trait
-pub trait Parser<'a> {
-    /// Copy as it needs to be cheap to checkpoint
-    type Input: Copy + 'a;
-
+pub trait Parser<Input> {
     /// Debug/Clone as we store a copy in the return annotations
     type Output: Debug + Clone + 'static;
 
@@ -38,7 +35,7 @@ pub trait Parser<'a> {
     fn spec(&self) -> ParserSpec;
 
     /// Parse and return both the output value and annotations
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output>;
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output>;
 
     /// "Fast" implementation of the parser, only producing annotations on error
     /// Default impl just runs the slow version and strips off annotations.  
@@ -58,7 +55,7 @@ pub trait Parser<'a> {
     ///         ]
     ///     }
     /// ````
-    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
         match self.annotate(input) {
             Ok((v, a)) => {
                 let AnnotationResult::Success { span, .. } = a.result else {
@@ -73,12 +70,10 @@ pub trait Parser<'a> {
 }
 
 /// Blanket impl for boxed parsers
-impl<'a, P> Parser<'a> for Box<P>
+impl<Input, P> Parser<Input> for Box<P>
 where
-    P: Parser<'a> + ?Sized,
+    P: Parser<Input> + ?Sized,
 {
-    type Input = P::Input;
-
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -89,18 +84,18 @@ where
         (**self).spec()
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         (**self).annotate(input)
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
         (**self).parse(input)
     }
 }
 
-impl<'a, P> DelayedParser<'a> for Box<P>
+impl<Input, P> DelayedParser<Input> for Box<P>
 where
-    P: DelayedParser<'a>,
+    P: DelayedParser<Input>,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;
@@ -111,12 +106,10 @@ where
 }
 
 /// Blanket impl to allow passing parsers by reference
-impl<'a, P> Parser<'a> for &mut P
+impl<Input, P> Parser<Input> for &mut P
 where
-    P: Parser<'a>,
+    P: Parser<Input>,
 {
-    type Input = P::Input;
-
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -127,11 +120,11 @@ where
         (**self).spec()
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         (**self).annotate(input)
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
         (**self).parse(input)
     }
 }

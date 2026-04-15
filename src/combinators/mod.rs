@@ -20,7 +20,6 @@ pub use delayed::Delayed;
 pub use dispatch::Dispatch;
 pub use length_repeat::LengthRepeat;
 pub use map::{Map, MapSilent, TryMap};
-pub(crate) use map::{map, map_silent, try_map};
 pub use optional::Opt;
 pub use parameterize::Parameterize;
 pub use repeat::{RepeatArray, RepeatVec};

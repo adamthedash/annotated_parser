@@ -8,24 +8,23 @@ pub struct Opt<I> {
     inner: Checkpoint<I>,
 }
 
-impl<'a, I> Opt<I>
-where
-    I: Parser<'a>,
-{
-    pub fn new(inner: I) -> Self {
+impl<P> Opt<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: ParserAdapter<Input>,
+    {
         Self {
             inner: inner.checkpoint(),
         }
     }
 }
 
-impl<'a, I> Parser<'a> for Opt<I>
+impl<Input, P> Parser<Input> for Opt<P>
 where
-    I: Parser<'a>,
+    P: Parser<Input>,
+    Input: Copy,
 {
-    type Input = I::Input;
-
-    type Output = Option<I::Output>;
+    type Output = Option<P::Output>;
 
     fn name(&self) -> String {
         "opt".to_owned()
@@ -35,7 +34,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let res = self
             .inner
             .annotate(input)
@@ -53,7 +52,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let Ok((value, offset)) = self.inner.parse(input) else {
             return Ok((None, 0));
         };

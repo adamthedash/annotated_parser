@@ -6,23 +6,17 @@ pub struct Verify<P, F> {
     func: F,
 }
 
-impl<'a, P, F> Verify<P, F>
-where
-    P: Parser<'a>,
-    F: FnMut(&P::Output) -> bool,
-{
+impl<P, F> Verify<P, F> {
     pub fn new(inner: P, func: F) -> Self {
         Self { inner, func }
     }
 }
 
-impl<'a, P, F> Parser<'a> for Verify<P, F>
+impl<Input, P, F> Parser<Input> for Verify<P, F>
 where
-    P: Parser<'a>,
+    P: Parser<Input>,
     F: FnMut(&P::Output) -> bool,
 {
-    type Input = P::Input;
-
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -33,7 +27,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -55,7 +49,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (value, offset) = self
             .inner
             .parse(input)

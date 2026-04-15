@@ -3,9 +3,7 @@ use crate::{AnnotatedResult, Annotation, ByteParser, ParseResult, Parser, Parser
 #[derive(Clone)]
 pub struct F16LE;
 
-impl<'a> Parser<'a> for F16LE {
-    type Input = &'a [u8];
-
+impl Parser<&[u8]> for F16LE {
     type Output = f16;
 
     fn name(&self) -> String {
@@ -16,7 +14,7 @@ impl<'a> Parser<'a> for F16LE {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };
@@ -33,7 +31,7 @@ impl<'a> Parser<'a> for F16LE {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };
@@ -52,9 +50,7 @@ impl<'a> Parser<'a> for F16LE {
 #[derive(Clone)]
 pub struct F16BE;
 
-impl<'a> Parser<'a> for F16BE {
-    type Input = &'a [u8];
-
+impl Parser<&[u8]> for F16BE {
     type Output = f16;
 
     fn name(&self) -> String {
@@ -65,7 +61,7 @@ impl<'a> Parser<'a> for F16BE {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };
@@ -82,7 +78,7 @@ impl<'a> Parser<'a> for F16BE {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(&self.name(), 0, vec![]));
         };

@@ -11,13 +11,11 @@ pub struct LE<T> {
     _output: PhantomData<T>,
 }
 
-impl<'a, const N: usize, T> Parser<'a> for LE<T>
+impl<const N: usize, T> Parser<&[u8]> for LE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug + Clone + 'static,
 {
-    type Input = &'a [u8];
-
     type Output = T;
 
     #[inline(always)]
@@ -30,7 +28,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -46,7 +44,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -64,13 +62,11 @@ where
 #[derive(Clone)]
 pub struct BE<T>(PhantomData<T>);
 
-impl<'a, const N: usize, T> Parser<'a> for BE<T>
+impl<const N: usize, T> Parser<&[u8]> for BE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug + Clone + 'static,
 {
-    type Input = &'a [u8];
-
     type Output = T;
 
     #[inline(always)]
@@ -83,7 +79,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };
@@ -99,7 +95,7 @@ where
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             return Err(Annotation::incomplete(self.name(), 0, vec![]));
         };

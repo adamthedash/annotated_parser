@@ -8,14 +8,14 @@ use paste::paste;
 macro_rules! impl_parser_for_tuple {
     ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
         paste! {
-            impl<'a, $First $(, $P)*> Parser<'a> for ($First, $($P,)*)
+            impl<Input, $First $(, $P)*> Parser<Input> for ($First, $($P,)*)
             where
-                $First: Parser<'a>,
+                $First: Parser<Input>,
                 $(
-                    $P: Parser<'a, Input = $First::Input>,
+                    $P: Parser<Input>,
                 )*
             {
-                type Input = $First::Input;
+
                 type Output = ($First::Output, $($P::Output,)*);
 
                 fn name(&self) -> String {
@@ -29,7 +29,7 @@ macro_rules! impl_parser_for_tuple {
                     ])
                 }
 
-                fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
+                fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
                     let mut child_annotations = vec![];
                     let mut offset = 0usize;
 
@@ -53,7 +53,7 @@ macro_rules! impl_parser_for_tuple {
                 }
 
                 #[inline(always)]
-                fn parse(&mut self, input: &mut Self::Input) -> ParseResult<Self::Output> {
+                fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
                     let mut offset = 0usize;
 
                     let [<out_ $first_idx>];

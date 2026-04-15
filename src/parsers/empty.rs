@@ -3,9 +3,7 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 /// Always succeeds, consumes nothing
 pub struct Empty;
 
-impl<'a> Parser<'a> for Empty {
-    type Input = &'a [u8];
-
+impl<Input> Parser<Input> for Empty {
     type Output = ();
 
     fn name(&self) -> String {
@@ -13,16 +11,16 @@ impl<'a> Parser<'a> for Empty {
     }
 
     fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(self.name())
+        ParserSpec::empty(Parser::<Input>::name(self))
     }
 
-    fn annotate(&mut self, _input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
-        let annotation = Annotation::success(self.name(), 0..0, (), vec![]);
+    fn annotate(&mut self, _input: &mut Input) -> AnnotatedResult<Self::Output> {
+        let annotation = Annotation::success(Parser::<Input>::name(self), 0..0, (), vec![]);
         Ok(((), annotation))
     }
 
     #[inline(always)]
-    fn parse(&mut self, _input: &mut Self::Input) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, _input: &mut Input) -> crate::ParseResult<Self::Output> {
         Ok(((), 0))
     }
 }
