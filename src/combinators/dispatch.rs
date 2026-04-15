@@ -1,21 +1,97 @@
+use paste::paste;
 use std::fmt::Debug;
 
 use crate::{
-    AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec,
+    AnnotatedResult, Annotation, FoldResult, ParseResult, Parser, ParserSpec,
     combinators::delayed::DelayedValGet, helpers::fold_child_err,
 };
 
-pub struct Dispatch<'a, const N: usize, I, D, O> {
-    discriminant: D,
-    parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N],
+/// Helper trait for interacting with tuples of parsers
+pub trait ParserTuple<'a> {
+    type Input: Copy + 'a;
+    type Output: Debug + Clone + 'static;
+
+    /// Call Parser::spec on all child parsers
+    fn specs(&self) -> Vec<ParserSpec>;
+
+    /// Call Parser::annotate on a specific child parser
+    fn annotate(
+        &mut self,
+        input: &mut Self::Input,
+        index: usize,
+    ) -> Option<AnnotatedResult<Self::Output>>;
+
+    /// Call Parser::parse on a specific child parser
+    fn parse(&mut self, input: &mut Self::Input, index: usize)
+    -> Option<ParseResult<Self::Output>>;
 }
 
-impl<'a, const N: usize, I, D, O> Dispatch<'a, N, I, D, O>
+macro_rules! impl_parser_tuple_for_tuple {
+    ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
+        paste! {
+            impl<'a, $First $(, $P)*> ParserTuple<'a> for ($First, $($P,)*)
+            where
+                $First: Parser<'a>,
+                $(
+                    $P: Parser<'a, Input = $First::Input, Output = $First::Output>,
+                )*
+            {
+                type Input = $First::Input;
+                type Output = $First::Output;
+
+                #[inline(always)]
+                fn specs(&self) -> Vec<ParserSpec> {
+                    vec![
+                        self.$first_idx.spec(),
+                        $( self.$idx.spec(), )*
+                    ]
+                }
+
+                #[inline(always)]
+                fn annotate(&mut self, input: &mut Self::Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
+                    match index {
+                        $first_idx => Some(self.$first_idx.annotate(input)),
+                        $( $idx => Some(self.$idx.annotate(input)), )*
+                        _ => None,
+                    }
+                }
+
+                #[inline(always)]
+                fn parse(&mut self, input: &mut Self::Input, index: usize) -> Option<ParseResult<Self::Output>> {
+                    match index {
+                        $first_idx => Some(self.$first_idx.parse(input)),
+                        $( $idx => Some(self.$idx.parse(input)), )*
+                        _ => None,
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_parser_tuple_for_tuple!(A~0);
+impl_parser_tuple_for_tuple!(A~0, B~1);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
+impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
+
+pub struct Dispatch<D, P> {
+    discriminant: D,
+    parsers: P,
+}
+
+impl<D, P> Dispatch<D, P>
 where
     D: DelayedValGet<Value = Option<usize>>,
-    O: Debug,
 {
-    pub fn new(discriminant: D, parsers: [Box<dyn Parser<'a, Input = I, Output = O>>; N]) -> Self {
+    pub fn new(discriminant: D, parsers: P) -> Self {
         Self {
             discriminant,
             parsers,
@@ -23,22 +99,21 @@ where
     }
 }
 
-impl<'a, const N: usize, I, D, O> Parser<'a> for Dispatch<'a, N, I, D, O>
+impl<'a, D, P> Parser<'a> for Dispatch<D, P>
 where
-    I: Copy + 'a,
     D: DelayedValGet<Value = Option<usize>>,
-    O: Debug + Clone + 'static,
+    P: ParserTuple<'a>,
 {
-    type Input = I;
+    type Input = P::Input;
 
-    type Output = O;
+    type Output = P::Output;
 
     fn name(&self) -> String {
         "dispatch".to_owned()
     }
 
     fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), self.parsers.iter().map(Parser::spec).collect())
+        ParserSpec::new(self.name(), self.parsers.specs())
     }
 
     fn annotate(&mut self, input: &mut Self::Input) -> AnnotatedResult<Self::Output> {
@@ -51,15 +126,16 @@ where
             ));
         };
 
-        let parser = self
-            .parsers
-            .get_mut(index)
-            .expect("Dispatch function produced index out of bounds");
+        let Some(res) = self.parsers.annotate(input, index) else {
+            return Err(Annotation::invalid(
+                self.name(),
+                0..0,
+                "Discriminant out of bounds".to_string(),
+                vec![],
+            ));
+        };
 
-        let (value, offset, child_annotations) =
-            parser
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), index)?;
+        let (value, offset, child_annotations) = res.fold(vec![], 0, || self.name(), index)?;
 
         let annotation =
             Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
@@ -77,14 +153,16 @@ where
             ));
         };
 
-        let parser = self
-            .parsers
-            .get_mut(index)
-            .expect("Dispatch function produced index out of bounds");
+        let Some(res) = self.parsers.parse(input, index) else {
+            return Err(Annotation::invalid(
+                self.name(),
+                0..0,
+                "Discriminant out of bounds".to_string(),
+                vec![],
+            ));
+        };
 
-        let (value, offset) = parser
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), index))?;
+        let (value, offset) = res.map_err(|a| fold_child_err(a, vec![], 0, self.name(), index))?;
 
         Ok((value, offset))
     }
@@ -96,6 +174,7 @@ mod tests {
     use crate::ByteParser;
     use crate::ParserAdapter;
     use crate::combinators::delayed::DelayedParser;
+    use crate::combinators::delayed::DelayedVal;
 
     #[test]
     fn test_dispatch() {
@@ -112,13 +191,37 @@ mod tests {
 
                 Some(index)
             }),
-            [
-                Box::new(u8::LE), //
-                Box::new(u16::LE.map(|x| x as u8)),
-            ],
+            (
+                u8::LE, //
+                u16::LE.map(|x| x as u8),
+            ),
         );
 
         let mut parser = (disc_parser, dispatch).repeat::<2>();
         parser.annotate(&mut input).unwrap();
+    }
+
+    #[test]
+    fn test_dispatch2() {
+        fn create_parser() -> impl for<'a> Parser<'a, Input = &'a [u8], Output = u8> {
+            Dispatch::new(
+                DelayedVal::with_value(Some(0)),
+                (
+                    u8::LE, //
+                    u16::LE.map(|x| x as u8),
+                ),
+            )
+        }
+
+        fn use_parser() -> (Vec<u8>, u8) {
+            let mut parser = create_parser();
+
+            let input = vec![0; 5];
+            let (value, _) = parser.parse(&mut input.as_slice()).unwrap();
+
+            (input, value)
+        }
+
+        use_parser();
     }
 }

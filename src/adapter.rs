@@ -65,7 +65,7 @@ pub trait ParserAdapter<'a>: Parser<'a> + Sized {
         RepeatVec::new(self, count)
     }
 
-    fn delay(self) -> Delayed<'a, Self> {
+    fn delay(self) -> Delayed<Self, Self::Output> {
         Delayed::new(self)
     }
 

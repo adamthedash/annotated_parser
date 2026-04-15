@@ -3,16 +3,13 @@ use super::{DelayedParser, DelayedValSet};
 use crate::{AnnotatedResult, Parser, ParserSpec};
 
 /// A parser whos output can be referenced before it has been executed
-pub struct Delayed<'a, I>
-where
-    I: Parser<'a>,
-{
+pub struct Delayed<I, O> {
     inner: I,
     /// This will be populated / overwritten whenever the parser is ran.
-    value: DelayedVal<I::Output>,
+    value: DelayedVal<O>,
 }
 
-impl<'a, I> Delayed<'a, I>
+impl<'a, I> Delayed<I, I::Output>
 where
     I: Parser<'a>,
 {
@@ -24,7 +21,7 @@ where
     }
 }
 
-impl<'a, I> Parser<'a> for Delayed<'a, I>
+impl<'a, I> Parser<'a> for Delayed<I, I::Output>
 where
     I: Parser<'a>,
 {
@@ -59,7 +56,7 @@ where
     }
 }
 
-impl<'a, P> DelayedParser<'a> for Delayed<'a, P>
+impl<'a, P> DelayedParser<'a> for Delayed<P, P::Output>
 where
     P: Parser<'a>,
 {
@@ -68,5 +65,29 @@ where
 
     fn output(&self) -> Self::DelayedValue {
         self.value.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ByteParser, ParserAdapter};
+
+    #[test]
+    fn test_delayed() {
+        fn create_parser() -> impl for<'a> Parser<'a, Input = &'a [u8], Output = DelayedVal<u8>> {
+            u8::LE.delay()
+        }
+
+        fn use_parser() -> (Vec<u8>, DelayedVal<u8>) {
+            let mut parser = create_parser();
+
+            let input = vec![0; 5];
+            let (value, _) = parser.parse(&mut input.as_slice()).unwrap();
+
+            (input, value)
+        }
+
+        use_parser();
     }
 }
