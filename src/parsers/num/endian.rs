@@ -8,7 +8,7 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 #[derive(Clone)]
 pub struct LE<T>(PhantomData<T>);
 
-impl<const N: usize, T> Parser for LE<T>
+impl<const N: usize, T> Parser<&[u8]> for LE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug + Clone + 'static,
@@ -59,7 +59,7 @@ where
 #[derive(Clone)]
 pub struct BE<T>(PhantomData<T>);
 
-impl<const N: usize, T> Parser for BE<T>
+impl<const N: usize, T> Parser<&[u8]> for BE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: Debug + Clone + 'static,

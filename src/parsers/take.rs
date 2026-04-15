@@ -6,7 +6,7 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 /// Take a fixed amount of bytes into an array
 pub struct TakeArray<const N: usize>;
 
-impl<const N: usize> Parser for TakeArray<N> {
+impl<const N: usize> Parser<&[u8]> for TakeArray<N> {
     type Output = [u8; N];
 
     #[inline(always)]
@@ -44,15 +44,22 @@ impl<const N: usize> Parser for TakeArray<N> {
 }
 
 /// Take an amount of bytes into a Vec
-pub struct TakeVec<D>(pub D)
-where
-    D: DelayedValGet,
-    D::Value: AsPrimitive<usize>;
+pub struct TakeVec<C>(C);
 
-impl<D> Parser for TakeVec<D>
+impl<C> TakeVec<C> {
+    pub fn new(count: C) -> Self
+    where
+        C: DelayedValGet,
+        C::Value: AsPrimitive<usize>,
+    {
+        Self(count)
+    }
+}
+
+impl<C> Parser<&[u8]> for TakeVec<C>
 where
-    D: DelayedValGet,
-    D::Value: AsPrimitive<usize>,
+    C: DelayedValGet,
+    C::Value: AsPrimitive<usize>,
 {
     type Output = Vec<u8>;
 

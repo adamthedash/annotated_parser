@@ -6,6 +6,7 @@ use std::{
     rc::Rc,
 };
 
+/// A value which is computed on demand. Can be used to derive values from other delayed values.
 #[derive(Clone)]
 pub struct DelayedValDerived<T, F>(pub F)
 where

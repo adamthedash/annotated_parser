@@ -24,7 +24,7 @@ pub trait DelayedValGet {
 
     /// Create a derived value by applying a function to this value
     /// NOTE: There's currently no way to specify "If the provided func is Clone, then the return
-    /// is Clone". So just restrict ths to Clone func's for now.
+    /// is Clone". So just restrict this to Clone func's for now.
     fn map<O>(
         self,
         func: impl Fn(&Self::Value) -> O + Clone,
@@ -37,7 +37,7 @@ pub trait DelayedValGet {
 }
 
 /// For the Delayed combinator and passthroughs
-pub trait DelayedParser: Parser {
+pub trait DelayedParser<Input>: Parser<Input> {
     type Value;
     type DelayedValue;
 

@@ -5,24 +5,20 @@ use crate::{
 };
 
 /// A combinator which parameterises the inner parser with each value before running it
-pub struct Parameterize<S, V, P>
-where
-    S: DelayedValSet,
-    V: DelayedValGet<Value = Vec<S::Value>>,
-    P: Parser,
-{
+pub struct Parameterize<S, V, P> {
     parameters: V,
     parameter_input: S,
     parser: P,
 }
 
-impl<S, V, P> Parameterize<S, V, P>
-where
-    S: DelayedValSet,
-    V: DelayedValGet<Value = Vec<S::Value>>,
-    P: Parser,
-{
-    pub fn new(parameters: V, parameter_input: S, parser: P) -> Self {
+impl<S, V, P> Parameterize<S, V, P> {
+    pub fn new<Input>(parameters: V, parameter_input: S, parser: P) -> Self
+    where
+        S: DelayedValSet,
+        S::Value: Clone,
+        V: DelayedValGet<Value = Vec<S::Value>>,
+        P: Parser<Input>,
+    {
         Self {
             parameters,
             parameter_input,
@@ -31,12 +27,12 @@ where
     }
 }
 
-impl<S, V, P> Parser for Parameterize<S, V, P>
+impl<Input, S, V, P> Parser<Input> for Parameterize<S, V, P>
 where
     S: DelayedValSet,
     S::Value: Clone,
     V: DelayedValGet<Value = Vec<S::Value>>,
-    P: Parser,
+    P: Parser<Input>,
 {
     type Output = Vec<P::Output>;
 
@@ -48,7 +44,7 @@ where
         ParserSpec::new(self.name(), vec![self.parser.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let parameters = self.parameters.get();
 
         let mut child_annotations = Vec::with_capacity(parameters.len());
@@ -74,7 +70,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let parameters = self.parameters.get();
 
         let mut values = Vec::with_capacity(parameters.len());

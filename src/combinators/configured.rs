@@ -10,19 +10,16 @@ use crate::{
 
 /// Parser which can be externally enabled/disabled rather than checking a delayed value each
 /// execution
-pub struct Configured<P>
-where
-    P: Parser,
-{
+pub struct Configured<P> {
     enabled: Arc<AtomicBool>,
     inner: P,
 }
 
-impl<P> Configured<P>
-where
-    P: Parser,
-{
-    pub fn new(inner: P) -> Self {
+impl<P> Configured<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self {
             enabled: Arc::new(AtomicBool::new(false)),
             inner,
@@ -42,9 +39,9 @@ where
     }
 }
 
-impl<P> Parser for Configured<P>
+impl<Input, P> Parser<Input> for Configured<P>
 where
-    P: Parser,
+    P: Parser<Input>,
 {
     type Output = Option<P::Output>;
 
@@ -56,7 +53,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) = if self.enabled.load(Ordering::Relaxed) {
             let (value, offset, child_annotations) =
                 self.inner
@@ -73,7 +70,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         if !self.enabled.load(Ordering::Relaxed) {
             return Ok((None, 0));
         }
@@ -94,12 +91,12 @@ pub struct Configuring<P, F> {
     configurator: F,
 }
 
-impl<P, F> Configuring<P, F>
-where
-    P: Parser,
-    F: Fn(),
-{
-    pub fn new(inner: P, configurator: F) -> Self {
+impl<P, F> Configuring<P, F> {
+    pub fn new<Input>(inner: P, configurator: F) -> Self
+    where
+        P: Parser<Input>,
+        F: Fn(),
+    {
         Self {
             inner,
             configurator,
@@ -107,9 +104,9 @@ where
     }
 }
 
-impl<P, F> Parser for Configuring<P, F>
+impl<Input, P, F> Parser<Input> for Configuring<P, F>
 where
-    P: Parser,
+    P: Parser<Input>,
     F: Fn(),
 {
     type Output = P::Output;
@@ -122,13 +119,13 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
         let res = self.inner.annotate(input)?;
         (self.configurator)();
         Ok(res)
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let res = self.inner.parse(input)?;
         (self.configurator)();
         Ok(res)

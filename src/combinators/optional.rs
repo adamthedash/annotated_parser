@@ -1,29 +1,28 @@
-use crate::{
-    AnnotatedResult, Annotation, FoldResult, Parser, ParserAdapter, ParserSpec,
-    combinators::Checkpoint,
-};
+use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, combinators::Checkpoint};
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
-pub struct Opt<I> {
-    inner: Checkpoint<I>,
+pub struct Opt<P> {
+    inner: Checkpoint<P>,
 }
 
-impl<I> Opt<I>
-where
-    I: Parser,
-{
-    pub fn new(inner: I) -> Self {
+impl<P> Opt<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
         Self {
-            inner: inner.checkpoint(),
+            inner: Checkpoint::new(inner),
         }
     }
 }
 
-impl<I> Parser for Opt<I>
+impl<Input, P> Parser<Input> for Opt<P>
 where
-    I: Parser,
+    P: Parser<Input>,
+    Input: Copy,
 {
-    type Output = Option<I::Output>;
+    type Output = Option<P::Output>;
 
     fn name(&self) -> String {
         "opt".to_owned()
@@ -33,7 +32,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let res = self
             .inner
             .annotate(input)
@@ -51,7 +50,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let Ok((value, offset)) = self.inner.parse(input) else {
             return Ok((None, 0));
         };

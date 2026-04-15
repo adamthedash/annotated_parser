@@ -3,7 +3,7 @@ use crate::{AnnotatedResult, Annotation, ByteParser, ParseResult, Parser, Parser
 #[derive(Clone)]
 pub struct F16LE;
 
-impl Parser for F16LE {
+impl Parser<&[u8]> for F16LE {
     type Output = f16;
 
     fn name(&self) -> String {
@@ -50,7 +50,7 @@ impl Parser for F16LE {
 #[derive(Clone)]
 pub struct F16BE;
 
-impl Parser for F16BE {
+impl Parser<&[u8]> for F16BE {
     type Output = f16;
 
     fn name(&self) -> String {

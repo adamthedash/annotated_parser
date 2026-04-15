@@ -11,7 +11,12 @@ pub struct LengthRepeat<L, V> {
 }
 
 impl<L, V> LengthRepeat<L, V> {
-    pub fn new(length_parser: L, value_parser: V) -> Self {
+    pub fn new<Input>(length_parser: L, value_parser: V) -> Self
+    where
+        L: Parser<Input>,
+        L::Output: AsPrimitive<usize>,
+        V: Parser<Input>,
+    {
         Self {
             length: length_parser,
             value: value_parser,
@@ -19,11 +24,11 @@ impl<L, V> LengthRepeat<L, V> {
     }
 }
 
-impl<L, V> Parser for LengthRepeat<L, V>
+impl<Input, L, V> Parser<Input> for LengthRepeat<L, V>
 where
-    L: Parser,
+    L: Parser<Input>,
     L::Output: AsPrimitive<usize>,
-    V: Parser,
+    V: Parser<Input>,
 {
     type Output = Vec<V::Output>;
 
@@ -37,7 +42,7 @@ where
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (length, mut offset, mut child_annotations) =
             self.length
                 .annotate(input)
@@ -62,7 +67,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
         let (length, mut offset) = self
             .length
             .parse(input)

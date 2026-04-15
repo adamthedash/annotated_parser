@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Parameterize,
+    Configured, Configuring, Parameterize, Peek,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Tail-call adapters for combinators
-pub trait ParserAdapter: Parser + Sized {
+pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     fn map<F, O>(self, func: F) -> Map<Self, F>
     where
         F: FnMut(Self::Output) -> O,
@@ -41,30 +41,33 @@ pub trait ParserAdapter: Parser + Sized {
         TryMap::new(self, func)
     }
 
-    fn checkpoint(self) -> Checkpoint<Self> {
-        Checkpoint(self)
+    fn checkpoint(self) -> Checkpoint<Self>
+    where
+        Input: Copy,
+    {
+        Checkpoint::new(self)
     }
 
-    fn into_box(self) -> Box<dyn Parser<Output = Self::Output>>
+    fn peek(self) -> Peek<Self>
     where
-        Self: 'static,
+        Input: Copy,
     {
-        Box::new(self)
+        Peek::new(self)
     }
 
     fn repeat<const N: usize>(self) -> RepeatArray<Self, [Self::Output; N]> {
         RepeatArray::new(self)
     }
 
-    fn repeat_vec<C, V>(self, count: C) -> RepeatVec<Self, C>
+    fn repeat_vec<C>(self, count: C) -> RepeatVec<Self, C>
     where
-        C: DelayedValGet<Value = V>,
-        V: AsPrimitive<usize>,
+        C: DelayedValGet,
+        C::Value: AsPrimitive<usize>,
     {
         RepeatVec::new(self, count)
     }
 
-    fn delay(self) -> Delayed<Self> {
+    fn delay(self) -> Delayed<Self, Self::Output> {
         Delayed::new(self)
     }
 
@@ -92,7 +95,10 @@ pub trait ParserAdapter: Parser + Sized {
         Configuring::new(self, configurator)
     }
 
-    fn optional(self) -> Opt<Self> {
+    fn optional(self) -> Opt<Self>
+    where
+        Input: Copy,
+    {
         Opt::new(self)
     }
 
@@ -117,4 +123,4 @@ pub trait ParserAdapter: Parser + Sized {
     }
 }
 
-impl<P> ParserAdapter for P where P: Parser {}
+impl<Input, P> ParserAdapter<Input> for P where P: Parser<Input> {}

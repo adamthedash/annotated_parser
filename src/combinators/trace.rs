@@ -7,8 +7,11 @@ pub struct Trace<P> {
     name: String,
 }
 
-impl<P: Parser> Trace<P> {
-    pub fn new(inner: P, name: impl Into<String>) -> Self {
+impl<P> Trace<P> {
+    pub fn new<Input>(inner: P, name: impl Into<String>) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self {
             inner,
             name: name.into(),
@@ -16,7 +19,10 @@ impl<P: Parser> Trace<P> {
     }
 }
 
-impl<P: Parser> Parser for Trace<P> {
+impl<Input, P> Parser<Input> for Trace<P>
+where
+    P: Parser<Input>,
+{
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -30,19 +36,19 @@ impl<P: Parser> Parser for Trace<P> {
         self.inner.spec().with_friendly(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         self.inner.annotate(input)
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         self.inner.parse(input)
     }
 }
 
-impl<P> DelayedParser for Trace<P>
+impl<Input, P> DelayedParser<Input> for Trace<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<Input>,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;

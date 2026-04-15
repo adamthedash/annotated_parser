@@ -3,27 +3,27 @@ use std::fmt::{Debug, Display};
 use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
 
 /// For fallible functions
-pub struct TryMap<I, F> {
-    inner: I,
+pub struct TryMap<P, F> {
+    inner: P,
     func: F,
 }
 
-impl<I, F, O, E> TryMap<I, F>
-where
-    I: Parser,
-    F: FnMut(I::Output) -> std::result::Result<O, E>,
-    O: Debug + Clone + 'static,
-    E: Display,
-{
-    pub fn new(inner: I, func: F) -> Self {
+impl<P, F> TryMap<P, F> {
+    pub fn new<Input, O, E>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(P::Output) -> std::result::Result<O, E>,
+        O: Debug + Clone + 'static,
+        E: Display,
+    {
         Self { inner, func }
     }
 }
 
-impl<I, F, O, E> Parser for TryMap<I, F>
+impl<Input, P, F, O, E> Parser<Input> for TryMap<P, F>
 where
-    I: Parser,
-    F: FnMut(I::Output) -> std::result::Result<O, E>,
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> std::result::Result<O, E>,
     O: Debug + Clone + 'static,
     E: Display,
 {
@@ -37,7 +37,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -62,7 +62,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
             .parse(input)
@@ -77,26 +77,26 @@ where
 }
 
 /// For infallible functions
-pub struct Map<I, F> {
-    inner: I,
+pub struct Map<P, F> {
+    inner: P,
     func: F,
 }
 
-impl<I, F, O> Map<I, F>
-where
-    I: Parser,
-    F: FnMut(I::Output) -> O,
-    O: Debug + Clone + 'static,
-{
-    pub fn new(inner: I, func: F) -> Self {
+impl<P, F> Map<P, F> {
+    pub fn new<Input, O>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(P::Output) -> O,
+        O: Debug + Clone + 'static,
+    {
         Self { inner, func }
     }
 }
 
-impl<I, F, O> Parser for Map<I, F>
+impl<Input, P, F, O> Parser<Input> for Map<P, F>
 where
-    I: Parser,
-    F: FnMut(I::Output) -> O,
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> O,
     O: Debug + Clone + 'static,
 {
     type Output = O;
@@ -109,7 +109,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
                 .annotate(input)
@@ -123,7 +123,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
             .parse(input)
@@ -137,26 +137,26 @@ where
 
 /// For infallible functions. Doesn't introduce anything new in the spec. Can be used for simple
 /// functions where it would just add noise to track them in the annotations
-pub struct MapSilent<I, F> {
-    inner: I,
+pub struct MapSilent<P, F> {
+    inner: P,
     func: F,
 }
 
-impl<I, F, O> MapSilent<I, F>
-where
-    I: Parser,
-    F: FnMut(I::Output) -> O,
-    O: Debug + Clone + 'static,
-{
-    pub fn new(inner: I, func: F) -> Self {
+impl<P, F> MapSilent<P, F> {
+    pub fn new<Input, O>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(P::Output) -> O,
+        O: Debug + Clone + 'static,
+    {
         Self { inner, func }
     }
 }
 
-impl<I, F, O> Parser for MapSilent<I, F>
+impl<Input, P, F, O> Parser<Input> for MapSilent<P, F>
 where
-    I: Parser,
-    F: FnMut(I::Output) -> O,
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> O,
     O: Debug + Clone + 'static,
 {
     type Output = O;
@@ -169,7 +169,7 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, annotation) = self.inner.annotate(input)?;
 
         let out = (self.func)(data);
@@ -177,7 +177,7 @@ where
         Ok((out, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self.inner.parse(input)?;
 
         let out = (self.func)(data);

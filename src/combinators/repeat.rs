@@ -8,14 +8,15 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 /// Compile-time repeat
 pub struct RepeatArray<P, O> {
     inner: P,
+    // Needed to constrain N
     _output: PhantomData<O>,
 }
 
-impl<const N: usize, P> RepeatArray<P, [P::Output; N]>
-where
-    P: Parser,
-{
-    pub fn new(inner: P) -> Self {
+impl<const N: usize, P, O> RepeatArray<P, [O; N]> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self {
             inner,
             _output: PhantomData,
@@ -23,9 +24,9 @@ where
     }
 }
 
-impl<const N: usize, P> Parser for RepeatArray<P, [P::Output; N]>
+impl<const N: usize, Input, P> Parser<Input> for RepeatArray<P, [P::Output; N]>
 where
-    P: Parser,
+    P: Parser<Input>,
 {
     type Output = [P::Output; N];
 
@@ -39,7 +40,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut child_annotations = Vec::with_capacity(N);
 
@@ -80,7 +81,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
 
         let mut offset = 0;
@@ -120,20 +121,20 @@ pub struct RepeatVec<P, C> {
     count: C,
 }
 
-impl<P, C, V> RepeatVec<P, C>
-where
-    P: Parser,
-    C: DelayedValGet<Value = V>,
-    V: AsPrimitive<usize>,
-{
-    pub fn new(inner: P, count: C) -> Self {
+impl<P, C> RepeatVec<P, C> {
+    pub fn new<Input>(inner: P, count: C) -> Self
+    where
+        P: Parser<Input>,
+        C: DelayedValGet,
+        C::Value: AsPrimitive<usize>,
+    {
         Self { inner, count }
     }
 }
 
-impl<P, C, V> Parser for RepeatVec<P, C>
+impl<Input, P, C, V> Parser<Input> for RepeatVec<P, C>
 where
-    P: Parser,
+    P: Parser<Input>,
     C: DelayedValGet<Value = V>,
     V: AsPrimitive<usize>,
 {
@@ -149,7 +150,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut child_annotations = Vec::with_capacity(count);
@@ -171,7 +172,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let count = self.count.get().as_();
 
         let mut values = Vec::with_capacity(count);

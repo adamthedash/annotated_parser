@@ -1,9 +1,23 @@
 use crate::{AnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedParser};
 
 /// Wrapper which resets the input stream on failure
-pub struct Checkpoint<P>(pub P);
+pub struct Checkpoint<P>(P);
 
-impl<P: Parser> Parser for Checkpoint<P> {
+impl<P> Checkpoint<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
+        Self(inner)
+    }
+}
+
+impl<Input, P> Parser<Input> for Checkpoint<P>
+where
+    P: Parser<Input>,
+    Input: Copy,
+{
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -14,7 +28,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -28,7 +42,7 @@ impl<P: Parser> Parser for Checkpoint<P> {
     }
 
     #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -42,9 +56,10 @@ impl<P: Parser> Parser for Checkpoint<P> {
     }
 }
 
-impl<P> DelayedParser for Checkpoint<P>
+impl<Input, P> DelayedParser<Input> for Checkpoint<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<Input>,
+    Input: Copy,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;
@@ -55,9 +70,23 @@ where
 }
 
 /// Wrapper which resets the input stream in all cases
-pub struct Peek<P>(pub P);
+pub struct Peek<P>(P);
 
-impl<P: Parser> Parser for Peek<P> {
+impl<P> Peek<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
+        Self(inner)
+    }
+}
+
+impl<Input, P> Parser<Input> for Peek<P>
+where
+    P: Parser<Input>,
+    Input: Copy,
+{
     type Output = P::Output;
 
     fn name(&self) -> String {
@@ -68,7 +97,7 @@ impl<P: Parser> Parser for Peek<P> {
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -82,7 +111,7 @@ impl<P: Parser> Parser for Peek<P> {
         res
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
@@ -95,9 +124,10 @@ impl<P: Parser> Parser for Peek<P> {
     }
 }
 
-impl<P> DelayedParser for Peek<P>
+impl<Input, P> DelayedParser<Input> for Peek<P>
 where
-    P: DelayedParser,
+    P: DelayedParser<Input>,
+    Input: Copy,
 {
     type Value = P::Value;
     type DelayedValue = P::DelayedValue;

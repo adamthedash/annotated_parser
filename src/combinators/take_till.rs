@@ -7,18 +7,21 @@ pub struct TakeTill<P> {
     inner: Peek<P>,
 }
 
-impl<P> TakeTill<P>
-where
-    P: Parser,
-{
-    pub fn new(inner: P) -> Self {
-        Self { inner: Peek(inner) }
+impl<P> TakeTill<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
+        Self {
+            inner: Peek::new(inner),
+        }
     }
 }
 
-impl<P> Parser for TakeTill<P>
+impl<P> Parser<&[u8]> for TakeTill<P>
 where
-    P: Parser,
+    P: for<'a> Parser<&'a [u8]>,
 {
     type Output = Vec<u8>;
 
@@ -67,5 +70,30 @@ where
         }
 
         Ok((original[..end].to_vec(), end))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ByteParser;
+    use crate::adapter::ParserAdapter;
+
+    #[test]
+    fn test() {
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = u8> {
+            u8::LE.verify(|x| *x == 0)
+        }
+
+        fn use_parser() -> (Vec<u8>, Vec<u8>) {
+            let mut parser = TakeTill::new(create_parser());
+
+            let input = vec![0; 5];
+            let (value, _) = parser.parse(&mut input.as_slice()).unwrap();
+
+            (input, value)
+        }
+
+        use_parser();
     }
 }

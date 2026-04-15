@@ -4,10 +4,7 @@ use crate::{
 };
 
 /// A parser which may or may not be ran depending on the result of some previous parser
-pub struct Cond<C, P>
-where
-    C: DelayedValGet<Value = bool>,
-{
+pub struct Cond<C, P> {
     cond: C,
     inner: P,
 }
@@ -16,15 +13,18 @@ impl<C, P> Cond<C, P>
 where
     C: DelayedValGet<Value = bool>,
 {
-    pub fn new(cond: C, inner: P) -> Self {
+    pub fn new<Input>(cond: C, inner: P) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self { cond, inner }
     }
 }
 
-impl<C, P> Parser for Cond<C, P>
+impl<Input, C, P> Parser<Input> for Cond<C, P>
 where
     C: DelayedValGet<Value = bool>,
-    P: Parser,
+    P: Parser<Input>,
 {
     type Output = Option<P::Output>;
 
@@ -36,7 +36,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (value, offset, child_annotations) = if *self.cond.get() {
             let (value, offset, child_annotations) =
                 self.inner
@@ -54,7 +54,7 @@ where
         Ok((value, annotation))
     }
 
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         if !*self.cond.get() {
             return Ok((None, 0));
         }

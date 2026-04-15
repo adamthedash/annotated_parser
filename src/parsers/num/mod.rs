@@ -12,7 +12,7 @@ pub use endian::{BE, ByteParser, LE};
 #[derive(Clone)]
 pub struct Bool;
 
-impl Parser for Bool {
+impl Parser<&[u8]> for Bool {
     type Output = bool;
 
     fn name(&self) -> String {
