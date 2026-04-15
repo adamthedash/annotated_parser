@@ -88,7 +88,10 @@ impl<D, P> Dispatch<D, P>
 where
     D: DelayedValGet<Value = Option<usize>>,
 {
-    pub fn new(discriminant: D, parsers: P) -> Self {
+    pub fn new<Input>(discriminant: D, parsers: P) -> Self
+    where
+        P: ParserTuple<Input>,
+    {
         Self {
             discriminant,
             parsers,

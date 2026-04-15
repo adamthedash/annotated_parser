@@ -3,21 +3,27 @@ use std::fmt::{Debug, Display};
 use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
 
 /// For fallible functions
-pub struct TryMap<I, F> {
-    inner: I,
+pub struct TryMap<P, F> {
+    inner: P,
     func: F,
 }
 
-impl<I, F> TryMap<I, F> {
-    pub fn new(inner: I, func: F) -> Self {
+impl<P, F> TryMap<P, F> {
+    pub fn new<Input, O, E>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(P::Output) -> std::result::Result<O, E>,
+        O: Debug + Clone + 'static,
+        E: Display,
+    {
         Self { inner, func }
     }
 }
 
-impl<Input, I, F, O, E> Parser<Input> for TryMap<I, F>
+impl<Input, P, F, O, E> Parser<Input> for TryMap<P, F>
 where
-    I: Parser<Input>,
-    F: FnMut(I::Output) -> std::result::Result<O, E>,
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> std::result::Result<O, E>,
     O: Debug + Clone + 'static,
     E: Display,
 {
@@ -131,21 +137,26 @@ where
 
 /// For infallible functions. Doesn't introduce anything new in the spec. Can be used for simple
 /// functions where it would just add noise to track them in the annotations
-pub struct MapSilent<I, F> {
-    inner: I,
+pub struct MapSilent<P, F> {
+    inner: P,
     func: F,
 }
 
-impl<I, F> MapSilent<I, F> {
-    pub fn new(inner: I, func: F) -> Self {
+impl<P, F> MapSilent<P, F> {
+    pub fn new<Input, O>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(P::Output) -> O,
+        O: Debug + Clone + 'static,
+    {
         Self { inner, func }
     }
 }
 
-impl<Input, I, F, O> Parser<Input> for MapSilent<I, F>
+impl<Input, P, F, O> Parser<Input> for MapSilent<P, F>
 where
-    I: Parser<Input>,
-    F: FnMut(I::Output) -> O,
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> O,
     O: Debug + Clone + 'static,
 {
     type Output = O;

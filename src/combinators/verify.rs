@@ -7,7 +7,11 @@ pub struct Verify<P, F> {
 }
 
 impl<P, F> Verify<P, F> {
-    pub fn new(inner: P, func: F) -> Self {
+    pub fn new<Input>(inner: P, func: F) -> Self
+    where
+        P: Parser<Input>,
+        F: FnMut(&P::Output) -> bool,
+    {
         Self { inner, func }
     }
 }

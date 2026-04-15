@@ -4,10 +4,7 @@ use crate::{
 };
 
 /// A parser which may or may not be ran depending on the result of some previous parser
-pub struct Cond<C, P>
-where
-    C: DelayedValGet<Value = bool>,
-{
+pub struct Cond<C, P> {
     cond: C,
     inner: P,
 }
@@ -16,7 +13,10 @@ impl<C, P> Cond<C, P>
 where
     C: DelayedValGet<Value = bool>,
 {
-    pub fn new(cond: C, inner: P) -> Self {
+    pub fn new<Input>(cond: C, inner: P) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self { cond, inner }
     }
 }

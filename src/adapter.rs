@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Parameterize,
+    Configured, Configuring, Parameterize, Peek,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -41,18 +41,28 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         TryMap::new(self, func)
     }
 
-    fn checkpoint(self) -> Checkpoint<Self> {
-        Checkpoint(self)
+    fn checkpoint(self) -> Checkpoint<Self>
+    where
+        Input: Copy,
+    {
+        Checkpoint::new(self)
+    }
+
+    fn peek(self) -> Peek<Self>
+    where
+        Input: Copy,
+    {
+        Peek::new(self)
     }
 
     fn repeat<const N: usize>(self) -> RepeatArray<Self, [Self::Output; N]> {
         RepeatArray::new(self)
     }
 
-    fn repeat_vec<C, V>(self, count: C) -> RepeatVec<Self, C>
+    fn repeat_vec<C>(self, count: C) -> RepeatVec<Self, C>
     where
-        C: DelayedValGet<Value = V>,
-        V: AsPrimitive<usize>,
+        C: DelayedValGet,
+        C::Value: AsPrimitive<usize>,
     {
         RepeatVec::new(self, count)
     }
@@ -85,7 +95,10 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         Configuring::new(self, configurator)
     }
 
-    fn optional(self) -> Opt<Self> {
+    fn optional(self) -> Opt<Self>
+    where
+        Input: Copy,
+    {
         Opt::new(self)
     }
 

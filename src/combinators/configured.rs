@@ -16,7 +16,10 @@ pub struct Configured<P> {
 }
 
 impl<P> Configured<P> {
-    pub fn new(inner: P) -> Self {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self {
             enabled: Arc::new(AtomicBool::new(false)),
             inner,
@@ -89,7 +92,11 @@ pub struct Configuring<P, F> {
 }
 
 impl<P, F> Configuring<P, F> {
-    pub fn new(inner: P, configurator: F) -> Self {
+    pub fn new<Input>(inner: P, configurator: F) -> Self
+    where
+        P: Parser<Input>,
+        F: Fn(),
+    {
         Self {
             inner,
             configurator,

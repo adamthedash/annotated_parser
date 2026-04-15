@@ -13,7 +13,10 @@ pub struct RepeatArray<P, O> {
 }
 
 impl<const N: usize, P, O> RepeatArray<P, [O; N]> {
-    pub fn new(inner: P) -> Self {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self {
             inner,
             _output: PhantomData,
@@ -21,9 +24,9 @@ impl<const N: usize, P, O> RepeatArray<P, [O; N]> {
     }
 }
 
-impl<const N: usize, I, P> Parser<I> for RepeatArray<P, [P::Output; N]>
+impl<const N: usize, Input, P> Parser<Input> for RepeatArray<P, [P::Output; N]>
 where
-    P: Parser<I>,
+    P: Parser<Input>,
 {
     type Output = [P::Output; N];
 
@@ -37,7 +40,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut I) -> AnnotatedResult<Self::Output> {
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut child_annotations = Vec::with_capacity(N);
 
@@ -78,7 +81,7 @@ where
         Ok((values, annotation))
     }
 
-    fn parse(&mut self, input: &mut I) -> crate::ParseResult<Self::Output> {
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
 
         let mut offset = 0;
@@ -119,7 +122,12 @@ pub struct RepeatVec<P, C> {
 }
 
 impl<P, C> RepeatVec<P, C> {
-    pub fn new(inner: P, count: C) -> Self {
+    pub fn new<Input>(inner: P, count: C) -> Self
+    where
+        P: Parser<Input>,
+        C: DelayedValGet,
+        C::Value: AsPrimitive<usize>,
+    {
         Self { inner, count }
     }
 }

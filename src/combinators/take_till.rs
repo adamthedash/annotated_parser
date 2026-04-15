@@ -8,8 +8,14 @@ pub struct TakeTill<P> {
 }
 
 impl<P> TakeTill<P> {
-    pub fn new(inner: P) -> Self {
-        Self { inner: Peek(inner) }
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
+        Self {
+            inner: Peek::new(inner),
+        }
     }
 }
 

@@ -10,7 +10,10 @@ pub struct Delayed<I, O> {
 }
 
 impl<I, O> Delayed<I, O> {
-    pub fn new(inner: I) -> Self {
+    pub fn new<Input>(inner: I) -> Self
+    where
+        I: Parser<Input>,
+    {
         Self {
             inner,
             value: DelayedVal::default(),

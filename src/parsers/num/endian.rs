@@ -6,10 +6,7 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 
 /// Little-endian parser for types which can be directly interpreted from a byte array
 #[derive(Clone)]
-pub struct LE<T> {
-    // _input: PhantomData<I>,
-    _output: PhantomData<T>,
-}
+pub struct LE<T>(PhantomData<T>);
 
 impl<const N: usize, T> Parser<&[u8]> for LE<T>
 where
@@ -125,8 +122,6 @@ where
     type LEParser = LE<Self>;
     type BEParser = BE<Self>;
 
-    const LE: Self::LEParser = LE {
-        _output: PhantomData,
-    };
+    const LE: Self::LEParser = LE(PhantomData);
     const BE: Self::BEParser = BE(PhantomData);
 }

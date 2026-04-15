@@ -44,15 +44,22 @@ impl<const N: usize> Parser<&[u8]> for TakeArray<N> {
 }
 
 /// Take an amount of bytes into a Vec
-pub struct TakeVec<D>(pub D)
-where
-    D: DelayedValGet,
-    D::Value: AsPrimitive<usize>;
+pub struct TakeVec<C>(C);
 
-impl<D> Parser<&[u8]> for TakeVec<D>
+impl<C> TakeVec<C> {
+    pub fn new(count: C) -> Self
+    where
+        C: DelayedValGet,
+        C::Value: AsPrimitive<usize>,
+    {
+        Self(count)
+    }
+}
+
+impl<C> Parser<&[u8]> for TakeVec<C>
 where
-    D: DelayedValGet,
-    D::Value: AsPrimitive<usize>,
+    C: DelayedValGet,
+    C::Value: AsPrimitive<usize>,
 {
     type Output = Vec<u8>;
 

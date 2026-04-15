@@ -1,20 +1,18 @@
-use crate::{
-    AnnotatedResult, Annotation, FoldResult, Parser, ParserAdapter, ParserSpec,
-    combinators::Checkpoint,
-};
+use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, combinators::Checkpoint};
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
-pub struct Opt<I> {
-    inner: Checkpoint<I>,
+pub struct Opt<P> {
+    inner: Checkpoint<P>,
 }
 
 impl<P> Opt<P> {
     pub fn new<Input>(inner: P) -> Self
     where
-        P: ParserAdapter<Input>,
+        P: Parser<Input>,
+        Input: Copy,
     {
         Self {
-            inner: inner.checkpoint(),
+            inner: Checkpoint::new(inner),
         }
     }
 }

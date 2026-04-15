@@ -8,7 +8,10 @@ pub struct Trace<P> {
 }
 
 impl<P> Trace<P> {
-    pub fn new(inner: P, name: impl Into<String>) -> Self {
+    pub fn new<Input>(inner: P, name: impl Into<String>) -> Self
+    where
+        P: Parser<Input>,
+    {
         Self {
             inner,
             name: name.into(),

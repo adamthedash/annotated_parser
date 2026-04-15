@@ -1,7 +1,17 @@
 use crate::{AnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedParser};
 
 /// Wrapper which resets the input stream on failure
-pub struct Checkpoint<P>(pub P);
+pub struct Checkpoint<P>(P);
+
+impl<P> Checkpoint<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
+        Self(inner)
+    }
+}
 
 impl<Input, P> Parser<Input> for Checkpoint<P>
 where
@@ -60,7 +70,17 @@ where
 }
 
 /// Wrapper which resets the input stream in all cases
-pub struct Peek<P>(pub P);
+pub struct Peek<P>(P);
+
+impl<P> Peek<P> {
+    pub fn new<Input>(inner: P) -> Self
+    where
+        P: Parser<Input>,
+        Input: Copy,
+    {
+        Self(inner)
+    }
+}
 
 impl<Input, P> Parser<Input> for Peek<P>
 where

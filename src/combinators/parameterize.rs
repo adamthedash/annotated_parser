@@ -12,7 +12,13 @@ pub struct Parameterize<S, V, P> {
 }
 
 impl<S, V, P> Parameterize<S, V, P> {
-    pub fn new(parameters: V, parameter_input: S, parser: P) -> Self {
+    pub fn new<Input>(parameters: V, parameter_input: S, parser: P) -> Self
+    where
+        S: DelayedValSet,
+        S::Value: Clone,
+        V: DelayedValGet<Value = Vec<S::Value>>,
+        P: Parser<Input>,
+    {
         Self {
             parameters,
             parameter_input,
