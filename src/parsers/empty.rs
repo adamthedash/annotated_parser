@@ -24,3 +24,30 @@ impl<Input> Parser<Input> for Empty {
         Ok(((), 0))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ParserAdapter;
+
+    #[test]
+    fn test_bare() {
+        let mut parser = Empty;
+
+        let input = vec![0_u8; 4];
+        let (_value, _) = parser.parse(&mut input.as_slice()).unwrap();
+    }
+
+    #[test]
+    fn test_combinator() {
+        /// This ensures we have correct type inference when Empty is used in a combinator
+        fn empty() -> impl for<'a> Parser<&'a [u8]> {
+            Empty
+        }
+
+        let mut parser = empty().repeat::<2>();
+
+        let input = vec![0_u8; 4];
+        let (_value, _) = parser.parse(&mut input.as_slice()).unwrap();
+    }
+}
