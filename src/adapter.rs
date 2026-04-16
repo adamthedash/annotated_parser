@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Many, Parameterize, Peek,
+    Configured, Configuring, Many, Parameterize, Peek, Surrounded, SurroundedSymmetrical,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -134,6 +134,21 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         V: DelayedValGet<Value = Vec<S::Value>>,
     {
         Parameterize::new(parameters, param_input, self)
+    }
+
+    fn surrounded_by<L, R>(self, left: L, right: R) -> Surrounded<L, Self, R>
+    where
+        L: Parser<Input>,
+        R: Parser<Input>,
+    {
+        Surrounded::new(left, self, right)
+    }
+
+    fn surrounded_by_sym<O>(self, outer: O) -> SurroundedSymmetrical<Self, O>
+    where
+        O: Parser<Input>,
+    {
+        SurroundedSymmetrical::new(self, outer)
     }
 }
 
