@@ -67,18 +67,11 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         RepeatVec::new(self, count)
     }
 
-    fn many0(self) -> Many<Self>
+    fn many(self) -> Many<Self>
     where
         Input: Copy,
     {
         Many::new(self)
-    }
-
-    fn many1(self) -> Verify<Many<Self>, impl FnMut(&Vec<Self::Output>) -> bool>
-    where
-        Input: Copy,
-    {
-        self.many0().verify(|values: &Vec<_>| !values.is_empty())
     }
 
     fn delay(self) -> Delayed<Self, Self::Output> {
@@ -150,6 +143,13 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     {
         SurroundedSymmetrical::new(self, outer)
     }
+
+    fn non_empty<T>(self) -> Verify<Self, impl FnMut(&Self::Output) -> bool>
+    where
+        Self: Parser<Input, Output = Vec<T>>,
+    {
+        self.verify(|values| !values.is_empty())
+    }
 }
 
 impl<Input, P> ParserAdapter<Input> for P where P: Parser<Input> {}
@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_many1() {
         fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = Vec<u8>> {
-            u8::LE.many1()
+            u8::LE.many().non_empty()
         }
 
         fn use_parser() -> (Vec<u8>, Vec<u8>) {
