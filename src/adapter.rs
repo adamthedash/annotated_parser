@@ -1,7 +1,7 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Parameterize, Peek,
+    Configured, Configuring, Many, Parameterize, Peek,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -67,6 +67,20 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         RepeatVec::new(self, count)
     }
 
+    fn many0(self) -> Many<Self>
+    where
+        Input: Copy,
+    {
+        Many::new(self)
+    }
+
+    fn many1(self) -> Verify<Many<Self>, impl FnMut(&Vec<Self::Output>) -> bool>
+    where
+        Input: Copy,
+    {
+        self.many0().verify(|values: &Vec<_>| !values.is_empty())
+    }
+
     fn delay(self) -> Delayed<Self, Self::Output> {
         Delayed::new(self)
     }
@@ -124,3 +138,27 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
 }
 
 impl<Input, P> ParserAdapter<Input> for P where P: Parser<Input> {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ByteParser;
+
+    #[test]
+    fn test_many1() {
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = Vec<u8>> {
+            u8::LE.many1()
+        }
+
+        fn use_parser() -> (Vec<u8>, Vec<u8>) {
+            let mut parser = create_parser();
+
+            let input = vec![0; 5];
+            let (value, _) = parser.parse(&mut input.as_slice()).unwrap();
+
+            (input, value)
+        }
+
+        use_parser();
+    }
+}
