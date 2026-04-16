@@ -1,7 +1,8 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Many, Parameterize, Peek, Surrounded, SurroundedSymmetrical,
+    Configured, Configuring, Many, Parameterize, Peek, SeparatedArray, Surrounded,
+    SurroundedSymmetrical,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -149,6 +150,16 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         Self: Parser<Input, Output = Vec<T>>,
     {
         self.verify(|values| !values.is_empty())
+    }
+
+    fn separated<const N: usize, S>(
+        self,
+        separator: S,
+    ) -> SeparatedArray<Self, S, [Self::Output; N]>
+    where
+        S: Parser<Input>,
+    {
+        SeparatedArray::new(separator, self)
     }
 }
 
