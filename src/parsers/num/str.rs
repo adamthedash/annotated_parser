@@ -57,6 +57,7 @@ macro_rules! impl_uint_parser {
                     Ok((value, Annotation::success(self.name(), 0..num_chars, value, vec![])))
                 }
 
+                #[inline(always)]
                 fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
                     let end = input
                         .find(|c: char| !c.is_ascii_digit())

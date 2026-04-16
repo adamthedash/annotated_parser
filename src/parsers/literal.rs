@@ -34,6 +34,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
         Ok((*self, annotation))
     }
 
+    #[inline(always)]
     fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
         if !input.starts_with(*self) {
             let annotation = if input.len() < self.len() {
@@ -95,6 +96,7 @@ impl Parser<&str> for &'static str {
         Ok((*self, annotation))
     }
 
+    #[inline(always)]
     fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
         if !input.starts_with(*self) {
             let annotation = if input.len() < self.len() {
