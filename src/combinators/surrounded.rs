@@ -1,4 +1,4 @@
-use crate::{Annotation, FoldResult, Parser, ParserSpec};
+use crate::{Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
 
 pub struct Surrounded<L, P, R> {
     left: L,
@@ -57,6 +57,25 @@ where
 
         Ok((value, annotation))
     }
+
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
+        let (_left, offset) = self
+            .left
+            .parse(input)
+            .map_err(|annotation| fold_child_err(annotation, vec![], 0, self.name(), 0))?;
+
+        let (value, offset) = self
+            .inner
+            .parse(input)
+            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), 1))?;
+
+        let (_right, offset) = self
+            .right
+            .parse(input)
+            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), 2))?;
+
+        Ok((value, offset))
+    }
 }
 
 pub struct SurroundedSymmetrical<P, Q> {
@@ -109,6 +128,25 @@ where
             Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
 
         Ok((value, annotation))
+    }
+
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
+        let (_left, offset) = self
+            .outer
+            .parse(input)
+            .map_err(|annotation| fold_child_err(annotation, vec![], 0, self.name(), 0))?;
+
+        let (value, offset) = self
+            .inner
+            .parse(input)
+            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), 1))?;
+
+        let (_right, offset) = self
+            .outer
+            .parse(input)
+            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), 0))?;
+
+        Ok((value, offset))
     }
 }
 
