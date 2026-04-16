@@ -27,6 +27,6 @@ pub use optional::Opt;
 pub use parameterize::Parameterize;
 pub use repeat::{RepeatArray, RepeatVec};
 pub use surrounded::{Surrounded, SurroundedSymmetrical};
-pub use take_till::TakeTill;
+pub use take_till::{TakeTillExc, TakeTillInc};
 pub use trace::Trace;
 pub use verify::Verify;
