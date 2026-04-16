@@ -3,10 +3,12 @@ use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
 mod endian;
 #[cfg(feature = "f16")]
 mod nightly_floats;
+mod str;
 #[cfg(feature = "f16")]
 pub use nightly_floats::F16LE;
 
 pub use endian::{BE, ByteParser, LE};
+pub use str::{U8, U16, U32, U64, U128, USize};
 
 /// 0 or 1 stored in u8
 #[derive(Clone)]
