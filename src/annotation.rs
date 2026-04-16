@@ -87,6 +87,17 @@ impl Annotation {
         )
     }
 
+    /// If this annotation is a failure, find the source node
+    pub fn err_source(&self) -> Option<&Self> {
+        match self.result {
+            AnnotationResult::Success { .. } => None,
+            AnnotationResult::Incomplete { .. } | AnnotationResult::Invalid { .. } => Some(self),
+            AnnotationResult::Child { .. } => {
+                self.children.iter().flat_map(|c| c.err_source()).next()
+            }
+        }
+    }
+
     pub fn max_depth(&self) -> usize {
         1 + self
             .children
@@ -121,6 +132,8 @@ impl Annotation {
         for child in &mut self.children {
             child.update_with_parent(offset, &self.parser_id);
         }
+
+        self.materialized = true;
     }
 
     /// Recursively updates all annotations in this tree, adjusting their span/offset and

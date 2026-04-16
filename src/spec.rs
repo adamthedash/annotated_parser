@@ -1,3 +1,5 @@
+use std::fmt::{Display, Write};
+
 /// A representation of the entire parser that is applied to each file
 /// Does not hold any state
 #[derive(Debug, PartialEq, Eq)]
@@ -39,5 +41,37 @@ impl ParserSpec {
         });
 
         me.chain(children).collect()
+    }
+}
+
+/// Tree-like display of spec
+fn display_spec(
+    spec: &ParserSpec,
+    f: &mut std::fmt::Formatter<'_>,
+    depth: usize,
+) -> std::fmt::Result {
+    for i in 0..depth {
+        if i % 2 == 0 {
+            f.write_char('|')?;
+        } else {
+            f.write_char(' ')?;
+        }
+    }
+    f.write_str(&spec.name)?;
+    if let Some(friendly) = &spec.friendly_name {
+        write!(f, " @ {}", friendly)?;
+    }
+    f.write_char('\n')?;
+
+    for child in spec.inner.iter() {
+        display_spec(child, f, depth + 1)?;
+    }
+
+    Ok(())
+}
+
+impl Display for ParserSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        display_spec(self, f, 0)
     }
 }
