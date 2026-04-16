@@ -40,19 +40,22 @@ where
     }
 
     fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
-        let mut bytes = vec![];
+        let original = *input;
+        let mut end = 0;
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
         while self.inner.annotate(input).is_err() {
-            // Advance one byte
-            let Some((byte, rest)) = input.split_first() else {
+            if end == original.len() {
                 // EoF
                 return Err(Annotation::incomplete(self.name(), 0, vec![]));
-            };
+            }
 
-            bytes.push(*byte);
-            *input = rest;
+            // Advance one byte
+            end += 1;
+            *input = &input[1..];
         }
+
+        let bytes = original[..end].to_vec();
 
         let annotation = Annotation::success(self.name(), 0..bytes.len(), bytes.clone(), vec![]);
 
@@ -65,7 +68,7 @@ where
 
         // TODO: Could increase perf a bit by detecting EOF from inner parser
         while self.inner.annotate(input).is_err() {
-            if end == input.len() {
+            if end == original.len() {
                 // EoF
                 return Err(Annotation::incomplete(self.name(), 0, vec![]));
             }
@@ -124,7 +127,7 @@ where
                 break (value, offset, child_annotations);
             }
 
-            if end == input.len() {
+            if end == original.len() {
                 // EoF
                 return Err(Annotation::incomplete(self.name(), 0, vec![]));
             }
@@ -155,7 +158,7 @@ where
                 break (value, offset);
             }
 
-            if end == input.len() {
+            if end == original.len() {
                 // EoF
                 return Err(Annotation::incomplete(self.name(), 0, vec![]));
             }
