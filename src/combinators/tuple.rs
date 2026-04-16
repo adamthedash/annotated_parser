@@ -3,6 +3,7 @@ use crate::{
     helpers::fold_child_err,
 };
 use paste::paste;
+use std::fmt::Debug;
 
 /// Tuples of parsers
 macro_rules! impl_parser_for_tuple {
@@ -92,3 +93,97 @@ impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8);
 impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
 impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
 impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
+
+/// Marker trait for tuples of parsers
+pub trait ParserTuple<Input> {
+    /// Call Parser::spec on all child parsers
+    fn specs(&self) -> Vec<ParserSpec>;
+}
+
+macro_rules! impl_parser_tuple {
+    ( $( $P:ident ~ $idx:tt ),+ ) => {
+        impl<Input, $($P),+> ParserTuple<Input> for ($($P,)+)
+        where
+            $($P: Parser<Input>,)+
+        {
+            fn specs(&self) -> Vec<ParserSpec> {
+                vec![$( self.$idx.spec() ),+]
+            }
+        }
+    };
+}
+
+impl_parser_tuple!(A~0);
+impl_parser_tuple!(A~0, B~1);
+impl_parser_tuple!(A~0, B~1, C~2);
+impl_parser_tuple!(A~0, B~1, C~2, D~3);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
+impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
+
+/// Helper trait for interacting with tuples of parsers
+pub trait SameParserTuple<Input>: ParserTuple<Input> {
+    type Output: Debug + Clone + 'static;
+
+    /// Call Parser::annotate on a specific child parser
+    fn annotate(
+        &mut self,
+        input: &mut Input,
+        index: usize,
+    ) -> Option<AnnotatedResult<Self::Output>>;
+
+    /// Call Parser::parse on a specific child parser
+    fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>>;
+}
+
+macro_rules! impl_same_parser_tuple {
+    ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
+        paste! {
+            impl<Input, $First $(, $P)*> SameParserTuple<Input> for ($First, $($P,)*)
+            where
+                $First: Parser<Input>,
+                $(
+                    $P: Parser<Input, Output = $First::Output>,
+                )*
+            {
+                type Output = $First::Output;
+
+                #[inline(always)]
+                fn annotate(&mut self, input: &mut Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
+                    match index {
+                        $first_idx => Some(self.$first_idx.annotate(input)),
+                        $( $idx => Some(self.$idx.annotate(input)), )*
+                        _ => None,
+                    }
+                }
+
+                #[inline(always)]
+                fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>> {
+                    match index {
+                        $first_idx => Some(self.$first_idx.parse(input)),
+                        $( $idx => Some(self.$idx.parse(input)), )*
+                        _ => None,
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_same_parser_tuple!(A~0);
+impl_same_parser_tuple!(A~0, B~1);
+impl_same_parser_tuple!(A~0, B~1, C~2);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
+impl_same_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);

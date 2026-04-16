@@ -1,83 +1,10 @@
-use paste::paste;
-use std::fmt::Debug;
+use crate::FoldResult;
+use crate::combinators::tuple::{ParserTuple, SameParserTuple};
 
 use crate::{
-    AnnotatedResult, Annotation, FoldResult, ParseResult, Parser, ParserSpec,
-    combinators::delayed::DelayedValGet, helpers::fold_child_err,
+    AnnotatedResult, Annotation, Parser, ParserSpec, combinators::delayed::DelayedValGet,
+    helpers::fold_child_err,
 };
-
-/// Helper trait for interacting with tuples of parsers
-pub trait ParserTuple<Input> {
-    type Output: Debug + Clone + 'static;
-
-    /// Call Parser::spec on all child parsers
-    fn specs(&self) -> Vec<ParserSpec>;
-
-    /// Call Parser::annotate on a specific child parser
-    fn annotate(
-        &mut self,
-        input: &mut Input,
-        index: usize,
-    ) -> Option<AnnotatedResult<Self::Output>>;
-
-    /// Call Parser::parse on a specific child parser
-    fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>>;
-}
-
-macro_rules! impl_parser_tuple_for_tuple {
-    ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
-        paste! {
-            impl<Input, $First $(, $P)*> ParserTuple<Input> for ($First, $($P,)*)
-            where
-                $First: Parser<Input>,
-                $(
-                    $P: Parser<Input, Output = $First::Output>,
-                )*
-            {
-                type Output = $First::Output;
-
-                #[inline(always)]
-                fn specs(&self) -> Vec<ParserSpec> {
-                    vec![
-                        self.$first_idx.spec(),
-                        $( self.$idx.spec(), )*
-                    ]
-                }
-
-                #[inline(always)]
-                fn annotate(&mut self, input: &mut Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
-                    match index {
-                        $first_idx => Some(self.$first_idx.annotate(input)),
-                        $( $idx => Some(self.$idx.annotate(input)), )*
-                        _ => None,
-                    }
-                }
-
-                #[inline(always)]
-                fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>> {
-                    match index {
-                        $first_idx => Some(self.$first_idx.parse(input)),
-                        $( $idx => Some(self.$idx.parse(input)), )*
-                        _ => None,
-                    }
-                }
-            }
-        }
-    };
-}
-
-impl_parser_tuple_for_tuple!(A~0);
-impl_parser_tuple_for_tuple!(A~0, B~1);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
-impl_parser_tuple_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
 
 pub struct Dispatch<D, P> {
     discriminant: D,
@@ -102,7 +29,7 @@ where
 impl<Input, D, P> Parser<Input> for Dispatch<D, P>
 where
     D: DelayedValGet<Value = Option<usize>>,
-    P: ParserTuple<Input>,
+    P: SameParserTuple<Input>,
 {
     type Output = P::Output;
 

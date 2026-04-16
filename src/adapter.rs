@@ -1,8 +1,8 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Many, Parameterize, Peek, SeparatedArray, Surrounded,
-    SurroundedSymmetrical,
+    Configured, Configuring, Many, Parameterize, ParserTuple, Peek, Preceded, SeparatedArray,
+    SeparatedTuple, Surrounded, SurroundedSymmetrical, Terminated,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -160,6 +160,28 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         S: Parser<Input>,
     {
         SeparatedArray::new(separator, self)
+    }
+
+    fn separated_tuple<S>(self, separator: S) -> SeparatedTuple<S, Self>
+    where
+        Self: ParserTuple<Input>,
+        S: Parser<Input>,
+    {
+        SeparatedTuple::new(separator, self)
+    }
+
+    fn ignore_then<P>(self, keep: P) -> Preceded<Self, P>
+    where
+        P: Parser<Input>,
+    {
+        Preceded::new(self, keep)
+    }
+
+    fn then_ignore<P>(self, ignore: P) -> Terminated<P, Self>
+    where
+        P: Parser<Input>,
+    {
+        Terminated::new(self, ignore)
     }
 }
 
