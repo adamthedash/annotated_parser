@@ -1,4 +1,7 @@
-use crate::{Annotation, Parser, ParserSpec};
+use crate::{
+    AnnotatedResult, Annotation, Parser, ParserSpec,
+    parser::{AnnotationMode, AnnotationReturn, ParseWithResult},
+};
 
 impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
     type Output = &'static [u8; N];
@@ -11,17 +14,32 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> crate::AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &[u8],
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         if !input.starts_with(*self) {
-            let annotation = if input.len() < N {
-                Annotation::incomplete(self.name(), 0, vec![])
+            let annotation = if annotation_mode.fail {
+                let annotation = if input.len() < N {
+                    Annotation::incomplete(self.name(), 0, vec![])
+                } else {
+                    Annotation::invalid(
+                        self.name(),
+                        0..N,
+                        format!("Expected {self:?}, found {:?}", &input[..N]),
+                        vec![],
+                    )
+                };
+
+                AnnotationReturn::Annotated(annotation)
             } else {
-                Annotation::invalid(
-                    self.name(),
-                    0..N,
-                    format!("Expected {self:?}, found {:?}", &input[..self.len()]),
-                    vec![],
-                )
+                if input.len() < N {
+                    AnnotationReturn::Start(0)
+                } else {
+                    AnnotationReturn::Span(0..N)
+                }
             };
 
             return Err(annotation);
@@ -29,31 +47,14 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
 
         *input = &input[N..];
 
-        let annotation = Annotation::success(self.name(), 0..N, *self, vec![]);
+        let annotation = if annotation_mode.success {
+            let annotation = Annotation::success(self.name(), 0..N, *self, vec![]);
+            AnnotationReturn::Annotated(annotation)
+        } else {
+            AnnotationReturn::Span(0..N)
+        };
 
         Ok((*self, annotation))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
-        if !input.starts_with(*self) {
-            let annotation = if input.len() < self.len() {
-                Annotation::incomplete(self.name(), 0, vec![])
-            } else {
-                Annotation::invalid(
-                    self.name(),
-                    0..self.len(),
-                    format!("Expected {self:?}, found {:?}", &input[..self.len()]),
-                    vec![],
-                )
-            };
-
-            return Err(annotation);
-        }
-
-        *input = &input[self.len()..];
-
-        Ok((*self, self.len()))
     }
 }
 
@@ -70,18 +71,34 @@ impl Parser<&str> for &'static str {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &str) -> crate::AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &str,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         if !input.starts_with(*self) {
-            let annotation = if input.len() < self.len() {
-                Annotation::incomplete(self.name(), 0, vec![])
+            let annotation = if annotation_mode.fail {
+                let annotation = if input.len() < self.len() {
+                    Annotation::incomplete(self.name(), 0, vec![])
+                } else {
+                    let num_chars = self.chars().count();
+                    Annotation::invalid(
+                        self.name(),
+                        0..num_chars,
+                        format!("Expected {self:?}, found {:?}", &input[..self.len()]),
+                        vec![],
+                    )
+                };
+
+                AnnotationReturn::Annotated(annotation)
             } else {
-                let num_chars = self.chars().count();
-                Annotation::invalid(
-                    self.name(),
-                    0..num_chars,
-                    format!("Expected {self:?}, found {:?}", &input[..self.len()]),
-                    vec![],
-                )
+                if input.len() < self.len() {
+                    AnnotationReturn::Start(0)
+                } else {
+                    let num_chars = self.chars().count();
+                    AnnotationReturn::Span(0..num_chars)
+                }
             };
 
             return Err(annotation);
@@ -91,34 +108,14 @@ impl Parser<&str> for &'static str {
 
         let num_chars = self.chars().count();
 
-        let annotation = Annotation::success(self.name(), 0..num_chars, *self, vec![]);
+        let annotation = if annotation_mode.success {
+            let annotation = Annotation::success(self.name(), 0..num_chars, *self, vec![]);
+            AnnotationReturn::Annotated(annotation)
+        } else {
+            AnnotationReturn::Span(0..num_chars)
+        };
 
         Ok((*self, annotation))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
-        if !input.starts_with(*self) {
-            let annotation = if input.len() < self.len() {
-                Annotation::incomplete(self.name(), 0, vec![])
-            } else {
-                let num_chars = self.chars().count();
-                Annotation::invalid(
-                    self.name(),
-                    0..num_chars,
-                    format!("Expected {self:?}, found {:?}", &input[..self.len()]),
-                    vec![],
-                )
-            };
-
-            return Err(annotation);
-        }
-
-        *input = &input[self.len()..];
-
-        let num_chars = self.chars().count();
-
-        Ok((*self, num_chars))
     }
 }
 

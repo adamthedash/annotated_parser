@@ -1,5 +1,6 @@
 use crate::{
-    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult,
+    Annotation, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
 };
 
 #[derive(Clone)]
@@ -33,42 +34,50 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let (value, offset, child_annotations) =
-            self.inner
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        // PERF: Only allocates if we need it
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+
+        let (value, offset);
+        (value, offset, child_annotations) = self.inner.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            0,
+            0,
+        )?;
 
         if !(self.func)(&value) {
-            return Err(Annotation::invalid(
-                self.name(),
-                0..offset,
-                "Validation failure".to_owned(),
-                child_annotations,
-            ));
+            let annotation = if annotation_mode.fail {
+                AnnotationReturn::Annotated(Annotation::invalid(
+                    self.name(),
+                    0..offset,
+                    "Validation failure".to_owned(),
+                    child_annotations.take().unwrap_or_default(),
+                ))
+            } else {
+                AnnotationReturn::Span(0..offset)
+            };
+
+            return Err(annotation);
         }
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            AnnotationReturn::Annotated(Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.take().unwrap(),
+            ))
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((value, annotation))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (value, offset) = self
-            .inner
-            .parse(input).fold(0, || self.name(), 0)?;
-
-        if !(self.func)(&value) {
-            return Err(Annotation::invalid(
-                self.name(),
-                0..offset,
-                "Validation failure".to_owned(),
-                vec![],
-            ));
-        }
-
-        Ok((value, offset))
     }
 }

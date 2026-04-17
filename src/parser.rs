@@ -3,6 +3,7 @@ use crate::AnnotationResult;
 use crate::ParserSpec;
 use crate::combinators::delayed::DelayedParser;
 use std::fmt::Debug;
+use std::ops::Range;
 
 pub type AnnotatedResult<T> = std::result::Result<(T, Annotation), Annotation>;
 
@@ -34,8 +35,23 @@ pub trait Parser<Input> {
     /// A static representation of the parser structure
     fn spec(&self) -> ParserSpec;
 
+    /// Configure which paths get annotated
+    fn parse_with(
+        &mut self,
+        _input: &mut Input,
+        _annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        todo!()
+    }
+
     /// Parse and return both the output value and annotations
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output>;
+    #[inline(always)]
+    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
+        match self.parse_with(input, AnnotationMode::ALL) {
+            Ok((value, anno)) => Ok((value, anno.annotation())),
+            Err(anno) => Err(anno.annotation()),
+        }
+    }
 
     /// "Fast" implementation of the parser, only producing annotations on error
     /// Default impl just runs the slow version and strips off annotations.  
@@ -55,21 +71,71 @@ pub trait Parser<Input> {
     ///         ]
     ///     }
     /// ````
-    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
-        // For checking when I forget to impl things fully
-        // panic!("default parse impl: {:?}", std::any::type_name::<Self>());
-
-        match self.annotate(input) {
-            Ok((v, a)) => {
-                let AnnotationResult::Success { span, .. } = a.result else {
-                    unreachable!("Parser succeeded");
-                };
-
-                Ok((v, span.end))
-            }
-            Err(a) => Err(a),
+    #[inline(always)]
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
+        match self.parse_with(input, AnnotationMode::FAIL) {
+            Ok((value, anno)) => Ok((value, anno.span().end)),
+            Err(anno) => Err(anno.annotation()),
         }
     }
+}
+
+pub type ParseWithResult<T> = std::result::Result<(T, AnnotationReturn), AnnotationReturn>;
+
+#[derive(Debug)]
+pub enum AnnotationReturn {
+    // TODO: Box<Annotation> so stack size isn't massive? 112 vs 24 bytes
+    Annotated(Annotation),
+    Span(Range<usize>),
+    Start(usize),
+}
+
+impl AnnotationReturn {
+    pub fn annotation(self) -> Annotation {
+        let Self::Annotated(a) = self else {
+            unreachable!()
+        };
+        a
+    }
+
+    pub fn span(self) -> Range<usize> {
+        let Self::Span(span) = self else {
+            unreachable!()
+        };
+        span
+    }
+
+    pub fn start(self) -> usize {
+        let Self::Start(start) = self else {
+            unreachable!()
+        };
+        start
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct AnnotationMode {
+    pub success: bool,
+    pub fail: bool,
+}
+
+impl AnnotationMode {
+    pub const NONE: Self = AnnotationMode {
+        success: false,
+        fail: false,
+    };
+    pub const ALL: Self = AnnotationMode {
+        success: true,
+        fail: true,
+    };
+    pub const FAIL: Self = AnnotationMode {
+        success: false,
+        fail: true,
+    };
+    pub const SUCCESS: Self = AnnotationMode {
+        success: true,
+        fail: false,
+    };
 }
 
 /// Blanket impl for boxed parsers

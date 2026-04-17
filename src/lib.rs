@@ -11,7 +11,9 @@ mod spec;
 pub use adapter::ParserAdapter;
 pub use annotation::{Annotation, AnnotationResult};
 pub use helpers::FoldAnnotatedResult;
-pub use parser::{AnnotatedResult, IntoAnnotation, ParseResult, Parser};
+pub use parser::{
+    AnnotatedResult, AnnotationMode, AnnotationReturn, IntoAnnotation, ParseResult, Parser,
+};
 pub use parsers::byte::ByteParser;
 pub use spec::ParserSpec;
 

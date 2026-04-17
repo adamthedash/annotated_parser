@@ -1,4 +1,4 @@
-use crate::{AnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedParser};
+use crate::{AnnotationMode, Parser, ParserSpec, combinators::delayed::DelayedParser};
 
 /// Wrapper which resets the input stream on failure
 pub struct Checkpoint<P>(P);
@@ -28,25 +28,16 @@ where
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        // Save checkpoint so we can reset in case of child failure
-        let checkpoint = *input;
-
-        let res = self.0.annotate(input);
-        if res.is_err() {
-            // Reset input
-            *input = checkpoint;
-        }
-
-        res
-    }
-
     #[inline(always)]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> Result<(Self::Output, crate::AnnotationReturn), crate::AnnotationReturn> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
-        let res = self.0.parse(input);
+        let res = self.0.parse_with(input, annotation_mode);
         if res.is_err() {
             // Reset input
             *input = checkpoint;
@@ -97,25 +88,18 @@ where
         self.0.spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> Result<(Self::Output, crate::AnnotationReturn), crate::AnnotationReturn> {
         // Save checkpoint so we can reset in case of child failure
         let checkpoint = *input;
 
         // TODO: On success this will return an annotation in the "future", so it might conflict
         // with follow-on annotations. Maybe return 0-span annotation instead?
-        let res = self.0.annotate(input);
-
-        // Reset input
-        *input = checkpoint;
-
-        res
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        // Save checkpoint so we can reset in case of child failure
-        let checkpoint = *input;
-
-        let res = self.0.parse(input);
+        let res = self.0.parse_with(input, annotation_mode);
 
         // Reset input
         *input = checkpoint;

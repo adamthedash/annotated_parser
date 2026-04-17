@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use crate::{AnnotatedResult, Annotation, Parser, ParserSpec, helpers::fold_success};
+use crate::{
+    AnnotatedResult, Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
+    helpers::fold_success, parser::ParseWithResult,
+};
 
 use super::{TakeTillExc, TakeTillInc};
 
@@ -18,15 +21,25 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &str) -> AnnotatedResult<Self::Output> {
+    fn parse_with(
+        &mut self,
+        input: &mut &str,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 
         // PERF: Could increase perf a bit by detecting EOF from inner parser
-        while self.inner.annotate(input).is_err() {
+        while self.inner.parse_with(input, AnnotationMode::NONE).is_err() {
             if end == original.len() {
                 // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
+                let annotation = if annotation_mode.fail {
+                    AnnotationReturn::Annotated(Annotation::incomplete(self.name(), 0, vec![]))
+                } else {
+                    AnnotationReturn::Start(0)
+                };
+
+                return Err(annotation);
             }
 
             // Advance one char
@@ -42,36 +55,18 @@ where
         let taken = original[..end].to_string();
         let taken_chars = taken.chars().count();
 
-        let annotation = Annotation::success(self.name(), 0..taken_chars, taken.clone(), vec![]);
+        let annotation = if annotation_mode.success {
+            AnnotationReturn::Annotated(Annotation::success(
+                self.name(),
+                0..taken_chars,
+                taken.clone(),
+                vec![],
+            ))
+        } else {
+            AnnotationReturn::Span(0..taken_chars)
+        };
 
         Ok((taken, annotation))
-    }
-
-    fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
-        let original = *input;
-        let mut end = 0;
-
-        // PERF: Could increase perf a bit by detecting EOF from inner parser
-        while self.inner.annotate(input).is_err() {
-            if end == original.len() {
-                // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
-            }
-
-            // Advance one char
-            end += input
-                .char_indices()
-                .nth(1)
-                .map(|(i, _)| i)
-                .unwrap_or(input.len());
-
-            *input = &original[end..];
-        }
-
-        let taken = original[..end].to_string();
-        let taken_chars = taken.chars().count();
-
-        Ok((taken, taken_chars))
     }
 }
 
@@ -132,8 +127,11 @@ where
         let mut end = 0;
 
         let (value, offset) = loop {
-            if let Ok((value, offset)) = self.inner.parse(input) {
-                break (value, offset);
+            if let Ok((value, offset)) = self.inner.parse_with(input, AnnotationMode::NONE) {
+                let AnnotationReturn::Span(span) = offset else {
+                    unreachable!();
+                };
+                break (value, span.end);
             }
 
             if end == original.len() {

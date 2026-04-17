@@ -1,6 +1,8 @@
 use std::ops::Range;
 
-use crate::{AnnotatedResult, Annotation, AnnotationResult, ParseResult};
+use crate::{
+    AnnotatedResult, Annotation, AnnotationMode, AnnotationResult, AnnotationReturn, ParseResult,
+};
 
 pub trait FoldAnnotatedResult<T, P, S>
 where
@@ -82,6 +84,80 @@ where
             Err(annotation) => {
                 let annotation =
                     fold_child_err(annotation, vec![], offset, parent_name(), child_index);
+
+                Err(annotation)
+            }
+        }
+    }
+}
+
+pub trait FoldParseWithResult<T, P, S>
+where
+    P: FnOnce() -> S,
+    S: Into<String>,
+{
+    fn fold(
+        self,
+        annotation_mode: AnnotationMode,
+        parent_name: P,
+        child_annotations: Option<Vec<Annotation>>,
+        offset: usize,
+        child_index: usize,
+    ) -> Result<(T, usize, Option<Vec<Annotation>>), AnnotationReturn>;
+}
+
+impl<T, P, S> FoldParseWithResult<T, P, S> for Result<(T, AnnotationReturn), AnnotationReturn>
+where
+    P: FnOnce() -> S,
+    S: Into<String>,
+{
+    #[inline(always)]
+    fn fold(
+        self,
+        annotation_mode: AnnotationMode,
+        parent_name: P,
+        mut child_annotations: Option<Vec<Annotation>>,
+        offset: usize,
+        child_index: usize,
+    ) -> Result<(T, usize, Option<Vec<Annotation>>), AnnotationReturn> {
+        match self {
+            Ok((value, annotation)) => {
+                let new_offset = if annotation_mode.success {
+                    let (new_offset, new_child_annotations) = fold_success(
+                        annotation.annotation(),
+                        child_annotations.take().unwrap_or_default(),
+                        offset,
+                        child_index,
+                    );
+                    child_annotations = Some(new_child_annotations);
+
+                    new_offset
+                } else {
+                    // Extract offset
+                    offset + annotation.span().end
+                };
+
+                Ok((value, new_offset, child_annotations))
+            }
+            Err(annotation) => {
+                let annotation = if annotation_mode.fail {
+                    // Accumulate into Annotation::Child
+                    let annotation = fold_child_err(
+                        annotation.annotation(),
+                        child_annotations.take().unwrap_or_default(),
+                        offset,
+                        parent_name(),
+                        child_index,
+                    );
+
+                    AnnotationReturn::Annotated(annotation)
+                } else {
+                    // Extract start offset
+                    let annotation = annotation.annotation();
+                    let start = annotation.result.span().0;
+
+                    AnnotationReturn::Start(offset + start)
+                };
 
                 Err(annotation)
             }
