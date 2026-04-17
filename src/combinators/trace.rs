@@ -132,6 +132,35 @@ where
             }
         }
     }
+
+    #[inline(always)]
+    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
+        self.inner.parse(input).map_err(|mut annotation| {
+            // Materialise the failure case to give some indication to user where the
+            // internal failure happened. parse() should already return a failure-only annotation
+            // tree, so the overhead shouldn't be too significant
+            annotation.materialize();
+
+            let Some(source) = annotation.err_source() else {
+                unreachable!("Failure path");
+            };
+
+            match &source.result {
+                AnnotationResult::Incomplete { .. } => {
+                    Annotation::incomplete(self.name(), 0, vec![])
+                }
+                AnnotationResult::Invalid { span, reason } => Annotation::invalid(
+                    self.name(),
+                    0..span.end,
+                    format!("{} @ {:?}: {} ", source.parser_id, span, reason),
+                    vec![],
+                ),
+                AnnotationResult::Success { .. } | AnnotationResult::Child { .. } => {
+                    unreachable!("At failure source")
+                }
+            }
+        })
+    }
 }
 
 #[cfg(test)]

@@ -56,6 +56,9 @@ pub trait Parser<Input> {
     ///     }
     /// ````
     fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
+        // For checking when I forget to impl things fully
+        // panic!("default parse impl: {:?}", std::any::type_name::<Self>());
+
         match self.annotate(input) {
             Ok((v, a)) => {
                 let AnnotationResult::Success { span, .. } = a.result else {
