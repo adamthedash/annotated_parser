@@ -34,6 +34,6 @@ pub use separated::{SeparatedArray, SeparatedTuple};
 pub use surrounded::{Surrounded, SurroundedSymmetrical};
 pub use take_till::{TakeTillExc, TakeTillInc};
 pub use terminated::Terminated;
-pub use trace::Trace;
+pub use trace::{Trace, TraceOpaque};
 pub use tuple::{ParserTuple, SameParserTuple};
 pub use verify::Verify;

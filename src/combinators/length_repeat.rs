@@ -116,6 +116,19 @@ mod tests {
     }
 
     #[test]
+    fn test_length_repeat_parse() {
+        let bytes = [2, 0, 0, 0, 1, 0, 2, 0];
+        let input = &mut bytes.as_slice();
+
+        let mut parser = LengthRepeat::new(u32::LE, u16::LE);
+        let (value, offset) = parser.parse(input).unwrap();
+        assert_eq!(value, vec![1, 2]);
+
+        assert_eq!(offset, 8);
+        assert_eq!(format!("{value:?}"), "[1, 2]");
+    }
+
+    #[test]
     fn test_length_repeat_bad() {
         let bytes = [2, 0, 0, 0, 1, 0];
         let input = &mut bytes.as_slice();

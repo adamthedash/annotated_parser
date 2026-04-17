@@ -2,7 +2,7 @@ use num_traits::AsPrimitive;
 
 use crate::combinators::{
     Configured, Configuring, Many, Parameterize, ParserTuple, Peek, Preceded, SeparatedArray,
-    SeparatedTuple, Surrounded, SurroundedSymmetrical, Terminated,
+    SeparatedTuple, Surrounded, SurroundedSymmetrical, Terminated, TraceOpaque,
     delayed::{DelayedValGet, DelayedValSet},
 };
 use std::fmt::{Debug, Display};
@@ -119,6 +119,10 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
 
     fn trace(self, name: impl Into<String>) -> Trace<Self> {
         Trace::new(self, name)
+    }
+
+    fn trace_opaque(self, name: impl Into<String>) -> TraceOpaque<Self> {
+        TraceOpaque::new(self, name)
     }
 
     fn parameterize<V, S>(self, parameters: V, param_input: S) -> Parameterize<S, V, Self>

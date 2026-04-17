@@ -98,6 +98,24 @@ impl Annotation {
         }
     }
 
+    /// Trims off successful annotations, leaving only the hierarchy leading to the failure source
+    pub fn to_failure_tree(self) -> Option<Self> {
+        if self.result.is_ok() {
+            return None;
+        }
+
+        let trimmed = Self {
+            children: self
+                .children
+                .into_iter()
+                .flat_map(Annotation::to_failure_tree)
+                .collect(),
+            ..self
+        };
+
+        Some(trimmed)
+    }
+
     pub fn max_depth(&self) -> usize {
         1 + self
             .children
