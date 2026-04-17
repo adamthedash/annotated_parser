@@ -1,4 +1,4 @@
-use crate::{Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
+use crate::{Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult};
 
 pub struct Terminated<I, K> {
     ignore: I,
@@ -50,13 +50,11 @@ where
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (value, offset) = self
             .keep
-            .parse(input)
-            .map_err(|annotation| fold_child_err(annotation, vec![], 0, self.name(), 0))?;
+            .parse(input).fold(0, || self.name(), 0)?;
 
         let (_after, offset) = self
             .ignore
-            .parse(input)
-            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), 1))?;
+            .parse(input).fold(offset, || self.name(), 1)?;
 
         Ok((value, offset))
     }

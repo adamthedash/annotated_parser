@@ -4,8 +4,8 @@ use std::sync::{
 };
 
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, combinators::delayed::DelayedValGet,
-    helpers::fold_child_err,
+    Annotation, FoldAnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedValGet,
+    helpers::FoldParseResult,
 };
 
 /// Parser which can be externally enabled/disabled rather than checking a delayed value each
@@ -77,8 +77,7 @@ where
 
         let (value, offset) = self
             .inner
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
+            .parse(input).fold(0, || self.name(), 0)?;
 
         Ok((Some(value), offset))
     }

@@ -1,8 +1,8 @@
 use num_traits::AsPrimitive;
 
 use crate::{
-    AnnotatedResult, Annotation, FoldResult, ParseResult, Parser, ParserSpec,
-    helpers::fold_child_err,
+    AnnotatedResult, Annotation, FoldAnnotatedResult, ParseResult, Parser, ParserSpec,
+    helpers::FoldParseResult,
 };
 
 pub struct LengthRepeat<L, V> {
@@ -68,19 +68,13 @@ where
     }
 
     fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
-        let (length, mut offset) = self
-            .length
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
+        let (length, mut offset) = self.length.parse(input).fold(0, || self.name(), 0)?;
         let length = length.as_();
 
         let mut values = Vec::with_capacity(length);
         for _ in 0..length {
             let value;
-            (value, offset) = self
-                .value
-                .parse(input)
-                .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 1))?;
+            (value, offset) = self.value.parse(input).fold(offset, || self.name(), 1)?;
 
             values.push(value);
         }

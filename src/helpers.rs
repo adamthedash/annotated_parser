@@ -1,8 +1,8 @@
 use std::ops::Range;
 
-use crate::{AnnotatedResult, Annotation, AnnotationResult};
+use crate::{AnnotatedResult, Annotation, AnnotationResult, ParseResult};
 
-pub trait FoldResult<T, P, S>
+pub trait FoldAnnotatedResult<T, P, S>
 where
     P: FnOnce() -> S,
     S: Into<String>,
@@ -17,7 +17,7 @@ where
     ) -> std::result::Result<(T, usize, Vec<Annotation>), Annotation>;
 }
 
-impl<T, P, S> FoldResult<T, P, S> for AnnotatedResult<T>
+impl<T, P, S> FoldAnnotatedResult<T, P, S> for AnnotatedResult<T>
 where
     P: FnOnce() -> S,
     S: Into<String>,
@@ -44,6 +44,44 @@ where
                     parent_name(),
                     child_index,
                 );
+
+                Err(annotation)
+            }
+        }
+    }
+}
+
+pub trait FoldParseResult<T, P, S>
+where
+    P: FnOnce() -> S,
+    S: Into<String>,
+{
+    /// Fold the result of applying a child parser
+    fn fold(
+        self,
+        offset: usize,
+        parent_name: P,
+        child_index: usize,
+    ) -> std::result::Result<(T, usize), Annotation>;
+}
+
+impl<T, P, S> FoldParseResult<T, P, S> for ParseResult<T>
+where
+    P: FnOnce() -> S,
+    S: Into<String>,
+{
+    #[inline(always)]
+    fn fold(
+        self,
+        offset: usize,
+        parent_name: P,
+        child_index: usize,
+    ) -> std::result::Result<(T, usize), Annotation> {
+        match self {
+            Ok((value, inner_offset)) => Ok((value, offset + inner_offset)),
+            Err(annotation) => {
+                let annotation =
+                    fold_child_err(annotation, vec![], offset, parent_name(), child_index);
 
                 Err(annotation)
             }

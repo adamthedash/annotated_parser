@@ -1,6 +1,6 @@
 use crate::{
-    AnnotatedResult, Annotation, FoldResult, ParseResult, Parser, ParserSpec,
-    helpers::fold_child_err,
+    AnnotatedResult, Annotation, FoldAnnotatedResult, ParseResult, Parser, ParserSpec,
+    helpers::FoldParseResult,
 };
 use paste::paste;
 use std::fmt::Debug;
@@ -61,14 +61,14 @@ macro_rules! impl_parser_for_tuple {
                     ([<out_ $first_idx>], offset) =
                         self.$first_idx
                             .parse(input)
-                            .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), $first_idx))?;
+                            .fold(offset, || self.name(), $first_idx)?;
 
                     $(
                         let [<out_ $idx>];
                         ([<out_ $idx>], offset) =
                             self.$idx
                                 .parse(input)
-                                .map_err(|a| fold_child_err(a, vec![], offset, &self.name(), $idx))?;
+                            .fold(offset, || self.name(), $idx)?;
                     )*
 
                     let out = ([<out_ $first_idx>], $( [<out_ $idx>], )*);

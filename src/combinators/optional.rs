@@ -1,4 +1,6 @@
-use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, combinators::Checkpoint};
+use crate::{
+    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec, combinators::Checkpoint,
+};
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
 pub struct Opt<P> {

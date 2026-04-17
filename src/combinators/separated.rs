@@ -2,7 +2,8 @@ use paste::paste;
 use std::{marker::PhantomData, mem::MaybeUninit};
 
 use crate::{
-    Annotation, FoldResult, Parser, ParserSpec, combinators::ParserTuple, helpers::fold_child_err,
+    Annotation, FoldAnnotatedResult, Parser, ParserSpec, combinators::ParserTuple,
+    helpers::FoldParseResult,
 };
 
 pub struct SeparatedArray<P, S, O> {
@@ -117,11 +118,7 @@ where
         for (i, value_out) in values.iter_mut().enumerate() {
             // Separator
             if i > 0 {
-                match self
-                    .separator
-                    .parse(input)
-                    .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 0))
-                {
+                match self.separator.parse(input).fold(offset, || self.name(), 0) {
                     Ok((_ignored, new_offset)) => {
                         offset = new_offset;
                     }
@@ -141,11 +138,7 @@ where
             }
 
             // Inner
-            match self
-                .inner
-                .parse(input)
-                .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 1))
-            {
+            match self.inner.parse(input).fold(offset, || self.name(), 1) {
                 Ok((value, new_offset)) => {
                     value_out.write(value);
                     offset = new_offset;
@@ -248,21 +241,21 @@ macro_rules! impl_separated_tuple {
                         self.parsers
                             .$first_idx
                             .parse(input)
-                            .map_err(|annotation| fold_child_err(annotation, vec![], 0, self.name(), $first_idx + 1))?;
+                            .fold(0, || self.name(), $first_idx + 1)?;
 
                     $(
                     let _sep;
                     (_sep, offset) =
                         self.separator
                             .parse(input)
-                            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), 0))?;
+                            .fold(offset, || self.name(), 0)?;
 
                     let [<val_ $idx>];
                     ([<val_ $idx>], offset) =
                         self.parsers
                             .$idx
                             .parse(input)
-                            .map_err(|annotation| fold_child_err(annotation, vec![], offset, self.name(), $idx + 1))?;
+                            .fold(offset, || self.name(), $idx + 1)?;
 
                     )*
 

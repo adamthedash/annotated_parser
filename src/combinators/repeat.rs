@@ -1,6 +1,6 @@
 use num_traits::AsPrimitive;
 
-use crate::{FoldResult, combinators::delayed::DelayedValGet, helpers::fold_child_err};
+use crate::{FoldAnnotatedResult, combinators::delayed::DelayedValGet, helpers::fold_child_err};
 use std::{marker::PhantomData, mem::MaybeUninit};
 
 use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};

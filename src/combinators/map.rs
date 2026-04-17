@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Display};
 
-use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
+use crate::{
+    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult,
+};
 
 /// For fallible functions
 pub struct TryMap<P, F> {
@@ -65,8 +67,7 @@ where
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
+            .parse(input).fold(0, || self.name(), 0)?;
 
         let out = (self.func)(data)
             // Function application has failed, so fail annotation at this level
@@ -126,8 +127,7 @@ where
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (data, offset) = self
             .inner
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
+            .parse(input).fold(0, || self.name(), 0)?;
 
         let out = (self.func)(data);
 

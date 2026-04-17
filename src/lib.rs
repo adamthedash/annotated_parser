@@ -10,7 +10,7 @@ mod spec;
 
 pub use adapter::ParserAdapter;
 pub use annotation::{Annotation, AnnotationResult};
-pub use helpers::FoldResult;
+pub use helpers::FoldAnnotatedResult;
 pub use parser::{AnnotatedResult, IntoAnnotation, ParseResult, Parser};
 pub use parsers::ByteParser;
 pub use spec::ParserSpec;

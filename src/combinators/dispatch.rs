@@ -1,9 +1,9 @@
-use crate::FoldResult;
+use crate::FoldAnnotatedResult;
 use crate::combinators::tuple::{ParserTuple, SameParserTuple};
 
 use crate::{
     AnnotatedResult, Annotation, Parser, ParserSpec, combinators::delayed::DelayedValGet,
-    helpers::fold_child_err,
+    helpers::FoldParseResult,
 };
 
 pub struct Dispatch<D, P> {
@@ -87,7 +87,7 @@ where
             ));
         };
 
-        let (value, offset) = res.map_err(|a| fold_child_err(a, vec![], 0, self.name(), index))?;
+        let (value, offset) = res.fold(0, || self.name(), index)?;
 
         Ok((value, offset))
     }

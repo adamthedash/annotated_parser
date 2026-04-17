@@ -1,4 +1,6 @@
-use crate::{AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec, helpers::fold_child_err};
+use crate::{
+    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult,
+};
 
 #[derive(Clone)]
 pub struct Verify<P, F> {
@@ -56,8 +58,7 @@ where
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         let (value, offset) = self
             .inner
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
+            .parse(input).fold(0, || self.name(), 0)?;
 
         if !(self.func)(&value) {
             return Err(Annotation::invalid(

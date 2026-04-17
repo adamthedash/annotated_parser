@@ -1,6 +1,6 @@
 use crate::{
-    AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec,
-    combinators::delayed::DelayedValGet, helpers::fold_child_err,
+    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec,
+    combinators::delayed::DelayedValGet, helpers::FoldParseResult,
 };
 
 /// A parser which may or may not be ran depending on the result of some previous parser
@@ -59,10 +59,8 @@ where
             return Ok((None, 0));
         }
 
-        let (value, offset) = self
-            .inner
-            .parse(input)
-            .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
+        let (value, offset) = self.inner.parse(input).fold(0, || self.name(), 0)?;
+        // .map_err(|a| fold_child_err(a, vec![], 0, self.name(), 0))?;
 
         Ok((Some(value), offset))
     }

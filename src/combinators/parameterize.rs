@@ -1,7 +1,7 @@
 use crate::{
-    AnnotatedResult, Annotation, FoldResult, Parser, ParserSpec,
+    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec,
     combinators::delayed::{DelayedValGet, DelayedValSet},
-    helpers::fold_child_err,
+    helpers::FoldParseResult,
 };
 
 /// A combinator which parameterises the inner parser with each value before running it
@@ -83,8 +83,7 @@ where
             let value;
             (value, offset) = self
                 .parser
-                .parse(input)
-                .map_err(|a| fold_child_err(a, vec![], offset, self.name(), 0))?;
+                .parse(input).fold(offset, || self.name(), 0)?;
 
             values.push(value);
         }
