@@ -1,10 +1,10 @@
+use crate::AnnotationReturn;
+use crate::helpers::FoldParseWithResult;
+use crate::parser::ParseWithResult;
 use paste::paste;
 use std::{marker::PhantomData, mem::MaybeUninit};
 
-use crate::{
-    Annotation, FoldAnnotatedResult, Parser, ParserSpec, combinators::ParserTuple,
-    helpers::FoldParseResult,
-};
+use crate::{Annotation, Parser, ParserSpec, combinators::ParserTuple};
 
 pub struct SeparatedArray<P, S, O> {
     separator: S,
@@ -42,18 +42,25 @@ where
         ParserSpec::new(self.name(), vec![self.separator.spec(), self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-        let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
-        let mut child_annotations = Vec::with_capacity(N);
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(|| Vec::with_capacity(N));
 
+        let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
         let mut offset = 0;
+
         for (i, value_out) in values.iter_mut().enumerate() {
             // Separator
             if i > 0 {
-                match self.separator.annotate(input).fold(
+                match self.separator.parse_with(input, annotation_mode).fold(
+                    annotation_mode,
+                    || self.name(),
                     child_annotations,
                     offset,
-                    || self.name(),
                     0,
                 ) {
                     Ok((_ignored, new_offset, child_annos)) => {
@@ -76,11 +83,13 @@ where
             }
 
             // Inner
-            match self
-                .inner
-                .annotate(input)
-                .fold(child_annotations, offset, || self.name(), 1)
-            {
+            match self.inner.parse_with(input, annotation_mode).fold(
+                annotation_mode,
+                || self.name(),
+                child_annotations,
+                offset,
+                1,
+            ) {
                 Ok((value, new_offset, child_annos)) => {
                     value_out.write(value);
                     offset = new_offset;
@@ -105,64 +114,19 @@ where
         // Ideally could use MaybeUninit::array_assume_init, but we are on stable
         let values = values.map(|v| unsafe { v.assume_init() });
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                values.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((values, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let mut values = [const { MaybeUninit::<P::Output>::uninit() }; N];
-
-        let mut offset = 0;
-        for (i, value_out) in values.iter_mut().enumerate() {
-            // Separator
-            if i > 0 {
-                match self.separator.parse(input).fold(offset, || self.name(), 0) {
-                    Ok((_ignored, new_offset)) => {
-                        offset = new_offset;
-                    }
-                    Err(annotation) => {
-                        // Need to manually drop everything allocated up to now, otherwise we will leak
-                        // memory
-                        for value in values[..i].iter_mut() {
-                            // SAFETY: All values up until this one have been populated by the parser
-                            unsafe {
-                                value.assume_init_drop();
-                            }
-                        }
-
-                        return Err(annotation);
-                    }
-                }
-            }
-
-            // Inner
-            match self.inner.parse(input).fold(offset, || self.name(), 1) {
-                Ok((value, new_offset)) => {
-                    value_out.write(value);
-                    offset = new_offset;
-                }
-                Err(annotation) => {
-                    // Need to manually drop everything allocated up to now, otherwise we will leak
-                    // memory
-                    for value in values[..i].iter_mut() {
-                        // SAFETY: All values up until this one have been populated by the parser
-                        unsafe {
-                            value.assume_init_drop();
-                        }
-                    }
-
-                    return Err(annotation);
-                }
-            }
-        }
-
-        // SAFETY: All values have been populated by the parser, or the function has exited
-        // Ideally could use MaybeUninit::array_assume_init, but we are on stable
-        let values = values.map(|v| unsafe { v.assume_init() });
-
-        Ok((values, offset))
     }
 }
 
@@ -205,63 +169,61 @@ macro_rules! impl_separated_tuple {
                     )
                 }
 
-                fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-                    let ([<val_ $first_idx>], mut offset, mut child_annotations) =
-                        self.parsers
-                            .$first_idx
-                            .annotate(input)
-                            .fold(vec![], 0, || self.name(), $first_idx + 1)?;
+                #[inline(always)]
+                fn parse_with(
+                    &mut self,
+                    input: &mut Input,
+                    annotation_mode: crate::AnnotationMode,
+                ) -> ParseWithResult<Self::Output> {
+                    let mut child_annotations = annotation_mode.success.then(Vec::new);
+                    let mut offset = 0;
+
+                    let [<val_ $first_idx>];
+                    ([<val_ $first_idx>], offset, child_annotations) = self.parsers.$first_idx
+                        .parse_with(input, annotation_mode).fold(
+                            annotation_mode,
+                            || self.name(),
+                            child_annotations,
+                            offset,
+                            $first_idx + 1,
+                        )?;
 
                     $(
-                    let _sep;
-                    (_sep, offset, child_annotations) =
-                        self.separator
-                            .annotate(input)
-                            .fold(child_annotations, offset, || self.name(), 0)?;
+                        (_, offset, child_annotations) = self.separator
+                            .parse_with(input, annotation_mode).fold(
+                                annotation_mode,
+                                || self.name(),
+                                child_annotations,
+                                offset,
+                                0,
+                            )?;
 
-                    let [<val_ $idx>];
-                    ([<val_ $idx>], offset, child_annotations) =
-                        self.parsers
-                            .$idx
-                            .annotate(input)
-                            .fold(child_annotations, offset, || self.name(), $idx + 1)?;
-
+                        let [<val_ $idx>];
+                        ([<val_ $idx>], offset, child_annotations) = self.parsers.$idx
+                            .parse_with(input, annotation_mode).fold(
+                                annotation_mode,
+                                || self.name(),
+                                child_annotations,
+                                offset,
+                                $idx + 1,
+                            )?;
                     )*
 
                     let value = ([<val_ $first_idx>] $(, [<val_ $idx>])*);
 
-                    let annotation =
-                        Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+                    let annotation = if annotation_mode.success {
+                        Annotation::success(
+                            self.name(),
+                            0..offset,
+                            value.clone(),
+                            child_annotations.unwrap(),
+                        )
+                        .into()
+                    } else {
+                        AnnotationReturn::Span(0..offset)
+                    };
 
                     Ok((value, annotation))
-                }
-
-                fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-                    let ([<val_ $first_idx>], mut offset, ) =
-                        self.parsers
-                            .$first_idx
-                            .parse(input)
-                            .fold(0, || self.name(), $first_idx + 1)?;
-
-                    $(
-                    let _sep;
-                    (_sep, offset) =
-                        self.separator
-                            .parse(input)
-                            .fold(offset, || self.name(), 0)?;
-
-                    let [<val_ $idx>];
-                    ([<val_ $idx>], offset) =
-                        self.parsers
-                            .$idx
-                            .parse(input)
-                            .fold(offset, || self.name(), $idx + 1)?;
-
-                    )*
-
-                    let value = ([<val_ $first_idx>] $(, [<val_ $idx>])*);
-
-                    Ok((value, offset))
                 }
             }
         }

@@ -1,4 +1,7 @@
-use crate::{Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult};
+use crate::{
+    Annotation, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
+};
 
 pub struct Terminated<I, K> {
     ignore: I,
@@ -30,33 +33,45 @@ where
         ParserSpec::new(self.name(), vec![self.keep.spec(), self.ignore.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-        let (value, offset, child_annotations) =
-            self.keep
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
 
-        let (_after, offset, child_annotations) =
-            self.ignore
-                .annotate(input)
-                .fold(child_annotations, offset, || self.name(), 1)?;
+        let value;
+        (value, offset, child_annotations) = self.keep.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            0,
+        )?;
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+        (_, offset, child_annotations) = self.ignore.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            1,
+        )?;
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (value, offset) = self
-            .keep
-            .parse(input).fold(0, || self.name(), 0)?;
-
-        let (_after, offset) = self
-            .ignore
-            .parse(input).fold(offset, || self.name(), 1)?;
-
-        Ok((value, offset))
     }
 }
 

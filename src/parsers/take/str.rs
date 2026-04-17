@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
+use crate::{Annotation, Parser, ParserSpec};
 
 use super::TakeArray;
 
@@ -17,14 +17,20 @@ impl<const N: usize> Parser<&str> for TakeArray<N> {
         ParserSpec::empty(Parser::<&str>::name(self))
     }
 
-    fn annotate(&mut self, input: &mut &str) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &str,
+        annotation_mode: crate::AnnotationMode,
+    ) -> crate::parser::ParseWithResult<Self::Output> {
         let end = match input.chars().count().cmp(&N) {
             Ordering::Less => {
-                return Err(Annotation::incomplete(
-                    Parser::<&str>::name(self),
-                    0,
-                    vec![],
-                ));
+                let annotation = if annotation_mode.fail {
+                    Annotation::incomplete(Parser::<&str>::name(self), 0, vec![]).into()
+                } else {
+                    0.into()
+                };
+                return Err(annotation);
             }
             Ordering::Equal => input.len(),
             Ordering::Greater => {
@@ -40,36 +46,12 @@ impl<const N: usize> Parser<&str> for TakeArray<N> {
 
         *input = &input[end..];
 
-        let annotation =
-            Annotation::success(Parser::<&str>::name(self), 0..N, value.clone(), vec![]);
+        let annotation = if annotation_mode.success {
+            Annotation::success(Parser::<&str>::name(self), 0..N, value.clone(), vec![]).into()
+        } else {
+            (0..N).into()
+        };
 
         Ok((value, annotation))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
-        let end = match input.chars().count().cmp(&N) {
-            Ordering::Less => {
-                return Err(Annotation::incomplete(
-                    Parser::<&str>::name(self),
-                    0,
-                    vec![],
-                ));
-            }
-            Ordering::Equal => input.len(),
-            Ordering::Greater => {
-                let (end, _) = input
-                    .char_indices()
-                    .nth(N)
-                    .expect("length verified by match predicate");
-                end
-            }
-        };
-
-        let value = input[..end].to_string();
-
-        *input = &input[end..];
-
-        Ok((value, N))
     }
 }

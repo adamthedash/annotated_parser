@@ -4,8 +4,8 @@ use std::sync::{
 };
 
 use crate::{
-    Annotation, FoldAnnotatedResult, Parser, ParserSpec, combinators::delayed::DelayedValGet,
-    helpers::FoldParseResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
+    combinators::delayed::DelayedValGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
 /// Parser which can be externally enabled/disabled rather than checking a delayed value each
@@ -53,33 +53,42 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-        let (value, offset, child_annotations) = if self.enabled.load(Ordering::Relaxed) {
-            let (value, offset, child_annotations) =
-                self.inner
-                    .annotate(input)
-                    .fold(vec![], 0, || self.name(), 0)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
+        let mut value = None;
 
-            (Some(value), offset, child_annotations)
-        } else {
-            (None, 0, vec![])
-        };
+        if self.enabled.load(Ordering::Relaxed) {
+            let out;
+            (out, offset, child_annotations) = self.inner.parse_with(input, annotation_mode).fold(
+                annotation_mode,
+                || self.name(),
+                child_annotations,
+                offset,
+                0,
+            )?;
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
-        Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        if !self.enabled.load(Ordering::Relaxed) {
-            return Ok((None, 0));
+            value = Some(out);
         }
 
-        let (value, offset) = self
-            .inner
-            .parse(input).fold(0, || self.name(), 0)?;
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
-        Ok((Some(value), offset))
+        Ok((value, annotation))
     }
 }
 
@@ -118,14 +127,13 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-        let res = self.inner.annotate(input)?;
-        (self.configurator)();
-        Ok(res)
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let res = self.inner.parse(input)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let res = self.inner.parse_with(input, annotation_mode)?;
         (self.configurator)();
         Ok(res)
     }

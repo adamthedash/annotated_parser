@@ -125,7 +125,7 @@ where
                 let new_offset = if annotation_mode.success {
                     let (new_offset, new_child_annotations) = fold_success(
                         annotation.annotation(),
-                        child_annotations.take().unwrap_or_default(),
+                        child_annotations.unwrap_or_default(),
                         offset,
                         child_index,
                     );
@@ -142,19 +142,17 @@ where
             Err(annotation) => {
                 let annotation = if annotation_mode.fail {
                     // Accumulate into Annotation::Child
-                    let annotation = fold_child_err(
+                    fold_child_err(
                         annotation.annotation(),
-                        child_annotations.take().unwrap_or_default(),
+                        child_annotations.unwrap_or_default(),
                         offset,
                         parent_name(),
                         child_index,
-                    );
-
-                    AnnotationReturn::Annotated(annotation)
+                    )
+                    .into()
                 } else {
                     // Extract start offset
-                    let annotation = annotation.annotation();
-                    let start = annotation.result.span().0;
+                    let start = annotation.start();
 
                     AnnotationReturn::Start(offset + start)
                 };

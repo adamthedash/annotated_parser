@@ -1,5 +1,4 @@
 use crate::Annotation;
-use crate::AnnotationResult;
 use crate::ParserSpec;
 use crate::combinators::delayed::DelayedParser;
 use std::fmt::Debug;
@@ -40,9 +39,13 @@ pub trait Parser<Input> {
         &mut self,
         _input: &mut Input,
         _annotation_mode: AnnotationMode,
-    ) -> ParseWithResult<Self::Output> {
-        todo!()
-    }
+    ) -> ParseWithResult<Self::Output>;
+    // {
+    //     todo!(
+    //         "Parser::parse_with not implemented for {}",
+    //         std::any::type_name::<Self>()
+    //     );
+    // }
 
     /// Parse and return both the output value and annotations
     #[inline(always)]
@@ -84,7 +87,6 @@ pub type ParseWithResult<T> = std::result::Result<(T, AnnotationReturn), Annotat
 
 #[derive(Debug)]
 pub enum AnnotationReturn {
-    // TODO: Box<Annotation> so stack size isn't massive? 112 vs 24 bytes
     Annotated(Annotation),
     Span(Range<usize>),
     Start(usize),
@@ -106,10 +108,27 @@ impl AnnotationReturn {
     }
 
     pub fn start(self) -> usize {
-        let Self::Start(start) = self else {
-            unreachable!()
-        };
-        start
+        match self {
+            Self::Span(span) => span.start,
+            Self::Start(start) => start,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<Annotation> for AnnotationReturn {
+    fn from(value: Annotation) -> Self {
+        Self::Annotated(value)
+    }
+}
+impl From<Range<usize>> for AnnotationReturn {
+    fn from(value: Range<usize>) -> Self {
+        Self::Span(value)
+    }
+}
+impl From<usize> for AnnotationReturn {
+    fn from(value: usize) -> Self {
+        Self::Start(value)
     }
 }
 
@@ -153,12 +172,13 @@ where
         (**self).spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        (**self).annotate(input)
-    }
-
-    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
-        (**self).parse(input)
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        (**self).parse_with(input, annotation_mode)
     }
 }
 
@@ -189,11 +209,12 @@ where
         (**self).spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        (**self).annotate(input)
-    }
-
-    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
-        (**self).parse(input)
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        (**self).parse_with(input, annotation_mode)
     }
 }

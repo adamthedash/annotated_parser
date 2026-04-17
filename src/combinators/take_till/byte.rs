@@ -1,7 +1,10 @@
 use std::fmt::Debug;
 
 use super::{TakeTillExc, TakeTillInc};
-use crate::{AnnotatedResult, Annotation, Parser, ParserSpec, helpers::fold_success};
+use crate::{
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
+};
 
 impl<P> Parser<&[u8]> for TakeTillExc<P>
 where
@@ -17,15 +20,26 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &[u8],
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 
         // PERF: Could increase perf a bit by detecting EOF from inner parser
-        while self.inner.annotate(input).is_err() {
+        while self.inner.parse_with(input, AnnotationMode::NONE).is_err() {
             if end == original.len() {
                 // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
+                let annotation = if annotation_mode.fail {
+                    Annotation::incomplete(self.name(), 0, vec![]).into()
+                } else {
+                    AnnotationReturn::Start(0)
+                };
+
+                return Err(annotation);
             }
 
             // Advance one byte
@@ -33,30 +47,15 @@ where
             *input = &input[1..];
         }
 
-        let bytes = original[..end].to_vec();
+        let taken = original[..end].to_vec();
 
-        let annotation = Annotation::success(self.name(), 0..bytes.len(), bytes.clone(), vec![]);
+        let annotation = if annotation_mode.success {
+            Annotation::success(self.name(), 0..end, taken.clone(), vec![]).into()
+        } else {
+            AnnotationReturn::Span(0..end)
+        };
 
-        Ok((bytes, annotation))
-    }
-
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
-        let original = *input;
-        let mut end = 0;
-
-        // PERF: Could increase perf a bit by detecting EOF from inner parser
-        while self.inner.annotate(input).is_err() {
-            if end == original.len() {
-                // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
-            }
-
-            // Advance one byte
-            end += 1;
-            *input = &input[1..];
-        }
-
-        Ok((original[..end].to_vec(), end))
+        Ok((taken, annotation))
     }
 }
 
@@ -75,59 +74,72 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &[u8],
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 
-        let (value, offset, child_annotations) = loop {
-            if let Ok((value, annotation)) = self.inner.annotate(input) {
-                let (offset, child_annotations) = fold_success(annotation, vec![], end, 0);
-                break (value, offset, child_annotations);
+        let inner_mode = AnnotationMode {
+            success: annotation_mode.success,
+            fail: false,
+        };
+
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
+
+        let value;
+        loop {
+            let res = self.inner.parse_with(input, inner_mode);
+            if res.is_ok() {
+                // Terminator found
+                (value, offset, child_annotations) = res
+                    .fold(
+                        annotation_mode,
+                        || self.name(),
+                        child_annotations,
+                        offset,
+                        0,
+                    )
+                    .expect("Happy path");
+
+                break;
             }
 
             if end == original.len() {
                 // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
+                let annotation = if annotation_mode.fail {
+                    Annotation::incomplete(self.name(), 0, child_annotations.unwrap()).into()
+                } else {
+                    AnnotationReturn::Start(0)
+                };
+
+                return Err(annotation);
             }
 
             // Advance one byte
             end += 1;
             *input = &input[1..];
+        }
+
+        let taken = original[..end].to_vec();
+        let out = (taken, value);
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                out.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
         };
 
-        let bytes = original[..end].to_vec();
-
-        let annotation = Annotation::success(
-            self.name(),
-            0..offset,
-            (bytes.clone(), value.clone()),
-            child_annotations,
-        );
-
-        Ok(((bytes, value), annotation))
-    }
-
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
-        let original = *input;
-        let mut end = 0;
-
-        let (value, offset) = loop {
-            if let Ok((value, offset)) = self.inner.parse(input) {
-                break (value, offset);
-            }
-
-            if end == original.len() {
-                // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
-            }
-
-            // Advance one byte
-            end += 1;
-            *input = &input[1..];
-        };
-
-        let bytes = original[..end].to_vec();
-
-        Ok(((bytes, value), offset))
+        Ok((out, annotation))
     }
 }

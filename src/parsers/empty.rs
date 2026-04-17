@@ -1,4 +1,4 @@
-use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
+use crate::{Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult};
 
 /// Always succeeds, consumes nothing
 pub struct Empty;
@@ -14,14 +14,18 @@ impl<Input> Parser<Input> for Empty {
         ParserSpec::empty(Parser::<Input>::name(self))
     }
 
-    fn annotate(&mut self, _input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let annotation = Annotation::success(Parser::<Input>::name(self), 0..0, (), vec![]);
-        Ok(((), annotation))
-    }
-
     #[inline(always)]
-    fn parse(&mut self, _input: &mut Input) -> crate::ParseResult<Self::Output> {
-        Ok(((), 0))
+    fn parse_with(
+        &mut self,
+        _input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let annotation = if annotation_mode.success {
+            Annotation::success(Parser::<Input>::name(self), 0..0, (), vec![]).into()
+        } else {
+            AnnotationReturn::Span(0..0)
+        };
+        Ok(((), annotation))
     }
 }
 

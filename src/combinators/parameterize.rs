@@ -1,7 +1,9 @@
 use crate::{
-    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec,
+    AnnotatedResult, Annotation, AnnotationMode, AnnotationReturn, FoldAnnotatedResult, Parser,
+    ParserSpec,
     combinators::delayed::{DelayedValGet, DelayedValSet},
-    helpers::FoldParseResult,
+    helpers::{FoldParseResult, FoldParseWithResult},
+    parser::ParseWithResult,
 };
 
 /// A combinator which parameterises the inner parser with each value before running it
@@ -44,6 +46,52 @@ where
         ParserSpec::new(self.name(), vec![self.parser.spec()])
     }
 
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let parameters = self.parameters.get();
+
+        let mut child_annotations = annotation_mode
+            .success
+            .then(|| Vec::with_capacity(parameters.len()));
+
+        let mut values = Vec::with_capacity(parameters.len());
+        let mut offset = 0;
+        for param in parameters.iter() {
+            // Move this iter's param into the param slot of the parser
+            self.parameter_input.set(param.clone());
+
+            // Apply inner parser
+            let value;
+            (value, offset, child_annotations) =
+                self.parser.parse_with(input, annotation_mode).fold(
+                    annotation_mode,
+                    || self.name(),
+                    child_annotations,
+                    offset,
+                    0,
+                )?;
+
+            values.push(value);
+        }
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                values.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
+
+        Ok((values, annotation))
+    }
+
     fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let parameters = self.parameters.get();
 
@@ -81,9 +129,7 @@ where
 
             // Apply inner parser
             let value;
-            (value, offset) = self
-                .parser
-                .parse(input).fold(offset, || self.name(), 0)?;
+            (value, offset) = self.parser.parse(input).fold(offset, || self.name(), 0)?;
 
             values.push(value);
         }

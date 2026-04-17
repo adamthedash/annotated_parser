@@ -54,12 +54,13 @@ where
 
         if !(self.func)(&value) {
             let annotation = if annotation_mode.fail {
-                AnnotationReturn::Annotated(Annotation::invalid(
+                Annotation::invalid(
                     self.name(),
                     0..offset,
                     "Validation failure".to_owned(),
-                    child_annotations.take().unwrap_or_default(),
-                ))
+                    child_annotations.unwrap_or_default(),
+                )
+                .into()
             } else {
                 AnnotationReturn::Span(0..offset)
             };
@@ -68,12 +69,13 @@ where
         }
 
         let annotation = if annotation_mode.success {
-            AnnotationReturn::Annotated(Annotation::success(
+            Annotation::success(
                 self.name(),
                 0..offset,
                 value.clone(),
-                child_annotations.take().unwrap(),
-            ))
+                child_annotations.unwrap(),
+            )
+            .into()
         } else {
             AnnotationReturn::Span(0..offset)
         };

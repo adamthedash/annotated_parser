@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-    AnnotatedResult, Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
-    helpers::fold_success, parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
 };
 
 use super::{TakeTillExc, TakeTillInc};
@@ -21,6 +21,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
+    #[inline(always)]
     fn parse_with(
         &mut self,
         input: &mut &str,
@@ -34,7 +35,7 @@ where
             if end == original.len() {
                 // EoF
                 let annotation = if annotation_mode.fail {
-                    AnnotationReturn::Annotated(Annotation::incomplete(self.name(), 0, vec![]))
+                    Annotation::incomplete(self.name(), 0, vec![]).into()
                 } else {
                     AnnotationReturn::Start(0)
                 };
@@ -56,12 +57,7 @@ where
         let taken_chars = taken.chars().count();
 
         let annotation = if annotation_mode.success {
-            AnnotationReturn::Annotated(Annotation::success(
-                self.name(),
-                0..taken_chars,
-                taken.clone(),
-                vec![],
-            ))
+            Annotation::success(self.name(), 0..taken_chars, taken.clone(), vec![]).into()
         } else {
             AnnotationReturn::Span(0..taken_chars)
         };
@@ -85,58 +81,50 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut &str) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &str,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let original = *input;
         let mut end = 0;
 
-        let (value, offset, child_annotations) = loop {
-            if let Ok((value, annotation)) = self.inner.annotate(input) {
-                let (offset, child_annotations) = fold_success(annotation, vec![], end, 0);
-                break (value, offset, child_annotations);
+        let inner_mode = AnnotationMode {
+            success: annotation_mode.success,
+            fail: false,
+        };
+
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
+
+        let value;
+        loop {
+            let res = self.inner.parse_with(input, inner_mode);
+            if res.is_ok() {
+                // Terminator found
+                (value, offset, child_annotations) = res
+                    .fold(
+                        annotation_mode,
+                        || self.name(),
+                        child_annotations,
+                        offset,
+                        0,
+                    )
+                    .expect("Happy path");
+
+                break;
             }
 
             if end == original.len() {
                 // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
-            }
-
-            // Advance one char
-            end += input
-                .char_indices()
-                .nth(1)
-                .map(|(i, _)| i)
-                .unwrap_or(input.len());
-
-            *input = &original[end..];
-        };
-
-        let taken = original[..end].to_string();
-
-        let annotation = Annotation::success(
-            self.name(),
-            0..offset,
-            (taken.clone(), value.clone()),
-            child_annotations,
-        );
-
-        Ok(((taken, value), annotation))
-    }
-
-    fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
-        let original = *input;
-        let mut end = 0;
-
-        let (value, offset) = loop {
-            if let Ok((value, offset)) = self.inner.parse_with(input, AnnotationMode::NONE) {
-                let AnnotationReturn::Span(span) = offset else {
-                    unreachable!();
+                let annotation = if annotation_mode.fail {
+                    Annotation::incomplete(self.name(), 0, child_annotations.unwrap()).into()
+                } else {
+                    AnnotationReturn::Start(0)
                 };
-                break (value, span.end);
-            }
 
-            if end == original.len() {
-                // EoF
-                return Err(Annotation::incomplete(self.name(), 0, vec![]));
+                return Err(annotation);
             }
 
             // Advance one char
@@ -147,10 +135,23 @@ where
                 .unwrap_or(input.len());
 
             *input = &original[end..];
-        };
+        }
 
         let taken = original[..end].to_string();
+        let out = (taken, value);
 
-        Ok(((taken, value), offset))
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                out.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
+
+        Ok((out, annotation))
     }
 }

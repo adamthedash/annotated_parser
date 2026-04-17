@@ -2,9 +2,7 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use num_traits::FromBytes;
 
-use crate::{
-    AnnotatedResult, Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult,
-};
+use crate::{Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult};
 
 /// Little-endian parser for types which can be directly interpreted from a byte array
 #[derive(Clone)]
@@ -35,7 +33,7 @@ where
     ) -> ParseWithResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
             let annotation = if annotation_mode.fail {
-                AnnotationReturn::Annotated(Annotation::incomplete(self.name(), 0, vec![]))
+                Annotation::incomplete(self.name(), 0, vec![]).into()
             } else {
                 AnnotationReturn::Start(0)
             };
@@ -49,12 +47,7 @@ where
         *input = rest;
 
         let annotation = if annotation_mode.success {
-            AnnotationReturn::Annotated(Annotation::success(
-                self.name(),
-                0..N,
-                value.clone(),
-                vec![],
-            ))
+            Annotation::success(self.name(), 0..N, value.clone(), vec![]).into()
         } else {
             AnnotationReturn::Span(0..N)
         };
@@ -84,9 +77,20 @@ where
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut &[u8],
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let Some((bytes, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(self.name(), 0, vec![]));
+            let annotation = if annotation_mode.fail {
+                Annotation::incomplete(self.name(), 0, vec![]).into()
+            } else {
+                AnnotationReturn::Start(0)
+            };
+
+            return Err(annotation);
         };
 
         let value = T::from_be_bytes(bytes);
@@ -94,23 +98,13 @@ where
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(self.name(), 0..N, value.clone(), vec![]);
+        let annotation = if annotation_mode.success {
+            Annotation::success(self.name(), 0..N, value.clone(), vec![]).into()
+        } else {
+            AnnotationReturn::Span(0..N)
+        };
 
         Ok((value, annotation))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
-        let Some((bytes, rest)) = input.split_first_chunk() else {
-            return Err(Annotation::incomplete(self.name(), 0, vec![]));
-        };
-
-        let value = T::from_be_bytes(bytes);
-
-        // Move input along
-        *input = rest;
-
-        Ok((value, N))
     }
 }
 

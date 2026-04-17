@@ -1,7 +1,8 @@
+use crate::parser::ParseWithResult;
 use crate::{
-    AnnotatedResult, Annotation, FoldAnnotatedResult, ParseResult, Parser, ParserSpec,
-    helpers::FoldParseResult,
+    AnnotatedResult, Annotation, ParseResult, Parser, ParserSpec, helpers::FoldParseWithResult,
 };
+use crate::{AnnotationMode, AnnotationReturn};
 use paste::paste;
 use std::fmt::Debug;
 
@@ -30,49 +31,37 @@ macro_rules! impl_parser_for_tuple {
                     ])
                 }
 
-                fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-                    let mut child_annotations = vec![];
+                #[inline(always)]
+                fn parse_with(
+                    &mut self,
+                    input: &mut Input,
+                    annotation_mode: crate::AnnotationMode,
+                ) -> ParseWithResult<Self::Output> {
+                    let mut child_annotations = annotation_mode.success.then(Vec::new);
                     let mut offset = 0usize;
 
                     let [<out_ $first_idx>];
                     ([<out_ $first_idx>], offset, child_annotations) =
                         self.$first_idx
-                            .annotate(input)
-                            .fold(child_annotations, offset, || self.name(), $first_idx)?;
+                            .parse_with(input, annotation_mode)
+                            .fold(annotation_mode, || self.name(), child_annotations, offset, $first_idx)?;
 
                     $(
                         let [<out_ $idx>];
                         ([<out_ $idx>], offset, child_annotations) =
                             self.$idx
-                                .annotate(input)
-                                .fold(child_annotations, offset, || self.name(), $idx)?;
+                                .parse_with(input, annotation_mode)
+                                .fold(annotation_mode, || self.name(), child_annotations, offset, $idx)?;
                     )*
 
                     let out = ([<out_ $first_idx>], $( [<out_ $idx>], )*);
-                    let annotation = Annotation::success(&self.name(), 0..offset, out.clone(), child_annotations);
+
+                    let annotation = if annotation_mode.success {
+                        Annotation::success(&self.name(), 0..offset, out.clone(), child_annotations.unwrap()).into()
+                    } else {
+                        AnnotationReturn::Span(0..offset)
+                    };
                     Ok((out, annotation))
-                }
-
-                #[inline(always)]
-                fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
-                    let mut offset = 0usize;
-
-                    let [<out_ $first_idx>];
-                    ([<out_ $first_idx>], offset) =
-                        self.$first_idx
-                            .parse(input)
-                            .fold(offset, || self.name(), $first_idx)?;
-
-                    $(
-                        let [<out_ $idx>];
-                        ([<out_ $idx>], offset) =
-                            self.$idx
-                                .parse(input)
-                            .fold(offset, || self.name(), $idx)?;
-                    )*
-
-                    let out = ([<out_ $first_idx>], $( [<out_ $idx>], )*);
-                    Ok((out, offset))
                 }
             }
         }
@@ -130,6 +119,14 @@ impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11)
 pub trait SameParserTuple<Input>: ParserTuple<Input> {
     type Output: Debug + Clone + 'static;
 
+    /// Call Parser::parse_with on a specific child parser
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+        index: usize,
+    ) -> Option<ParseWithResult<Self::Output>>;
+
     /// Call Parser::annotate on a specific child parser
     fn annotate(
         &mut self,
@@ -152,6 +149,20 @@ macro_rules! impl_same_parser_tuple {
                 )*
             {
                 type Output = $First::Output;
+
+                #[inline(always)]
+                fn parse_with(
+                    &mut self,
+                    input: &mut Input,
+                    annotation_mode: AnnotationMode,
+                    index: usize,
+                ) -> Option<ParseWithResult<Self::Output>> {
+                    match index {
+                        $first_idx => Some(self.$first_idx.parse_with(input, annotation_mode)),
+                        $( $idx => Some(self.$idx.parse_with(input, annotation_mode)), )*
+                        _ => None,
+                    }
+                }
 
                 #[inline(always)]
                 fn annotate(&mut self, input: &mut Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {

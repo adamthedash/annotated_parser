@@ -1,4 +1,7 @@
-use crate::{Annotation, Parser, ParserSpec, combinators::Checkpoint, helpers::fold_success};
+use crate::{
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, combinators::Checkpoint,
+    helpers::FoldParseWithResult, parser::ParseWithResult,
+};
 
 /// Apply the inner parser repeatedly until it fails
 pub struct Many<P> {
@@ -32,36 +35,49 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+
         let mut values = vec![];
-        let mut child_annotations = vec![];
         let mut offset = 0;
 
-        while let Ok((value, annotation)) = self.inner.annotate(input) {
-            (offset, child_annotations) = fold_success(annotation, child_annotations, offset, 0);
+        let inner_mode = AnnotationMode {
+            success: annotation_mode.success,
+            fail: false,
+        };
+
+        let mut value;
+        loop {
+            let res = self.inner.parse_with(input, inner_mode);
+            if res.is_err() {
+                break;
+            }
+
+            (value, offset, child_annotations) = res
+                .fold(inner_mode, || self.name(), child_annotations, offset, 0)
+                .expect("In happy path");
 
             values.push(value);
         }
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                values.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((values, annotation))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let mut values = vec![];
-        let mut offset = 0;
-
-        // PERF: This will always allocate one annotation when the inner parser fails. Any way to
-        // avoid?
-        while let Ok((value, taken)) = self.inner.parse(input) {
-            offset += taken;
-            values.push(value);
-        }
-
-        Ok((values, offset))
     }
 }
 

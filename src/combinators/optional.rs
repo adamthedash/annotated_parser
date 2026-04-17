@@ -1,5 +1,7 @@
+use crate::parser::ParseWithResult;
 use crate::{
-    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec, combinators::Checkpoint,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, combinators::Checkpoint,
+    helpers::FoldParseWithResult,
 };
 
 /// Optional parser. If inner parser fails, then this succeed but produces no value
@@ -34,30 +36,46 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let res = self
-            .inner
-            .annotate(input)
-            .fold(vec![], 0, || self.name(), 0);
-
-        let (out, offset, child_annotations) = match res {
-            Ok((out, offset, child_annotations)) => (Some(out), offset, child_annotations),
-            // TODO: Should we be passing up child annotations here?
-            Err(child_annotation) => (None, 0, vec![child_annotation]),
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let inner_mode = AnnotationMode {
+            success: annotation_mode.success,
+            // This parser always succeeds, so we don't care about the inner failure details
+            fail: false,
         };
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, out.clone(), child_annotations);
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
 
-        Ok((out, annotation))
-    }
+        let res = self.inner.parse_with(input, inner_mode);
 
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let Ok((value, offset)) = self.inner.parse(input) else {
-            return Ok((None, 0));
+        let (value, offset) = if res.is_ok() {
+            let (value, offset);
+            (value, offset, child_annotations) = res
+                .fold(inner_mode, || self.name(), child_annotations, 0, 0)
+                .expect("In happy path");
+
+            (Some(value), offset)
+        } else {
+            (None, 0)
         };
 
-        Ok((Some(value), offset))
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
+
+        Ok((value, annotation))
     }
 }
 

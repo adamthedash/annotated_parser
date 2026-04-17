@@ -1,7 +1,10 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    AnnotatedResult, Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult,
+    AnnotatedResult, Annotation, AnnotationMode, AnnotationReturn, FoldAnnotatedResult, Parser,
+    ParserSpec,
+    helpers::{FoldParseResult, FoldParseWithResult},
+    parser::ParseWithResult,
 };
 
 /// For fallible functions
@@ -39,6 +42,56 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let (data, offset, child_annotations) =
+            self.inner.parse_with(input, annotation_mode).fold(
+                annotation_mode,
+                || self.name(),
+                annotation_mode.success.then(Vec::new),
+                0,
+                0,
+            )?;
+
+        let value = match (self.func)(data) {
+            Ok(value) => value,
+            Err(e) => {
+                let annotation = {
+                    if annotation_mode.fail {
+                        Annotation::invalid(
+                            self.name(),
+                            0..offset,
+                            format!("{}", e),
+                            child_annotations.unwrap_or_default(),
+                        )
+                        .into()
+                    } else {
+                        AnnotationReturn::Span(0..offset)
+                    }
+                };
+                return Err(annotation);
+            }
+        };
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
+
+        Ok((value, annotation))
+    }
+
     fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         let (data, offset, child_annotations) =
             self.inner
@@ -65,9 +118,7 @@ where
     }
 
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (data, offset) = self
-            .inner
-            .parse(input).fold(0, || self.name(), 0)?;
+        let (data, offset) = self.inner.parse(input).fold(0, || self.name(), 0)?;
 
         let out = (self.func)(data)
             // Function application has failed, so fail annotation at this level
@@ -110,28 +161,36 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let (data, offset, child_annotations) =
-            self.inner
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
+            self.inner.parse_with(input, annotation_mode).fold(
+                annotation_mode,
+                || self.name(),
+                annotation_mode.success.then(Vec::new),
+                0,
+                0,
+            )?;
 
         let value = (self.func)(data);
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (data, offset) = self
-            .inner
-            .parse(input).fold(0, || self.name(), 0)?;
-
-        let out = (self.func)(data);
-
-        Ok((out, offset))
     }
 }
 
@@ -169,19 +228,16 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let (data, annotation) = self.inner.annotate(input)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let (data, annotation) = self.inner.parse_with(input, annotation_mode)?;
 
         let out = (self.func)(data);
 
         Ok((out, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (data, offset) = self.inner.parse(input)?;
-
-        let out = (self.func)(data);
-
-        Ok((out, offset))
     }
 }

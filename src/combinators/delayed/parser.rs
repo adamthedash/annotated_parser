@@ -1,6 +1,7 @@
 use super::value::DelayedVal;
 use super::{DelayedParser, DelayedValSet};
-use crate::{AnnotatedResult, Parser, ParserSpec};
+use crate::parser::ParseWithResult;
+use crate::{AnnotationMode, Parser, ParserSpec};
 
 /// A parser whos output can be referenced before it has been executed
 pub struct Delayed<I, O> {
@@ -35,23 +36,18 @@ where
         self.inner.spec()
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let (out, anno) = self.inner.annotate(input)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let (out, anno) = self.inner.parse_with(input, annotation_mode)?;
 
         // Set the shared value
         self.value.set(out);
 
         Ok((self.value.clone(), anno))
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (out, offset) = self.inner.parse(input)?;
-
-        // Set the shared value
-        self.value.set(out);
-
-        Ok((self.value.clone(), offset))
     }
 }
 

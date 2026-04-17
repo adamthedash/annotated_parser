@@ -1,3 +1,5 @@
+use crate::AnnotationReturn;
+use crate::parser::ParseWithResult;
 use std::num::IntErrorKind;
 
 use crate::{Annotation, Parser, ParserSpec};
@@ -18,71 +20,56 @@ macro_rules! impl_uint_parser {
                     ParserSpec::empty(self.name())
                 }
 
-                fn annotate(&mut self, input: &mut &str) -> crate::AnnotatedResult<Self::Output> {
-                    let end = input
-                        .find(|c: char| !c.is_ascii_digit())
-                        .unwrap_or(input.len());
-                    let num_chars = input[..end].chars().count();
-
-                    let value = input[..end].parse::<Self::Output>().map_err(|e| match e.kind(){
-                        IntErrorKind::Empty => Annotation::incomplete(self.name(), 0, vec![]),
-                        IntErrorKind::PosOverflow => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Number doesn't fit in {}", stringify!($ty)),
-                            vec![],
-                        ),
-                        IntErrorKind::InvalidDigit => {
-                            unreachable!("No non-digits should reach str::parse above")
-                        }
-                        IntErrorKind::NegOverflow => {
-                            unreachable!("No negative digits should reach str::parse above")
-                        }
-                        IntErrorKind::Zero => unreachable!("Zero should be parsed properly"),
-                        kind => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Unknown parse error: {kind:?}"),
-                            vec![],
-                        ),
-                    })?;
-
-                    *input = &input[end..];
-                    Ok((value, Annotation::success(self.name(), 0..num_chars, value, vec![])))
-                }
-
                 #[inline(always)]
-                fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
+                fn parse_with(
+                    &mut self,
+                    input: &mut &str,
+                    annotation_mode: crate::AnnotationMode,
+                ) -> ParseWithResult<Self::Output> {
                     let end = input
                         .find(|c: char| !c.is_ascii_digit())
                         .unwrap_or(input.len());
                     let num_chars = input[..end].chars().count();
 
-                    let value = input[..end].parse::<Self::Output>().map_err(|e| match e.kind(){
-                        IntErrorKind::Empty => Annotation::incomplete(self.name(), 0, vec![]),
-                        IntErrorKind::PosOverflow => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Number doesn't fit in {}", stringify!($ty)),
-                            vec![],
-                        ),
-                        IntErrorKind::InvalidDigit => {
-                            unreachable!("No non-digits should reach str::parse above")
+                    let value = input[..end].parse::<Self::Output>().map_err(|e|
+                        if annotation_mode.fail {
+                            match e.kind(){
+                                IntErrorKind::Empty => Annotation::incomplete(self.name(), 0, vec![]),
+                                IntErrorKind::PosOverflow => Annotation::invalid(
+                                    self.name(),
+                                    0..num_chars,
+                                    format!("Number doesn't fit in {}", stringify!($ty)),
+                                    vec![],
+                                ),
+                                IntErrorKind::InvalidDigit => {
+                                    unreachable!("No non-digits should reach str::parse above")
+                                }
+                                IntErrorKind::NegOverflow => {
+                                    unreachable!("No negative digits should reach str::parse above")
+                                }
+                                IntErrorKind::Zero => unreachable!("Zero should be parsed properly"),
+                                kind => Annotation::invalid(
+                                    self.name(),
+                                    0..num_chars,
+                                    format!("Unknown parse error: {kind:?}"),
+                                    vec![],
+                                ),
+                            }.into()
+                        } else {
+                            AnnotationReturn::Span(0..num_chars)
                         }
-                        IntErrorKind::NegOverflow => {
-                            unreachable!("No negative digits should reach str::parse above")
-                        }
-                        IntErrorKind::Zero => unreachable!("Zero should be parsed properly"),
-                        kind => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Unknown parse error: {kind:?}"),
-                            vec![],
-                        ),
-                    })?;
+                    )?;
 
                     *input = &input[end..];
-                    Ok((value, num_chars))
+
+                    let annotation = if annotation_mode.success {
+                        Annotation::success(self.name(), 0..num_chars, value, vec![]).into()
+                    } else {
+                        AnnotationReturn::Span(0..num_chars)
+                    };
+
+                    Ok((value, annotation))
+
                 }
             }
         )*
@@ -113,48 +100,12 @@ macro_rules! impl_int_parser {
                     ParserSpec::empty(self.name())
                 }
 
-                fn annotate(&mut self, input: &mut &str) -> crate::AnnotatedResult<Self::Output> {
-                    // Sign
-                    let mut end = if let Some(c) = input.chars().next()
-                        && c == '-'
-                    {
-                        1
-                    } else {
-                        0
-                    };
-                    // Digits
-                    end += input[end..]
-                        .find(|c: char| !c.is_ascii_digit())
-                        .unwrap_or(input[end..].len());
-
-                    let num_chars = input[..end].chars().count();
-
-                    let value = input[..end].parse::<Self::Output>().map_err(|e| match e.kind() {
-                        // Only InvalidDigit should be a lone "-"
-                        IntErrorKind::Empty | IntErrorKind::InvalidDigit => {
-                            Annotation::incomplete(self.name(), 0, vec![])
-                        }
-                        IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Number doesn't fit in {}", stringify!($ty)),
-                            vec![],
-                        ),
-                        IntErrorKind::Zero => unreachable!("Zero should be parsed properly"),
-                        kind => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Unknown parse error: {kind:?}"),
-                            vec![],
-                        ),
-                    })?;
-
-                    *input = &input[end..];
-                    Ok((value, Annotation::success(self.name(), 0..num_chars, value, vec![])))
-                }
-
                 #[inline(always)]
-                fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
+                fn parse_with(
+                    &mut self,
+                    input: &mut &str,
+                    annotation_mode: crate::AnnotationMode,
+                ) -> ParseWithResult<Self::Output> {
                     // Sign
                     let mut end = if let Some(c) = input.chars().next()
                         && c == '-'
@@ -170,28 +121,41 @@ macro_rules! impl_int_parser {
 
                     let num_chars = input[..end].chars().count();
 
-                    let value = input[..end].parse::<Self::Output>().map_err(|e| match e.kind() {
-                        // Only InvalidDigit should be a lone "-"
-                        IntErrorKind::Empty | IntErrorKind::InvalidDigit => {
-                            Annotation::incomplete(self.name(), 0, vec![])
+                    let value = input[..end].parse::<Self::Output>().map_err(|e|
+                        if annotation_mode.fail {
+                            match e.kind() {
+                                // Only InvalidDigit should be a lone "-"
+                                IntErrorKind::Empty | IntErrorKind::InvalidDigit => {
+                                    Annotation::incomplete(self.name(), 0, vec![])
+                                }
+                                IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => Annotation::invalid(
+                                    self.name(),
+                                    0..num_chars,
+                                    format!("Number doesn't fit in {}", stringify!($ty)),
+                                    vec![],
+                                ),
+                                IntErrorKind::Zero => unreachable!("Zero should be parsed properly"),
+                                kind => Annotation::invalid(
+                                    self.name(),
+                                    0..num_chars,
+                                    format!("Unknown parse error: {kind:?}"),
+                                    vec![],
+                                ),
+                            }.into()
+                        } else {
+                            AnnotationReturn::Span(0..num_chars)
                         }
-                        IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Number doesn't fit in {}", stringify!($ty)),
-                            vec![],
-                        ),
-                        IntErrorKind::Zero => unreachable!("Zero should be parsed properly"),
-                        kind => Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Unknown parse error: {kind:?}"),
-                            vec![],
-                        ),
-                    })?;
+                    )?;
 
                     *input = &input[end..];
-                    Ok((value, num_chars))
+
+                    let annotation = if annotation_mode.success {
+                        Annotation::success(self.name(), 0..num_chars, value, vec![]).into()
+                    } else {
+                        AnnotationReturn::Span(0..num_chars)
+                    };
+
+                    Ok((value, annotation))
                 }
             }
         )*
@@ -222,49 +186,12 @@ macro_rules! impl_float_parser {
                     ParserSpec::empty(self.name())
                 }
 
-                fn annotate(&mut self, input: &mut &str) -> crate::AnnotatedResult<Self::Output> {
-                    // Sign
-                    let mut end = if let Some(c) = input.chars().next()
-                        && c == '-'
-                    {
-                        1
-                    } else {
-                        0
-                    };
-                    // Leading digits
-                    end += input[end..]
-                        .find(|c: char| !c.is_ascii_digit())
-                        .unwrap_or(input[end..].len());
-                    // Dot
-                    end += if let Some(c) = input[end..].chars().next()
-                        && c == '.'
-                    {
-                        1
-                    } else {
-                        0
-                    };
-                    // Trailing digits
-                    end += input[end..]
-                        .find(|c: char| !c.is_ascii_digit())
-                        .unwrap_or(input[end..].len());
-
-                    let num_chars = input[..end].chars().count();
-
-                    let value = input[..end].parse::<Self::Output>().map_err(|e| {
-                        Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Invalid float: {e}"),
-                            vec![],
-                        )
-                    })?;
-
-                    *input = &input[end..];
-                    Ok((value, Annotation::success(self.name(), 0..num_chars, value, vec![])))
-                }
-
                 #[inline(always)]
-                fn parse(&mut self, input: &mut &str) -> crate::ParseResult<Self::Output> {
+                fn parse_with(
+                    &mut self,
+                    input: &mut &str,
+                    annotation_mode: crate::AnnotationMode,
+                ) -> ParseWithResult<Self::Output> {
                     // Sign
                     let mut end = if let Some(c) = input.chars().next()
                         && c == '-'
@@ -293,16 +220,27 @@ macro_rules! impl_float_parser {
                     let num_chars = input[..end].chars().count();
 
                     let value = input[..end].parse::<Self::Output>().map_err(|e| {
-                        Annotation::invalid(
-                            self.name(),
-                            0..num_chars,
-                            format!("Invalid float: {e}"),
-                            vec![],
-                        )
+                        if annotation_mode.fail {
+                            Annotation::invalid(
+                                self.name(),
+                                0..num_chars,
+                                format!("Invalid float: {e}"),
+                                vec![],
+                            ).into()
+                        } else {
+                            AnnotationReturn::Span(0..num_chars)
+                        }
                     })?;
 
                     *input = &input[end..];
-                    Ok((value, num_chars))
+
+                    let annotation = if annotation_mode.success {
+                        Annotation::success(self.name(), 0..num_chars, value, vec![]).into()
+                    } else {
+                        AnnotationReturn::Span(0..num_chars)
+                    };
+
+                    Ok((value, annotation))
                 }
             }
         )*

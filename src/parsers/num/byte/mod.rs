@@ -6,7 +6,7 @@ mod nightly_floats;
 #[cfg(feature = "f16")]
 pub use nightly_floats::{F16BE, F16LE};
 
-use crate::{AnnotatedResult, Annotation, Parser, ParserSpec};
+use crate::{Annotation, AnnotationReturn, Parser, ParserSpec};
 
 /// 0 or 1 stored in u8
 #[derive(Clone)]
@@ -23,53 +23,48 @@ impl Parser<&[u8]> for Bool {
         ParserSpec::empty(self.name())
     }
 
-    fn annotate(&mut self, input: &mut &[u8]) -> AnnotatedResult<Self::Output> {
+    fn parse_with(
+        &mut self,
+        input: &mut &[u8],
+        annotation_mode: crate::AnnotationMode,
+    ) -> crate::parser::ParseWithResult<Self::Output> {
         let Some((first, rest)) = input.split_first() else {
-            return Err(Annotation::incomplete(self.name(), 0, vec![]));
+            let annotation = if annotation_mode.fail {
+                Annotation::incomplete(self.name(), 0, vec![]).into()
+            } else {
+                AnnotationReturn::Start(0)
+            };
+            return Err(annotation);
         };
 
         let value = match first {
             0 => false,
             1 => true,
             x => {
-                return Err(Annotation::invalid(
-                    self.name(),
-                    0..1,
-                    format!("Invalid bool value: {x}"),
-                    vec![],
-                ));
+                let annotation = if annotation_mode.fail {
+                    Annotation::invalid(
+                        self.name(),
+                        0..1,
+                        format!("Invalid bool value: {x}"),
+                        vec![],
+                    )
+                    .into()
+                } else {
+                    AnnotationReturn::Span(0..1)
+                };
+                return Err(annotation);
             }
         };
 
         // Move input along
         *input = rest;
 
-        let annotation = Annotation::success(self.name(), 0..1, value, vec![]);
+        let annotation = if annotation_mode.success {
+            Annotation::success(self.name(), 0..1, value, vec![]).into()
+        } else {
+            AnnotationReturn::Span(0..1)
+        };
 
         Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut &[u8]) -> crate::ParseResult<Self::Output> {
-        let Some((first, rest)) = input.split_first() else {
-            return Err(Annotation::incomplete(self.name(), 0, vec![]));
-        };
-
-        let value = match first {
-            0 => false,
-            1 => true,
-            x => {
-                return Err(Annotation::invalid(
-                    self.name(),
-                    0..1,
-                    format!("Invalid bool value: {x}"),
-                    vec![],
-                ));
-            }
-        };
-
-        // Move input along
-        *input = rest;
-
-        Ok((value, 1))
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    AnnotatedResult, Annotation, Parser, ParserSpec,
+    Annotation, Parser, ParserSpec,
     parser::{AnnotationMode, AnnotationReturn, ParseWithResult},
 };
 
@@ -33,7 +33,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
                     )
                 };
 
-                AnnotationReturn::Annotated(annotation)
+                annotation.into()
             } else {
                 if input.len() < N {
                     AnnotationReturn::Start(0)
@@ -48,8 +48,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
         *input = &input[N..];
 
         let annotation = if annotation_mode.success {
-            let annotation = Annotation::success(self.name(), 0..N, *self, vec![]);
-            AnnotationReturn::Annotated(annotation)
+            Annotation::success(self.name(), 0..N, *self, vec![]).into()
         } else {
             AnnotationReturn::Span(0..N)
         };
@@ -91,7 +90,7 @@ impl Parser<&str> for &'static str {
                     )
                 };
 
-                AnnotationReturn::Annotated(annotation)
+                annotation.into()
             } else {
                 if input.len() < self.len() {
                     AnnotationReturn::Start(0)
@@ -109,8 +108,7 @@ impl Parser<&str> for &'static str {
         let num_chars = self.chars().count();
 
         let annotation = if annotation_mode.success {
-            let annotation = Annotation::success(self.name(), 0..num_chars, *self, vec![]);
-            AnnotationReturn::Annotated(annotation)
+            Annotation::success(self.name(), 0..num_chars, *self, vec![]).into()
         } else {
             AnnotationReturn::Span(0..num_chars)
         };

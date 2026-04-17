@@ -1,10 +1,9 @@
-use crate::FoldAnnotatedResult;
 use crate::combinators::tuple::{ParserTuple, SameParserTuple};
+use crate::helpers::FoldParseWithResult;
+use crate::{AnnotationMode, AnnotationReturn};
 
-use crate::{
-    AnnotatedResult, Annotation, Parser, ParserSpec, combinators::delayed::DelayedValGet,
-    helpers::FoldParseResult,
-};
+use crate::parser::ParseWithResult;
+use crate::{Annotation, Parser, ParserSpec, combinators::delayed::DelayedValGet};
 
 pub struct Dispatch<D, P> {
     discriminant: D,
@@ -41,55 +40,65 @@ where
         ParserSpec::new(self.name(), self.parsers.specs())
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let Some(index) = *self.discriminant.get() else {
-            return Err(Annotation::invalid(
-                self.name(),
-                0..0,
-                "Unknown discriminant".to_string(),
-                vec![],
-            ));
+            let annotation = if annotation_mode.fail {
+                Annotation::invalid(
+                    self.name(),
+                    0..0,
+                    "Unknown discriminant".to_string(),
+                    vec![],
+                )
+                .into()
+            } else {
+                AnnotationReturn::Span(0..0)
+            };
+
+            return Err(annotation);
         };
 
-        let Some(res) = self.parsers.annotate(input, index) else {
-            return Err(Annotation::invalid(
-                self.name(),
-                0..0,
-                "Discriminant out of bounds".to_string(),
-                vec![],
-            ));
+        let Some(res) = self.parsers.parse_with(input, annotation_mode, index) else {
+            let annotation = if annotation_mode.fail {
+                Annotation::invalid(
+                    self.name(),
+                    0..0,
+                    "Discriminant out of bounds".to_string(),
+                    vec![],
+                )
+                .into()
+            } else {
+                AnnotationReturn::Span(0..0)
+            };
+
+            return Err(annotation);
         };
 
-        let (value, offset, child_annotations) = res.fold(vec![], 0, || self.name(), index)?;
+        let (value, offset, child_annotations) = res.fold(
+            annotation_mode,
+            || self.name(),
+            annotation_mode.success.then(Vec::new),
+            0,
+            index,
+        )?;
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let Some(index) = *self.discriminant.get() else {
-            return Err(Annotation::invalid(
-                self.name(),
-                0..0,
-                "Unknown discriminant".to_string(),
-                vec![],
-            ));
-        };
-
-        let Some(res) = self.parsers.parse(input, index) else {
-            return Err(Annotation::invalid(
-                self.name(),
-                0..0,
-                "Discriminant out of bounds".to_string(),
-                vec![],
-            ));
-        };
-
-        let (value, offset) = res.fold(0, || self.name(), index)?;
-
-        Ok((value, offset))
     }
 }
 

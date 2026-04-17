@@ -1,6 +1,6 @@
 use crate::{
-    AnnotatedResult, Annotation, AnnotationResult, Parser, ParserSpec,
-    combinators::delayed::DelayedParser,
+    Annotation, AnnotationMode, AnnotationResult, AnnotationReturn, Parser, ParserSpec,
+    combinators::delayed::DelayedParser, parser::ParseWithResult,
 };
 
 /// For adding a user-friendly name to the spec
@@ -39,13 +39,13 @@ where
         self.inner.spec().with_friendly(self.name())
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        self.inner.annotate(input)
-    }
-
     #[inline(always)]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        self.inner.parse(input)
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        self.inner.parse_with(input, annotation_mode)
     }
 }
 
@@ -97,69 +97,65 @@ where
         ParserSpec::empty(self.name()).with_friendly(self.name.clone())
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        match self.inner.parse(input) {
-            Ok((value, offset)) => {
-                let annotation = Annotation::success(self.name(), 0..offset, value.clone(), vec![]);
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let inner_mode = AnnotationMode {
+            success: false,
+            fail: annotation_mode.fail,
+        };
+
+        match self.inner.parse_with(input, inner_mode) {
+            Ok((value, annotation)) => {
+                let annotation = if annotation_mode.success {
+                    Annotation::success(self.name(), annotation.span(), value.clone(), vec![])
+                        .into()
+                } else {
+                    annotation
+                };
+
                 Ok((value, annotation))
             }
-
             Err(annotation) => {
-                // Trim & materialise the failure case to give some indication to user where the
-                // internal failure happened
-                let mut annotation = annotation.to_failure_tree().expect("Failure path");
-                annotation.materialize();
+                let annotation = if annotation_mode.fail {
+                    // Materialise the failure case to give some indication to user where the
+                    // internal failure happened
+                    let mut annotation = annotation.annotation();
+                    annotation.materialize();
 
-                let Some(source) = annotation.err_source() else {
-                    unreachable!("Failure path");
-                };
-                let annotation = match &source.result {
-                    AnnotationResult::Incomplete { .. } => {
-                        Annotation::incomplete(self.name(), 0, vec![])
+                    let Some(source) = annotation.err_source() else {
+                        unreachable!("Failure path");
+                    };
+
+                    match &source.result {
+                        AnnotationResult::Incomplete { .. } => {
+                            Annotation::incomplete(self.name(), 0, vec![])
+                        }
+                        AnnotationResult::Invalid { span, reason } => Annotation::invalid(
+                            self.name(),
+                            0..span.end,
+                            format!("{} @ {:?}: {} ", source.parser_id, span, reason),
+                            vec![],
+                        ),
+                        AnnotationResult::Success { .. } | AnnotationResult::Child { .. } => {
+                            unreachable!("At failure source")
+                        }
                     }
-                    AnnotationResult::Invalid { span, reason } => Annotation::invalid(
-                        self.name(),
-                        0..span.end,
-                        format!("{} @ {:?}: {} ", source.parser_id, span, reason),
-                        vec![],
-                    ),
-                    AnnotationResult::Success { .. } | AnnotationResult::Child { .. } => {
-                        unreachable!("At failure source")
+                    .into()
+                } else {
+                    match annotation {
+                        AnnotationReturn::Span(range) => AnnotationReturn::Span(0..range.end),
+                        AnnotationReturn::Start(_) => AnnotationReturn::Start(0),
+                        AnnotationReturn::Annotated(_) => unreachable!(),
                     }
                 };
 
                 Err(annotation)
             }
         }
-    }
-
-    #[inline(always)]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        self.inner.parse(input).map_err(|mut annotation| {
-            // Materialise the failure case to give some indication to user where the
-            // internal failure happened. parse() should already return a failure-only annotation
-            // tree, so the overhead shouldn't be too significant
-            annotation.materialize();
-
-            let Some(source) = annotation.err_source() else {
-                unreachable!("Failure path");
-            };
-
-            match &source.result {
-                AnnotationResult::Incomplete { .. } => {
-                    Annotation::incomplete(self.name(), 0, vec![])
-                }
-                AnnotationResult::Invalid { span, reason } => Annotation::invalid(
-                    self.name(),
-                    0..span.end,
-                    format!("{} @ {:?}: {} ", source.parser_id, span, reason),
-                    vec![],
-                ),
-                AnnotationResult::Success { .. } | AnnotationResult::Child { .. } => {
-                    unreachable!("At failure source")
-                }
-            }
-        })
     }
 }
 

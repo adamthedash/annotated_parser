@@ -1,8 +1,8 @@
 use num_traits::AsPrimitive;
 
 use crate::{
-    AnnotatedResult, Annotation, FoldAnnotatedResult, ParseResult, Parser, ParserSpec,
-    helpers::FoldParseResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
 };
 
 pub struct LengthRepeat<L, V> {
@@ -42,44 +42,58 @@ where
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let (length, mut offset, mut child_annotations) =
-            self.length
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
-        let length = length.as_();
-        child_annotations.reserve(length);
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
 
+        // Length
+        let length;
+        (length, offset, child_annotations) = self.length.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            0,
+        )?;
+        let length = length.as_();
+        if let Some(a) = &mut child_annotations {
+            a.reserve_exact(length);
+        }
+
+        // Repeat
         let mut values = Vec::with_capacity(length);
+        let mut value;
         for _ in 0..length {
-            let value;
             (value, offset, child_annotations) =
-                self.value
-                    .annotate(input)
-                    .fold(child_annotations, offset, || self.name(), 1)?;
+                self.value.parse_with(input, annotation_mode).fold(
+                    annotation_mode,
+                    || self.name(),
+                    child_annotations,
+                    offset,
+                    1,
+                )?;
 
             values.push(value);
         }
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                values.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((values, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> ParseResult<Self::Output> {
-        let (length, mut offset) = self.length.parse(input).fold(0, || self.name(), 0)?;
-        let length = length.as_();
-
-        let mut values = Vec::with_capacity(length);
-        for _ in 0..length {
-            let value;
-            (value, offset) = self.value.parse(input).fold(offset, || self.name(), 1)?;
-
-            values.push(value);
-        }
-
-        Ok((values, offset))
     }
 }
 

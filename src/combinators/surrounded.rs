@@ -1,4 +1,7 @@
-use crate::{Annotation, FoldAnnotatedResult, Parser, ParserSpec, helpers::FoldParseResult};
+use crate::{
+    Annotation, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
+};
 
 pub struct Surrounded<L, P, R> {
     left: L,
@@ -36,42 +39,53 @@ where
         )
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-        let (_left, offset, child_annotations) =
-            self.left
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
 
-        let (value, offset, child_annotations) =
-            self.inner
-                .annotate(input)
-                .fold(child_annotations, offset, || self.name(), 1)?;
+        (_, offset, child_annotations) = self.left.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            0,
+        )?;
 
-        let (_right, offset, child_annotations) =
-            self.right
-                .annotate(input)
-                .fold(child_annotations, offset, || self.name(), 2)?;
+        let value;
+        (value, offset, child_annotations) = self.inner.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            1,
+        )?;
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+        (_, offset, child_annotations) = self.right.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            2,
+        )?;
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (_left, offset) = self
-            .left
-            .parse(input).fold(0, || self.name(), 0)?;
-
-        let (value, offset) = self
-            .inner
-            .parse(input).fold(offset, || self.name(), 1)?;
-
-        let (_right, offset) = self
-            .right
-            .parse(input).fold(offset, || self.name(), 2)?;
-
-        Ok((value, offset))
     }
 }
 
@@ -105,42 +119,53 @@ where
         ParserSpec::new(self.name(), vec![self.outer.spec(), self.inner.spec()])
     }
 
-    fn annotate(&mut self, input: &mut Input) -> crate::AnnotatedResult<Self::Output> {
-        let (_left, offset, child_annotations) =
-            self.outer
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
+    #[inline(always)]
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let mut child_annotations = annotation_mode.success.then(Vec::new);
+        let mut offset = 0;
 
-        let (value, offset, child_annotations) =
-            self.inner
-                .annotate(input)
-                .fold(child_annotations, offset, || self.name(), 1)?;
+        (_, offset, child_annotations) = self.outer.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            0,
+        )?;
 
-        let (_right, offset, child_annotations) =
-            self.outer
-                .annotate(input)
-                .fold(child_annotations, offset, || self.name(), 0)?;
+        let value;
+        (value, offset, child_annotations) = self.inner.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            1,
+        )?;
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, value.clone(), child_annotations);
+        (_, offset, child_annotations) = self.outer.parse_with(input, annotation_mode).fold(
+            annotation_mode,
+            || self.name(),
+            child_annotations,
+            offset,
+            0,
+        )?;
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                value.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((value, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (_left, offset) = self
-            .outer
-            .parse(input).fold(0, || self.name(), 0)?;
-
-        let (value, offset) = self
-            .inner
-            .parse(input).fold(offset, || self.name(), 1)?;
-
-        let (_right, offset) = self
-            .outer
-            .parse(input).fold(offset, || self.name(), 0)?;
-
-        Ok((value, offset))
     }
 }
 
