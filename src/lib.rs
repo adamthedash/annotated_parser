@@ -3,7 +3,7 @@
 mod adapter;
 mod annotation;
 pub mod combinators;
-mod helpers;
+pub mod helpers;
 mod parser;
 pub mod parsers;
 mod spec;
@@ -12,5 +12,10 @@ pub use adapter::ParserAdapter;
 pub use annotation::{Annotation, AnnotationResult};
 pub use helpers::FoldAnnotatedResult;
 pub use parser::{AnnotatedResult, IntoAnnotation, ParseResult, Parser};
-pub use parsers::ByteParser;
+pub use parsers::byte::ByteParser;
 pub use spec::ParserSpec;
+
+/// Traits that usually need importing
+pub mod prelude {
+    pub use super::{ByteParser, IntoAnnotation, Parser, ParserAdapter};
+}

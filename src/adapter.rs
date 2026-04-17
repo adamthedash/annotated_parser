@@ -194,7 +194,7 @@ impl<Input, P> ParserAdapter<Input> for P where P: Parser<Input> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ByteParser;
+    use crate::prelude::*;
 
     #[test]
     fn test_many1() {
