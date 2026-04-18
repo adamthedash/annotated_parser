@@ -7,17 +7,17 @@ use super::TakeArray;
 impl<const N: usize> Parser<&str> for TakeArray<N> {
     type Output = String;
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         format!("take({})", N)
     }
 
-    #[inline(always)]
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(Parser::<&str>::name(self))
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &str,

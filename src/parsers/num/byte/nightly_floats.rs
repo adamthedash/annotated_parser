@@ -17,7 +17,7 @@ impl Parser<&[u8]> for F16LE {
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],
@@ -63,7 +63,7 @@ impl Parser<&[u8]> for F16BE {
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],

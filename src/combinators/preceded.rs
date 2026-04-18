@@ -33,7 +33,7 @@ where
         ParserSpec::new(self.name(), vec![self.ignore.spec(), self.keep.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

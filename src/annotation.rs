@@ -35,7 +35,7 @@ pub enum AnnotationResult {
 }
 
 impl Annotation {
-    #[inline(always)]
+    #[inline]
     fn new(parser_id: impl Into<String>, children: Vec<Self>, result: AnnotationResult) -> Self {
         Self {
             parser_id: parser_id.into(),
@@ -46,7 +46,7 @@ impl Annotation {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn success(
         parser_id: impl Into<String>,
         span: Range<usize>,
@@ -63,17 +63,17 @@ impl Annotation {
         )
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn incomplete(parser_id: impl Into<String>, start: usize, children: Vec<Self>) -> Self {
         Self::new(parser_id, children, AnnotationResult::Incomplete { start })
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn child(parser_id: impl Into<String>, start: usize, children: Vec<Self>) -> Self {
         Self::new(parser_id, children, AnnotationResult::Child { start })
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn invalid(
         parser_id: impl Into<String>,
         span: Range<usize>,
@@ -190,7 +190,7 @@ impl Annotation {
 }
 
 impl AnnotationResult {
-    #[inline(always)]
+    #[inline]
     pub fn span(&self) -> (usize, Option<usize>) {
         use AnnotationResult::*;
         match self {
@@ -199,13 +199,13 @@ impl AnnotationResult {
         }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn is_ok(&self) -> bool {
         matches!(self, AnnotationResult::Success { .. })
     }
 
     /// Shift the span/offset for this annotation forward
-    #[inline(always)]
+    #[inline]
     pub fn shift_span(&mut self, offset: usize) {
         use AnnotationResult::*;
         match self {

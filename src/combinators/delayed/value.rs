@@ -18,7 +18,7 @@ where
 {
     type Value = T;
 
-    #[inline(always)]
+    #[inline]
     fn get(&self) -> impl Deref<Target = Self::Value> {
         let value = (self.0)();
         Box::new(value)
@@ -40,7 +40,7 @@ impl<T> DelayedVal<T> {
 impl<T> DelayedValGet for DelayedVal<T> {
     type Value = T;
 
-    #[inline(always)]
+    #[inline]
     fn get(&self) -> impl Deref<Target = Self::Value> {
         let value = self.0.borrow();
 
@@ -51,7 +51,7 @@ impl<T> DelayedValGet for DelayedVal<T> {
 impl<T> DelayedValSet for DelayedVal<T> {
     type Value = T;
 
-    #[inline(always)]
+    #[inline]
     fn set(&self, value: Self::Value) {
         *self
             .0
@@ -59,7 +59,7 @@ impl<T> DelayedValSet for DelayedVal<T> {
             .expect("There shouldn't be any other active references to this") = Some(value);
     }
 
-    #[inline(always)]
+    #[inline]
     fn take(&self) -> Self::Value {
         self.0.take().expect("Value has not yet been set")
     }

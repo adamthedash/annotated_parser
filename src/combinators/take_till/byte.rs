@@ -20,7 +20,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],
@@ -74,7 +74,7 @@ where
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],

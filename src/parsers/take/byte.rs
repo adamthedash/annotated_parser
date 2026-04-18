@@ -8,17 +8,17 @@ use super::{TakeArray, TakeVec};
 impl<const N: usize> Parser<&[u8]> for TakeArray<N> {
     type Output = [u8; N];
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         format!("take({})", N)
     }
 
-    #[inline(always)]
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(Parser::<&[u8]>::name(self))
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],
@@ -52,17 +52,17 @@ where
 {
     type Output = Vec<u8>;
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         "take".to_owned()
     }
 
-    #[inline(always)]
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],

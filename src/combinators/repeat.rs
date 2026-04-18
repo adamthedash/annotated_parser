@@ -31,17 +31,17 @@ where
 {
     type Output = [P::Output; N];
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         format!("repeat({})", N)
     }
 
-    #[inline(always)]
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,
@@ -126,17 +126,17 @@ where
 {
     type Output = Vec<P::Output>;
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         "repeat".to_owned()
     }
 
-    #[inline(always)]
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

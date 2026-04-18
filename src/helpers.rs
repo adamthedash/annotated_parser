@@ -72,7 +72,7 @@ where
     P: FnOnce() -> S,
     S: Into<String>,
 {
-    #[inline(always)]
+    #[inline]
     fn fold(
         self,
         offset: usize,
@@ -111,7 +111,7 @@ where
     P: FnOnce() -> S,
     S: Into<String>,
 {
-    #[inline(always)]
+    #[inline]
     fn fold(
         self,
         annotation_mode: AnnotationMode,
@@ -164,7 +164,7 @@ where
 }
 
 /// Ok path of crate::Result<T>::fold
-#[inline(always)]
+#[inline]
 pub fn fold_success(
     mut annotation: Annotation,
     mut child_annotations: Vec<Annotation>,
@@ -187,7 +187,7 @@ pub fn fold_success(
 }
 
 /// Error path of crate::Result<T>::fold
-#[inline(always)]
+#[inline]
 pub fn fold_child_err(
     mut annotation: Annotation,
     mut child_annotations: Vec<Annotation>,

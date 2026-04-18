@@ -42,7 +42,7 @@ where
         ParserSpec::new(self.name(), vec![self.separator.spec(), self.inner.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,
@@ -169,7 +169,7 @@ macro_rules! impl_separated_tuple {
                     )
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn parse_with(
                     &mut self,
                     input: &mut Input,

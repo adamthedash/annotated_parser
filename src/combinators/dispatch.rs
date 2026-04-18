@@ -40,7 +40,7 @@ where
         ParserSpec::new(self.name(), self.parsers.specs())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

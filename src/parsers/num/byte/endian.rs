@@ -15,7 +15,7 @@ where
 {
     type Output = T;
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         // Concat is slightly faster than format!
         ["le_", std::any::type_name::<T>()].concat()
@@ -25,7 +25,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],
@@ -67,7 +67,7 @@ where
 {
     type Output = T;
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         // Concat is slightly faster than format!
         ["be_", std::any::type_name::<T>()].concat()
@@ -77,7 +77,7 @@ where
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],

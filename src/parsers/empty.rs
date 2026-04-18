@@ -14,7 +14,7 @@ impl<Input> Parser<Input> for Empty {
         ParserSpec::empty(Parser::<Input>::name(self))
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         _input: &mut Input,

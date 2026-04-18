@@ -39,7 +39,7 @@ where
         self.inner.spec().with_friendly(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,
@@ -97,7 +97,7 @@ where
         ParserSpec::empty(self.name()).with_friendly(self.name.clone())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

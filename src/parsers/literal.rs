@@ -14,7 +14,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &[u8],
@@ -70,7 +70,7 @@ impl Parser<&str> for &'static str {
         ParserSpec::empty(self.name())
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut &str,

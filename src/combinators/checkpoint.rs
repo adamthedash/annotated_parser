@@ -28,7 +28,7 @@ where
         self.0.spec()
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,
@@ -88,7 +88,7 @@ where
         self.0.spec()
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

@@ -32,17 +32,17 @@ where
 {
     type Output = Vec<V::Output>;
 
-    #[inline(always)]
+    #[inline]
     fn name(&self) -> String {
         "length_repeat".to_owned()
     }
 
-    #[inline(always)]
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

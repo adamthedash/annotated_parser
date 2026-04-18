@@ -48,7 +48,7 @@ pub trait Parser<Input> {
     // }
 
     /// Parse and return both the output value and annotations
-    #[inline(always)]
+    #[inline]
     fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         match self.parse_with(input, AnnotationMode::ALL) {
             Ok((value, anno)) => Ok((value, anno.annotation())),
@@ -74,7 +74,7 @@ pub trait Parser<Input> {
     ///         ]
     ///     }
     /// ````
-    #[inline(always)]
+    #[inline]
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         match self.parse_with(input, AnnotationMode::FAIL) {
             Ok((value, anno)) => Ok((value, anno.span().end)),
@@ -172,7 +172,7 @@ where
         (**self).spec()
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,
@@ -209,7 +209,7 @@ where
         (**self).spec()
     }
 
-    #[inline(always)]
+    #[inline]
     fn parse_with(
         &mut self,
         input: &mut Input,

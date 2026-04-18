@@ -31,7 +31,7 @@ macro_rules! impl_parser_for_tuple {
                     ])
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn parse_with(
                     &mut self,
                     input: &mut Input,
@@ -150,7 +150,7 @@ macro_rules! impl_same_parser_tuple {
             {
                 type Output = $First::Output;
 
-                #[inline(always)]
+                #[inline]
                 fn parse_with(
                     &mut self,
                     input: &mut Input,
@@ -164,7 +164,7 @@ macro_rules! impl_same_parser_tuple {
                     }
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn annotate(&mut self, input: &mut Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
                     match index {
                         $first_idx => Some(self.$first_idx.annotate(input)),
@@ -173,7 +173,7 @@ macro_rules! impl_same_parser_tuple {
                     }
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>> {
                     match index {
                         $first_idx => Some(self.$first_idx.parse(input)),

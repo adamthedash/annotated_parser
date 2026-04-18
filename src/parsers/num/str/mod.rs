@@ -20,7 +20,7 @@ macro_rules! impl_uint_parser {
                     ParserSpec::empty(self.name())
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn parse_with(
                     &mut self,
                     input: &mut &str,
@@ -100,7 +100,7 @@ macro_rules! impl_int_parser {
                     ParserSpec::empty(self.name())
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn parse_with(
                     &mut self,
                     input: &mut &str,
@@ -186,7 +186,7 @@ macro_rules! impl_float_parser {
                     ParserSpec::empty(self.name())
                 }
 
-                #[inline(always)]
+                #[inline]
                 fn parse_with(
                     &mut self,
                     input: &mut &str,
