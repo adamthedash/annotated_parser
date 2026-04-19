@@ -1,6 +1,8 @@
 use std::cmp::Ordering;
 
-use crate::{Annotation, Parser, ParserSpec};
+use crate::{
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult,
+};
 
 use super::TakeArray;
 
@@ -21,14 +23,14 @@ impl<const N: usize> Parser<&str> for TakeArray<N> {
     fn parse_with(
         &mut self,
         input: &mut &str,
-        annotation_mode: crate::AnnotationMode,
-    ) -> crate::parser::ParseWithResult<Self::Output> {
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
         let end = match input.chars().count().cmp(&N) {
             Ordering::Less => {
                 let annotation = if annotation_mode.fail {
                     Annotation::incomplete(Parser::<&str>::name(self), 0, vec![]).into()
                 } else {
-                    0.into()
+                    AnnotationReturn::Start(0)
                 };
                 return Err(annotation);
             }
@@ -49,7 +51,7 @@ impl<const N: usize> Parser<&str> for TakeArray<N> {
         let annotation = if annotation_mode.success {
             Annotation::success(Parser::<&str>::name(self), 0..N, value.clone(), vec![]).into()
         } else {
-            (0..N).into()
+            AnnotationReturn::Span(0..N)
         };
 
         Ok((value, annotation))

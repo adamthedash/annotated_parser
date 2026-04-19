@@ -40,12 +40,6 @@ pub trait Parser<Input> {
         _input: &mut Input,
         _annotation_mode: AnnotationMode,
     ) -> ParseWithResult<Self::Output>;
-    // {
-    //     todo!(
-    //         "Parser::parse_with not implemented for {}",
-    //         std::any::type_name::<Self>()
-    //     );
-    // }
 
     /// Parse and return both the output value and annotations
     #[inline]
@@ -119,16 +113,6 @@ impl AnnotationReturn {
 impl From<Annotation> for AnnotationReturn {
     fn from(value: Annotation) -> Self {
         Self::Annotated(value)
-    }
-}
-impl From<Range<usize>> for AnnotationReturn {
-    fn from(value: Range<usize>) -> Self {
-        Self::Span(value)
-    }
-}
-impl From<usize> for AnnotationReturn {
-    fn from(value: usize) -> Self {
-        Self::Start(value)
     }
 }
 
