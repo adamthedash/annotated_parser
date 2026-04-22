@@ -1,5 +1,4 @@
-use super::value::DelayedVal;
-use super::{DelayedParser, DelayedValSet};
+use super::{DelayedParser, DelayedVal, DelayedValSet};
 use crate::parser::ParseWithResult;
 use crate::{AnnotationMode, Parser, ParserSpec};
 
@@ -10,14 +9,14 @@ pub struct Delayed<I, O> {
     value: DelayedVal<O>,
 }
 
-impl<I, O> Delayed<I, O> {
+impl<I, O: 'static> Delayed<I, O> {
     pub fn new<Input>(inner: I) -> Self
     where
         I: Parser<Input>,
     {
         Self {
             inner,
-            value: DelayedVal::default(),
+            value: DelayedVal::new_source(),
         }
     }
 }

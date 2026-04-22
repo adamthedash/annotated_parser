@@ -1,8 +1,9 @@
+use itertools::izip;
+
 use crate::{
-    AnnotatedResult, Annotation, AnnotationMode, AnnotationReturn, FoldAnnotatedResult, Parser,
-    ParserSpec,
-    combinators::delayed::{DelayedValGet, DelayedValSet},
-    helpers::{FoldParseResult, FoldParseWithResult},
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
+    combinators::delayed::{DelayedValGet, DelayedValGetTuple, DelayedValSet, DelayedValSetTuple},
+    helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
 
@@ -91,49 +92,95 @@ where
 
         Ok((values, annotation))
     }
+}
 
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let parameters = self.parameters.get();
+impl<P, S1, S2, V1, V2> Parameterize<(S1, S2), (V1, V2), P> {
+    pub fn new_tuple<Input>(parameters: (V1, V2), parameter_input: (S1, S2), parser: P) -> Self
+    where
+        P: Parser<Input>,
+        S1: DelayedValSet,
+        S1::Value: Clone,
+        V1: DelayedValGet<Value = Vec<S1::Value>>,
+        S2: DelayedValSet,
+        S2::Value: Clone,
+        V2: DelayedValGet<Value = Vec<S2::Value>>,
+    {
+        Self {
+            parameters,
+            parameter_input,
+            parser,
+        }
+    }
+}
 
-        let mut child_annotations = Vec::with_capacity(parameters.len());
-        let mut values = Vec::with_capacity(parameters.len());
+impl<Input, P, S1, S2, V1, V2> Parser<Input> for Parameterize<(S1, S2), (V1, V2), P>
+where
+    P: Parser<Input>,
+    S1: DelayedValSet,
+    S1::Value: Clone,
+    V1: DelayedValGet<Value = Vec<S1::Value>>,
+    S2: DelayedValSet,
+    S2::Value: Clone,
+    V2: DelayedValGet<Value = Vec<S2::Value>>,
+{
+    type Output = Vec<P::Output>;
+
+    fn name(&self) -> String {
+        "parameterize".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.parser.spec()])
+    }
+
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let parameters0 = self.parameters.0.get();
+        let parameters1 = self.parameters.1.get();
+        assert_eq!(parameters0.len(), parameters1.len());
+
+        let mut child_annotations = annotation_mode
+            .success
+            .then(|| Vec::with_capacity(parameters0.len()));
+
+        let mut values = Vec::with_capacity(parameters0.len());
         let mut offset = 0;
-        for param in parameters.iter() {
+
+        let parameters = izip!(parameters0.iter(), parameters1.iter());
+        for param in parameters {
             // Move this iter's param into the param slot of the parser
-            self.parameter_input.set(param.clone());
+            self.parameter_input.0.set(param.0.clone());
+            self.parameter_input.1.set(param.1.clone());
 
             // Apply inner parser
             let value;
             (value, offset, child_annotations) =
-                self.parser
-                    .annotate(input)
-                    .fold(child_annotations, offset, || self.name(), 0)?;
+                self.parser.parse_with(input, annotation_mode).fold(
+                    annotation_mode,
+                    || self.name(),
+                    child_annotations,
+                    offset,
+                    0,
+                )?;
 
             values.push(value);
         }
 
-        let annotation =
-            Annotation::success(self.name(), 0..offset, values.clone(), child_annotations);
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                values.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
 
         Ok((values, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let parameters = self.parameters.get();
-
-        let mut values = Vec::with_capacity(parameters.len());
-        let mut offset = 0;
-        for param in parameters.iter() {
-            // Move this iter's param into the param slot of the parser
-            self.parameter_input.set(param.clone());
-
-            // Apply inner parser
-            let value;
-            (value, offset) = self.parser.parse(input).fold(offset, || self.name(), 0)?;
-
-            values.push(value);
-        }
-
-        Ok((values, offset))
     }
 }
