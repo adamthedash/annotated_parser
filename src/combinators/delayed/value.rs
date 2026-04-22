@@ -1,102 +1,57 @@
 use std::{
     cell::{Ref, RefCell},
     fmt::Debug,
-    ops::Deref,
     rc::Rc,
 };
 
-/// For Write/owner side
-pub trait DelayedValSet {
-    type Value;
-
-    fn set(&self, value: Self::Value);
-    fn take(&self) -> Self::Value;
-}
-
-/// For Read side
 pub trait DelayedValGet {
     type Value;
 
-    fn get(&self) -> impl Deref<Target = Self::Value>;
-
-    /// Create a derived value by applying a function to this value
-    /// NOTE: There's currently no way to specify "If the provided func is Clone, then the return
-    /// is Clone". So just restrict this to Clone func's for now.
-    fn map<O>(
-        self,
-        func: impl Fn(&Self::Value) -> O + Clone,
-    ) -> DelayedValDerived<O, impl Fn() -> O + Clone>
-    where
-        Self: Sized + Clone,
-    {
-        DelayedValDerived(move || func(&self.get()))
-    }
+    /// Get a ref to the currently stored value
+    fn get(&self) -> Ref<'_, Self::Value>;
 }
 
-/// A value which is computed on demand. Can be used to derive values from other delayed values.
-#[derive(Clone)]
-pub struct DelayedValDerived<T, F>(pub F)
-where
-    F: Fn() -> T;
+pub trait DelayedValSet {
+    type Value;
 
-impl<T, F> DelayedValGet for DelayedValDerived<T, F>
-where
-    F: Fn() -> T,
-{
-    type Value = T;
+    /// Set/overwrite the stored value
+    fn set(&self, value: Self::Value);
 
-    #[inline]
-    fn get(&self) -> impl Deref<Target = Self::Value> {
-        let value = (self.0)();
-        Box::new(value)
-    }
+    /// Take the stored value, un-setting the storage
+    fn take(&self) -> Self::Value;
 }
 
-/// A handle to a value which has not yet been populated. This can be used to construct parsers
-/// which depend on the output of previous parsers.  
-/// NOTE: Usage of this value before it has been populated is considered a compile-time parser
-/// definition error, hence the use of expect rather than returning results.
-pub struct DelayedVal<T>(Rc<RefCell<Option<T>>>);
+// =====================================================================
 
-impl<T> DelayedVal<T> {
+pub struct DelayedVal<T>(DelayedValInner<T>);
+
+impl<T: 'static> DelayedVal<T> {
+    /// Create a new uninitialised source value
+    pub fn new_source() -> Self {
+        Self(DelayedValInner::Source(SourceValue::default()))
+    }
+
+    /// Create a new source value initialised with the given value
     pub fn with_value(value: T) -> Self {
-        Self(Rc::new(RefCell::new(Some(value))))
-    }
-}
-
-impl<T> DelayedValGet for DelayedVal<T> {
-    type Value = T;
-
-    #[inline]
-    fn get(&self) -> impl Deref<Target = Self::Value> {
-        let value = self.0.borrow();
-
-        Ref::map(value, |v| v.as_ref().expect("Value has not yet been set"))
-    }
-}
-
-impl<T> DelayedValSet for DelayedVal<T> {
-    type Value = T;
-
-    #[inline]
-    fn set(&self, value: Self::Value) {
-        *self
-            .0
-            .try_borrow_mut()
-            .expect("There shouldn't be any other active references to this") = Some(value);
+        Self(DelayedValInner::Source(SourceValue::with_value(value)))
     }
 
-    #[inline]
-    fn take(&self) -> Self::Value {
-        self.0.take().expect("Value has not yet been set")
+    /// Create a new derived value with the given value generation function
+    pub fn new_derived<F>(func: F) -> Self
+    where
+        F: Fn() -> T + 'static,
+    {
+        Self(DelayedValInner::Derived(Rc::new(DerivedValue::new(func))))
     }
-}
 
-impl<T: Debug> Debug for DelayedVal<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let binding = self.0.borrow();
-        let value = binding.deref();
-        write!(f, "{:?}", value)
+    /// Create a new derived value by mapping the value of this one
+    pub fn map<F, O>(&self, func: F) -> DelayedVal<O>
+    where
+        F: Fn(&T) -> O + 'static,
+        O: 'static,
+    {
+        let value = self.clone();
+        DelayedVal::new_derived(move || func(&value.get()))
     }
 }
 
@@ -106,8 +61,167 @@ impl<T> Clone for DelayedVal<T> {
     }
 }
 
-impl<T> Default for DelayedVal<T> {
+impl<T: Debug> Debug for DelayedVal<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl<T> DelayedValGet for DelayedVal<T> {
+    type Value = T;
+
+    fn get(&self) -> Ref<'_, Self::Value> {
+        self.0.get()
+    }
+}
+
+impl<T> DelayedValSet for DelayedVal<T> {
+    type Value = T;
+
+    fn set(&self, value: Self::Value) {
+        self.0.set(value);
+    }
+
+    fn take(&self) -> Self::Value {
+        self.0.take()
+    }
+}
+
+// =====================================================================
+
+enum DelayedValInner<T> {
+    /// Raw value usually produced by a parser. Can be set or get
+    Source(SourceValue<T>),
+    /// Value derived from others, materialised on request. Only get
+    Derived(Rc<DerivedValue<T>>),
+}
+
+impl<T: Debug> Debug for DelayedValInner<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Source(val) => f.debug_tuple("Source").field(val).finish(),
+            Self::Derived(_val) => f.debug_tuple("Derived").finish(),
+        }
+    }
+}
+
+impl<T> Clone for DelayedValInner<T> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Source(val) => Self::Source(val.clone()),
+            Self::Derived(val) => Self::Derived(val.clone()),
+        }
+    }
+}
+
+impl<T> DelayedValGet for DelayedValInner<T> {
+    type Value = T;
+
+    fn get(&self) -> Ref<'_, Self::Value> {
+        match self {
+            DelayedValInner::Source(value) => value.get(),
+            DelayedValInner::Derived(value) => value.get(),
+        }
+    }
+}
+
+impl<T> DelayedValSet for DelayedValInner<T> {
+    type Value = T;
+
+    fn set(&self, value: Self::Value) {
+        let Self::Source(val) = self else {
+            panic!("Only Source values are settable");
+        };
+
+        val.set(value);
+    }
+
+    fn take(&self) -> Self::Value {
+        let Self::Source(val) = self else {
+            panic!("Only Source values are takeable");
+        };
+
+        val.take()
+    }
+}
+
+// =====================================================================
+
+/// Value which is manually set by a parser
+#[derive(Debug)]
+struct SourceValue<T>(Rc<RefCell<Option<T>>>);
+
+impl<T> SourceValue<T> {
+    fn with_value(value: T) -> Self {
+        Self(Rc::new(RefCell::new(Some(value))))
+    }
+}
+
+impl<T> Default for SourceValue<T> {
     fn default() -> Self {
         Self(Rc::new(RefCell::new(None)))
+    }
+}
+
+impl<T> Clone for SourceValue<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T> DelayedValGet for SourceValue<T> {
+    type Value = T;
+
+    fn get(&self) -> Ref<'_, Self::Value> {
+        Ref::map(self.0.borrow(), |value| {
+            value.as_ref().expect("Value has not yet been set")
+        })
+    }
+}
+
+impl<T> DelayedValSet for SourceValue<T> {
+    type Value = T;
+
+    fn set(&self, value: Self::Value) {
+        *self.0.borrow_mut() = Some(value);
+    }
+
+    fn take(&self) -> Self::Value {
+        self.0.take().expect("Take on None")
+    }
+}
+
+// =====================================================================
+
+/// Value which is generated from other values
+struct DerivedValue<T> {
+    /// Cache result internally so lifetime is bound to self instead of get()
+    value: RefCell<Option<T>>,
+    func: Box<dyn Fn() -> T>,
+}
+
+impl<T> DerivedValue<T> {
+    fn new<F>(func: F) -> Self
+    where
+        F: Fn() -> T + 'static,
+    {
+        Self {
+            value: RefCell::default(),
+            func: Box::new(func),
+        }
+    }
+}
+
+impl<T> DelayedValGet for DerivedValue<T> {
+    type Value = T;
+
+    fn get(&self) -> Ref<'_, Self::Value> {
+        // Compute & cache
+        let value = (self.func)();
+        *self.value.borrow_mut() = Some(value);
+
+        Ref::map(self.value.borrow(), |value| {
+            value.as_ref().expect("Value has not yet been set")
+        })
     }
 }

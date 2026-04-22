@@ -27,7 +27,7 @@ pub use length_repeat::LengthRepeat;
 pub use many::Many;
 pub use map::{Map, MapSilent, TryMap};
 pub use optional::Opt;
-pub use parameterize::Parameterize;
+pub use parameterize::{ParameterInput, Parameterize, Parameters};
 pub use preceded::Preceded;
 pub use repeat::{RepeatArray, RepeatVec};
 pub use separated::{SeparatedArray, SeparatedTuple};

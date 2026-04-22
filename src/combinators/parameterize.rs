@@ -1,11 +1,139 @@
 use itertools::izip;
+use paste::paste;
 
 use crate::{
     Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
-    combinators::delayed::{DelayedValGet, DelayedValGetTuple, DelayedValSet, DelayedValSetTuple},
+    combinators::delayed::{DelayedVal, DelayedValGet, DelayedValSet},
     helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
+
+// ==================================================================
+
+/// A set of parameters which are used to configure a parser
+#[allow(clippy::len_without_is_empty)]
+pub trait Parameters {
+    /// Item for a single parameter combination
+    type Item;
+
+    /// Iterate over parameter combinations
+    fn iter(&self) -> impl Iterator<Item = Self::Item>;
+
+    /// Total parameter combinations
+    fn len(&self) -> usize;
+}
+
+impl<T> Parameters for DelayedVal<Vec<T>>
+where
+    T: Clone,
+{
+    type Item = T;
+
+    fn iter(&self) -> impl Iterator<Item = Self::Item> {
+        self.get().clone().into_iter()
+    }
+
+    fn len(&self) -> usize {
+        self.get().len()
+    }
+}
+
+impl<T> Parameters for (DelayedVal<Vec<T>>,)
+where
+    T: Clone,
+{
+    type Item = (T,);
+
+    fn iter(&self) -> impl Iterator<Item = Self::Item> {
+        self.0.get().clone().into_iter().map(|x| (x,))
+    }
+
+    fn len(&self) -> usize {
+        self.0.get().len()
+    }
+}
+
+// ==================================================================
+
+/// Something that can serve as a temporary place to set a parser variable. Eg. the count of a
+/// RepeatVec.
+pub trait ParameterInput {
+    type Value;
+
+    /// Move the provided value into the temp slot
+    fn set_temp(&self, value: Self::Value);
+}
+
+impl<T> ParameterInput for DelayedVal<T> {
+    type Value = T;
+
+    fn set_temp(&self, value: Self::Value) {
+        self.set(value);
+    }
+}
+
+impl<T> ParameterInput for (DelayedVal<T>,) {
+    type Value = (T,);
+
+    fn set_temp(&self, value: Self::Value) {
+        self.0.set(value.0);
+    }
+}
+
+// ==================================================================
+
+/// Parameters, ParameterInput for tuples of DelayedVal's
+macro_rules! impl_parameters {
+    ($($idx:tt, )*) => {
+    paste!{
+        impl<$([<T $idx>],)*> Parameters for ($(DelayedVal<Vec<[<T $idx>]>>, )*)
+        where
+            $(
+                [<T $idx>]: Clone,
+            )*
+        {
+            type Item = ($([<T $idx>],)*);
+
+            fn iter(&self) -> impl Iterator<Item = Self::Item> {
+                $(
+                    let [<p $idx>] = self.$idx.get().clone();
+                )*
+
+                izip!($([<p $idx>], )*)
+            }
+
+            fn len(&self) -> usize {
+                // NOTE: All parameters should be the same length
+                self.0.len()
+            }
+        }
+
+        impl<$([<T $idx>],)*> ParameterInput for ($(DelayedVal<[<T $idx>]>, )*) {
+            type Value = ($([<T $idx>],)*);
+
+            fn set_temp(&self, value: Self::Value) {
+                $(
+                    self.$idx.set(value.$idx);
+                )*
+            }
+        }
+    }
+    };
+}
+
+impl_parameters!(0, 1,);
+impl_parameters!(0, 1, 2,);
+impl_parameters!(0, 1, 2, 3,);
+impl_parameters!(0, 1, 2, 3, 4,);
+impl_parameters!(0, 1, 2, 3, 4, 5,);
+impl_parameters!(0, 1, 2, 3, 4, 5, 6,);
+impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7,);
+impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7, 8,);
+impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9,);
+impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,);
+impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,);
+
+// ==================================================================
 
 /// A combinator which parameterises the inner parser with each value before running it
 pub struct Parameterize<S, V, P> {
@@ -17,9 +145,8 @@ pub struct Parameterize<S, V, P> {
 impl<S, V, P> Parameterize<S, V, P> {
     pub fn new<Input>(parameters: V, parameter_input: S, parser: P) -> Self
     where
-        S: DelayedValSet,
-        S::Value: Clone,
-        V: DelayedValGet<Value = Vec<S::Value>>,
+        V: Parameters,
+        S: ParameterInput<Value = V::Item>,
         P: Parser<Input>,
     {
         Self {
@@ -32,9 +159,8 @@ impl<S, V, P> Parameterize<S, V, P> {
 
 impl<Input, S, V, P> Parser<Input> for Parameterize<S, V, P>
 where
-    S: DelayedValSet,
-    S::Value: Clone,
-    V: DelayedValGet<Value = Vec<S::Value>>,
+    V: Parameters,
+    S: ParameterInput<Value = V::Item>,
     P: Parser<Input>,
 {
     type Output = Vec<P::Output>;
@@ -52,108 +178,18 @@ where
         input: &mut Input,
         annotation_mode: AnnotationMode,
     ) -> ParseWithResult<Self::Output> {
-        let parameters = self.parameters.get();
+        // let parameters = self.parameters.get();
 
+        let num_params = self.parameters.len();
         let mut child_annotations = annotation_mode
             .success
-            .then(|| Vec::with_capacity(parameters.len()));
+            .then(|| Vec::with_capacity(num_params));
 
-        let mut values = Vec::with_capacity(parameters.len());
+        let mut values = Vec::with_capacity(num_params);
         let mut offset = 0;
-        for param in parameters.iter() {
+        for param in self.parameters.iter() {
             // Move this iter's param into the param slot of the parser
-            self.parameter_input.set(param.clone());
-
-            // Apply inner parser
-            let value;
-            (value, offset, child_annotations) =
-                self.parser.parse_with(input, annotation_mode).fold(
-                    annotation_mode,
-                    || self.name(),
-                    child_annotations,
-                    offset,
-                    0,
-                )?;
-
-            values.push(value);
-        }
-
-        let annotation = if annotation_mode.success {
-            Annotation::success(
-                self.name(),
-                0..offset,
-                values.clone(),
-                child_annotations.unwrap(),
-            )
-            .into()
-        } else {
-            AnnotationReturn::Span(0..offset)
-        };
-
-        Ok((values, annotation))
-    }
-}
-
-impl<P, S1, S2, V1, V2> Parameterize<(S1, S2), (V1, V2), P> {
-    pub fn new_tuple<Input>(parameters: (V1, V2), parameter_input: (S1, S2), parser: P) -> Self
-    where
-        P: Parser<Input>,
-        S1: DelayedValSet,
-        S1::Value: Clone,
-        V1: DelayedValGet<Value = Vec<S1::Value>>,
-        S2: DelayedValSet,
-        S2::Value: Clone,
-        V2: DelayedValGet<Value = Vec<S2::Value>>,
-    {
-        Self {
-            parameters,
-            parameter_input,
-            parser,
-        }
-    }
-}
-
-impl<Input, P, S1, S2, V1, V2> Parser<Input> for Parameterize<(S1, S2), (V1, V2), P>
-where
-    P: Parser<Input>,
-    S1: DelayedValSet,
-    S1::Value: Clone,
-    V1: DelayedValGet<Value = Vec<S1::Value>>,
-    S2: DelayedValSet,
-    S2::Value: Clone,
-    V2: DelayedValGet<Value = Vec<S2::Value>>,
-{
-    type Output = Vec<P::Output>;
-
-    fn name(&self) -> String {
-        "parameterize".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.parser.spec()])
-    }
-
-    fn parse_with(
-        &mut self,
-        input: &mut Input,
-        annotation_mode: AnnotationMode,
-    ) -> ParseWithResult<Self::Output> {
-        let parameters0 = self.parameters.0.get();
-        let parameters1 = self.parameters.1.get();
-        assert_eq!(parameters0.len(), parameters1.len());
-
-        let mut child_annotations = annotation_mode
-            .success
-            .then(|| Vec::with_capacity(parameters0.len()));
-
-        let mut values = Vec::with_capacity(parameters0.len());
-        let mut offset = 0;
-
-        let parameters = izip!(parameters0.iter(), parameters1.iter());
-        for param in parameters {
-            // Move this iter's param into the param slot of the parser
-            self.parameter_input.0.set(param.0.clone());
-            self.parameter_input.1.set(param.1.clone());
+            self.parameter_input.set_temp(param);
 
             // Apply inner parser
             let value;

@@ -1,10 +1,9 @@
 use num_traits::AsPrimitive;
 
 use crate::combinators::{
-    Configured, Configuring, Dispatch, Many, Parameterize, ParserTuple, Peek, Preceded,
-    SameParserTuple, SeparatedArray, SeparatedTuple, Surrounded, SurroundedSymmetrical, Terminated,
-    TraceOpaque,
-    delayed::{DelayedValGet, DelayedValSet},
+    Configured, Configuring, Dispatch, Many, ParameterInput, Parameterize, Parameters, ParserTuple,
+    Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, Surrounded,
+    SurroundedSymmetrical, Terminated, TraceOpaque, delayed::DelayedValGet,
 };
 use std::fmt::{Debug, Display};
 
@@ -136,9 +135,8 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
 
     fn parameterize<V, S>(self, parameters: V, param_input: S) -> Parameterize<S, V, Self>
     where
-        S: DelayedValSet,
-        S::Value: Clone,
-        V: DelayedValGet<Value = Vec<S::Value>>,
+        V: Parameters,
+        S: ParameterInput<Value = V::Item>,
     {
         Parameterize::new(parameters, param_input, self)
     }
