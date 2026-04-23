@@ -1,7 +1,4 @@
-use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, ByteParser, FoldParseWithResult, ParseWithResult,
-    Parser, ParserSpec,
-};
+use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserSpec};
 
 #[derive(Clone)]
 pub struct F16LE;
