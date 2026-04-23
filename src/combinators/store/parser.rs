@@ -25,7 +25,7 @@ impl<Input, I> Parser<Input> for Store<I, I::Output>
 where
     I: Parser<Input>,
 {
-    type Output = ForwardRef<I::Output>;
+    type Output = I::Output;
 
     fn name(&self) -> String {
         self.inner.name()
@@ -44,9 +44,9 @@ where
         let (out, anno) = self.inner.parse_with(input, annotation_mode)?;
 
         // Set the shared value
-        self.value.set(out);
+        self.value.set(out.clone());
 
-        Ok((self.value.clone(), anno))
+        Ok((out, anno))
     }
 }
 
@@ -55,7 +55,7 @@ where
     P: Parser<Input>,
 {
     type Value = P::Output;
-    type Ref = Self::Output;
+    type Ref = ForwardRef<Self::Value>;
 
     fn output(&self) -> Self::Ref {
         self.value.clone()
@@ -69,11 +69,11 @@ mod tests {
 
     #[test]
     fn test_delayed() {
-        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = ForwardRef<u8>> {
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = u8> {
             u8::LE.store()
         }
 
-        fn use_parser() -> (Vec<u8>, ForwardRef<u8>) {
+        fn use_parser() -> (Vec<u8>, u8) {
             let mut parser = create_parser();
 
             let input = vec![0; 5];
