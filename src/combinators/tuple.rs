@@ -1,7 +1,5 @@
 use crate::parser::ParseWithResult;
-use crate::{
-    AnnotatedResult, Annotation, ParseResult, Parser, ParserSpec, helpers::FoldParseWithResult,
-};
+use crate::{Annotation, Parser, ParserSpec, helpers::FoldParseWithResult};
 use crate::{AnnotationMode, AnnotationReturn};
 use paste::paste;
 use std::fmt::Debug;
@@ -126,16 +124,6 @@ pub trait SameParserTuple<Input>: ParserTuple<Input> {
         annotation_mode: AnnotationMode,
         index: usize,
     ) -> Option<ParseWithResult<Self::Output>>;
-
-    /// Call Parser::annotate on a specific child parser
-    fn annotate(
-        &mut self,
-        input: &mut Input,
-        index: usize,
-    ) -> Option<AnnotatedResult<Self::Output>>;
-
-    /// Call Parser::parse on a specific child parser
-    fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>>;
 }
 
 macro_rules! impl_same_parser_tuple {
@@ -160,24 +148,6 @@ macro_rules! impl_same_parser_tuple {
                     match index {
                         $first_idx => Some(self.$first_idx.parse_with(input, annotation_mode)),
                         $( $idx => Some(self.$idx.parse_with(input, annotation_mode)), )*
-                        _ => None,
-                    }
-                }
-
-                #[inline]
-                fn annotate(&mut self, input: &mut Input, index: usize) -> Option<AnnotatedResult<Self::Output>> {
-                    match index {
-                        $first_idx => Some(self.$first_idx.annotate(input)),
-                        $( $idx => Some(self.$idx.annotate(input)), )*
-                        _ => None,
-                    }
-                }
-
-                #[inline]
-                fn parse(&mut self, input: &mut Input, index: usize) -> Option<ParseResult<Self::Output>> {
-                    match index {
-                        $first_idx => Some(self.$first_idx.parse(input)),
-                        $( $idx => Some(self.$idx.parse(input)), )*
                         _ => None,
                     }
                 }

@@ -1,9 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use crate::{
-    AnnotatedResult, Annotation, AnnotationMode, AnnotationReturn, FoldAnnotatedResult, Parser,
-    ParserSpec,
-    helpers::{FoldParseResult, FoldParseWithResult},
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
 
@@ -90,41 +88,6 @@ where
         };
 
         Ok((value, annotation))
-    }
-
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        let (data, offset, child_annotations) =
-            self.inner
-                .annotate(input)
-                .fold(vec![], 0, || self.name(), 0)?;
-
-        let out = match (self.func)(data) {
-            Ok(value) => value,
-            Err(e) => {
-                // Function application has failed, so fail annotation at this level
-                return Err(Annotation::invalid(
-                    self.name(),
-                    0..offset,
-                    format!("{}", e),
-                    child_annotations,
-                ));
-            }
-        };
-
-        let annotation =
-            Annotation::success(self.name(), 0..offset, out.clone(), child_annotations);
-
-        Ok((out, annotation))
-    }
-
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        let (data, offset) = self.inner.parse(input).fold(0, || self.name(), 0)?;
-
-        let out = (self.func)(data)
-            // Function application has failed, so fail annotation at this level
-            .map_err(|e| Annotation::invalid(self.name(), 0..offset, format!("{}", e), vec![]))?;
-
-        Ok((out, offset))
     }
 }
 
