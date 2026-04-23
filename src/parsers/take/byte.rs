@@ -1,4 +1,4 @@
-use crate::{AnnotationReturn, combinators::delayed::DelayedValGet, parser::ParseWithResult};
+use crate::{AnnotationReturn, combinators::store::ForwardRefGet, parser::ParseWithResult};
 use num_traits::AsPrimitive;
 
 use crate::{Annotation, Parser, ParserSpec};
@@ -47,7 +47,7 @@ impl<const N: usize> Parser<&[u8]> for TakeArray<N> {
 
 impl<C> Parser<&[u8]> for TakeVec<C>
 where
-    C: DelayedValGet,
+    C: ForwardRefGet,
     C::Value: AsPrimitive<usize>,
 {
     type Output = Vec<u8>;

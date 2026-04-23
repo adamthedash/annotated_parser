@@ -1,7 +1,7 @@
 mod byte;
 mod str;
 
-use crate::combinators::delayed::DelayedValGet;
+use crate::combinators::store::ForwardRefGet;
 use num_traits::AsPrimitive;
 
 /// Take a fixed amount of bytes into an array
@@ -13,7 +13,7 @@ pub struct TakeVec<C>(C);
 impl<C> TakeVec<C> {
     pub fn new(count: C) -> Self
     where
-        C: DelayedValGet,
+        C: ForwardRefGet,
         C::Value: AsPrimitive<usize>,
     {
         Self(count)

@@ -1,6 +1,6 @@
 use crate::{
     Annotation, AnnotationMode, AnnotationResult, AnnotationReturn, Parser, ParserSpec,
-    combinators::delayed::DelayedParser, parser::ParseWithResult,
+    combinators::store::StoringParser, parser::ParseWithResult,
 };
 
 /// For adding a user-friendly name to the spec
@@ -49,14 +49,14 @@ where
     }
 }
 
-impl<Input, P> DelayedParser<Input> for Trace<P>
+impl<Input, P> StoringParser<Input> for Trace<P>
 where
-    P: DelayedParser<Input>,
+    P: StoringParser<Input>,
 {
     type Value = P::Value;
-    type DelayedValue = P::DelayedValue;
+    type Ref = P::Ref;
 
-    fn output(&self) -> Self::DelayedValue {
+    fn output(&self) -> Self::Ref {
         self.inner.output()
     }
 }

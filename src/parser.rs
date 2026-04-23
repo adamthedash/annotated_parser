@@ -1,6 +1,6 @@
 use crate::Annotation;
 use crate::ParserSpec;
-use crate::combinators::delayed::DelayedParser;
+use crate::combinators::store::StoringParser;
 use std::fmt::Debug;
 use std::ops::Range;
 
@@ -166,14 +166,14 @@ where
     }
 }
 
-impl<Input, P> DelayedParser<Input> for Box<P>
+impl<Input, P> StoringParser<Input> for Box<P>
 where
-    P: DelayedParser<Input>,
+    P: StoringParser<Input>,
 {
     type Value = P::Value;
-    type DelayedValue = P::DelayedValue;
+    type Ref = P::Ref;
 
-    fn output(&self) -> Self::DelayedValue {
+    fn output(&self) -> Self::Ref {
         (**self).output()
     }
 }

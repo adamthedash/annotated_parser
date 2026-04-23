@@ -1,6 +1,6 @@
 use crate::{
     Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
-    combinators::delayed::DelayedValGet, helpers::FoldParseWithResult, parser::ParseWithResult,
+    combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
 /// A parser which may or may not be ran depending on the result of some previous parser
@@ -11,7 +11,7 @@ pub struct Cond<C, P> {
 
 impl<C, P> Cond<C, P>
 where
-    C: DelayedValGet<Value = bool>,
+    C: ForwardRefGet<Value = bool>,
 {
     pub fn new<Input>(cond: C, inner: P) -> Self
     where
@@ -23,7 +23,7 @@ where
 
 impl<Input, C, P> Parser<Input> for Cond<C, P>
 where
-    C: DelayedValGet<Value = bool>,
+    C: ForwardRefGet<Value = bool>,
     P: Parser<Input>,
 {
     type Output = Option<P::Output>;

@@ -5,14 +5,14 @@ use std::{
     rc::Rc,
 };
 
-pub trait DelayedValGet {
+pub trait ForwardRefGet {
     type Value;
 
     /// Get a ref to the currently stored value
     fn get(&self) -> Ref<'_, Self::Value>;
 }
 
-pub trait DelayedValSet {
+pub trait ForwrdRefSet {
     type Value;
 
     /// Set/overwrite the stored value
@@ -24,17 +24,17 @@ pub trait DelayedValSet {
 
 // =====================================================================
 
-pub struct DelayedVal<T>(DelayedValInner<T>);
+pub struct ForwardRef<T>(ForwardRefInner<T>);
 
-impl<T: 'static> DelayedVal<T> {
+impl<T: 'static> ForwardRef<T> {
     /// Create a new uninitialised source value
     pub fn new_source() -> Self {
-        Self(DelayedValInner::Source(SourceValue::default()))
+        Self(ForwardRefInner::Source(SourceValue::default()))
     }
 
     /// Create a new source value initialised with the given value
     pub fn with_value(value: T) -> Self {
-        Self(DelayedValInner::Source(SourceValue::with_value(value)))
+        Self(ForwardRefInner::Source(SourceValue::with_value(value)))
     }
 
     /// Create a new derived value with the given value generation function
@@ -42,33 +42,33 @@ impl<T: 'static> DelayedVal<T> {
     where
         F: Fn() -> T + 'static,
     {
-        Self(DelayedValInner::Derived(Rc::new(DerivedValue::new(func))))
+        Self(ForwardRefInner::Derived(Rc::new(DerivedValue::new(func))))
     }
 
     /// Create a new derived value by mapping the value of this one
-    pub fn map<F, O>(&self, func: F) -> DelayedVal<O>
+    pub fn map<F, O>(&self, func: F) -> ForwardRef<O>
     where
         F: Fn(&T) -> O + 'static,
         O: 'static,
     {
         let value = self.clone();
-        DelayedVal::new_derived(move || func(&value.get()))
+        ForwardRef::new_derived(move || func(&value.get()))
     }
 }
 
-impl<T> Clone for DelayedVal<T> {
+impl<T> Clone for ForwardRef<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<T: Debug> Debug for DelayedVal<T> {
+impl<T: Debug> Debug for ForwardRef<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl<T> DelayedValGet for DelayedVal<T> {
+impl<T> ForwardRefGet for ForwardRef<T> {
     type Value = T;
 
     fn get(&self) -> Ref<'_, Self::Value> {
@@ -76,7 +76,7 @@ impl<T> DelayedValGet for DelayedVal<T> {
     }
 }
 
-impl<T> DelayedValSet for DelayedVal<T> {
+impl<T> ForwrdRefSet for ForwardRef<T> {
     type Value = T;
 
     fn set(&self, value: Self::Value) {
@@ -90,14 +90,14 @@ impl<T> DelayedValSet for DelayedVal<T> {
 
 // =====================================================================
 
-enum DelayedValInner<T> {
+enum ForwardRefInner<T> {
     /// Raw value usually produced by a parser. Can be set or get
     Source(SourceValue<T>),
     /// Value derived from others, materialised on request. Only get
     Derived(Rc<DerivedValue<T>>),
 }
 
-impl<T: Debug> Debug for DelayedValInner<T> {
+impl<T: Debug> Debug for ForwardRefInner<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Source(val) => f.debug_tuple("Source").field(val).finish(),
@@ -106,7 +106,7 @@ impl<T: Debug> Debug for DelayedValInner<T> {
     }
 }
 
-impl<T> Clone for DelayedValInner<T> {
+impl<T> Clone for ForwardRefInner<T> {
     fn clone(&self) -> Self {
         match self {
             Self::Source(val) => Self::Source(val.clone()),
@@ -115,18 +115,18 @@ impl<T> Clone for DelayedValInner<T> {
     }
 }
 
-impl<T> DelayedValGet for DelayedValInner<T> {
+impl<T> ForwardRefGet for ForwardRefInner<T> {
     type Value = T;
 
     fn get(&self) -> Ref<'_, Self::Value> {
         match self {
-            DelayedValInner::Source(value) => value.get(),
-            DelayedValInner::Derived(value) => value.get(),
+            ForwardRefInner::Source(value) => value.get(),
+            ForwardRefInner::Derived(value) => value.get(),
         }
     }
 }
 
-impl<T> DelayedValSet for DelayedValInner<T> {
+impl<T> ForwrdRefSet for ForwardRefInner<T> {
     type Value = T;
 
     fn set(&self, value: Self::Value) {
@@ -170,7 +170,7 @@ impl<T> Clone for SourceValue<T> {
     }
 }
 
-impl<T> DelayedValGet for SourceValue<T> {
+impl<T> ForwardRefGet for SourceValue<T> {
     type Value = T;
 
     fn get(&self) -> Ref<'_, Self::Value> {
@@ -180,7 +180,7 @@ impl<T> DelayedValGet for SourceValue<T> {
     }
 }
 
-impl<T> DelayedValSet for SourceValue<T> {
+impl<T> ForwrdRefSet for SourceValue<T> {
     type Value = T;
 
     fn set(&self, value: Self::Value) {
@@ -213,7 +213,7 @@ impl<T> DerivedValue<T> {
     }
 }
 
-impl<T> DelayedValGet for DerivedValue<T> {
+impl<T> ForwardRefGet for DerivedValue<T> {
     type Value = T;
 
     fn get(&self) -> Ref<'_, Self::Value> {
@@ -229,31 +229,31 @@ impl<T> DelayedValGet for DerivedValue<T> {
 
 // =====================================================================
 
-/// Tuples of delayed values
-pub trait DelayedValTuple {
+/// Tuples of ForwardRef's
+pub trait ForwardRefTuple {
     /// Tuple of references
     type Ref<'a>
     where
         Self: 'a;
 
-    /// DelayedValGet::get on all
+    /// ForwardRef::get on all
     fn get_tuple(&self) -> Self::Ref<'_>;
 
     /// New derived value with |(&V1, &V2, ...)| -> O applied
-    fn map<F, O>(self, func: F) -> DelayedVal<O>
+    fn map<F, O>(self, func: F) -> ForwardRef<O>
     where
         F: Fn(Self::Ref<'_>) -> O + 'static,
         O: 'static,
         Self: Sized + 'static,
     {
-        DelayedVal::new_derived(move || func(self.get_tuple()))
+        ForwardRef::new_derived(move || func(self.get_tuple()))
     }
 }
 
 macro_rules! impl_tuple {
     ($($idx:tt, )*) => {
     paste!{
-        impl<$([<T $idx>],)*> DelayedValTuple for ($(DelayedVal<[<T $idx>]>, )*)
+        impl<$([<T $idx>],)*> ForwardRefTuple for ($(ForwardRef<[<T $idx>]>, )*)
         where
             $(
                 [<T $idx>]: 'static,

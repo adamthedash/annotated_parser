@@ -1,7 +1,7 @@
 use crate::{AnnotationReturn, helpers::FoldParseWithResult, parser::ParseWithResult};
 use num_traits::AsPrimitive;
 
-use crate::combinators::delayed::DelayedValGet;
+use crate::combinators::store::ForwardRefGet;
 use std::{marker::PhantomData, mem::MaybeUninit};
 
 use crate::{Annotation, Parser, ParserSpec};
@@ -111,7 +111,7 @@ impl<P, C> RepeatVec<P, C> {
     pub fn new<Input>(inner: P, count: C) -> Self
     where
         P: Parser<Input>,
-        C: DelayedValGet,
+        C: ForwardRefGet,
         C::Value: AsPrimitive<usize>,
     {
         Self { inner, count }
@@ -121,7 +121,7 @@ impl<P, C> RepeatVec<P, C> {
 impl<Input, P, C, V> Parser<Input> for RepeatVec<P, C>
 where
     P: Parser<Input>,
-    C: DelayedValGet<Value = V>,
+    C: ForwardRefGet<Value = V>,
     V: AsPrimitive<usize>,
 {
     type Output = Vec<P::Output>;

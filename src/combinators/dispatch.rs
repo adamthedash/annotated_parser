@@ -3,7 +3,7 @@ use crate::helpers::FoldParseWithResult;
 use crate::{AnnotationMode, AnnotationReturn};
 
 use crate::parser::ParseWithResult;
-use crate::{Annotation, Parser, ParserSpec, combinators::delayed::DelayedValGet};
+use crate::{Annotation, Parser, ParserSpec, combinators::store::ForwardRefGet};
 
 pub struct Dispatch<D, P> {
     discriminant: D,
@@ -12,7 +12,7 @@ pub struct Dispatch<D, P> {
 
 impl<D, P> Dispatch<D, P>
 where
-    D: DelayedValGet<Value = Option<usize>>,
+    D: ForwardRefGet<Value = Option<usize>>,
 {
     pub fn new<Input>(discriminant: D, parsers: P) -> Self
     where
@@ -27,7 +27,7 @@ where
 
 impl<Input, D, P> Parser<Input> for Dispatch<D, P>
 where
-    D: DelayedValGet<Value = Option<usize>>,
+    D: ForwardRefGet<Value = Option<usize>>,
     P: SameParserTuple<Input>,
 {
     type Output = P::Output;
@@ -107,14 +107,14 @@ mod tests {
     use super::*;
     use crate::ByteParser;
     use crate::ParserAdapter;
-    use crate::combinators::delayed::DelayedParser;
-    use crate::combinators::delayed::DelayedVal;
+    use crate::combinators::store::ForwardRef;
+    use crate::combinators::store::StoringParser;
 
     #[test]
     fn test_dispatch() {
         let mut input = [0, 1, 1, 1, 0].as_slice();
 
-        let disc_parser = u8::LE.delay();
+        let disc_parser = u8::LE.store();
         let dispatch = Dispatch::new(
             disc_parser.output().map(|x| {
                 let index = match x {
@@ -139,7 +139,7 @@ mod tests {
     fn test_dispatch2() {
         fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = u8> {
             Dispatch::new(
-                DelayedVal::with_value(Some(0)),
+                ForwardRef::with_value(Some(0)),
                 (
                     u8::LE, //
                     u16::LE.map(|x| x as u8),

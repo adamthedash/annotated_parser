@@ -5,10 +5,10 @@ use std::sync::{
 
 use crate::{
     Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
-    combinators::delayed::DelayedValGet, helpers::FoldParseWithResult, parser::ParseWithResult,
+    combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
-/// Parser which can be externally enabled/disabled rather than checking a delayed value each
+/// Parser which can be externally enabled/disabled rather than checking a reference value on each
 /// execution
 pub struct Configured<P> {
     enabled: Arc<AtomicBool>,
@@ -26,11 +26,11 @@ impl<P> Configured<P> {
         }
     }
 
-    /// Create an on-demand configure closure. Calling the returned closure will update the enabled
-    /// status of this combinator based off the current value of the provided delayed value
+    /// Create an on-demand configuring closure. Calling the returned closure will update the enabled
+    /// status of this combinator based off the current value of the provided reference value
     pub fn configure_with<T>(&self, val: T) -> impl Fn() + use<P, T>
     where
-        T: DelayedValGet<Value = bool>,
+        T: ForwardRefGet<Value = bool>,
     {
         let enabled = self.enabled.clone();
         move || {

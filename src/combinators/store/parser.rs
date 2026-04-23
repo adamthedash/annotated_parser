@@ -1,31 +1,31 @@
-use super::{DelayedParser, DelayedVal, DelayedValSet};
+use super::{ForwardRef, ForwrdRefSet, StoringParser};
 use crate::parser::ParseWithResult;
 use crate::{AnnotationMode, Parser, ParserSpec};
 
 /// A parser whos output can be referenced before it has been executed
-pub struct Delayed<I, O> {
+pub struct Store<I, O> {
     inner: I,
     /// This will be populated / overwritten whenever the parser is ran.
-    value: DelayedVal<O>,
+    value: ForwardRef<O>,
 }
 
-impl<I, O: 'static> Delayed<I, O> {
+impl<I, O: 'static> Store<I, O> {
     pub fn new<Input>(inner: I) -> Self
     where
         I: Parser<Input>,
     {
         Self {
             inner,
-            value: DelayedVal::new_source(),
+            value: ForwardRef::new_source(),
         }
     }
 }
 
-impl<Input, I> Parser<Input> for Delayed<I, I::Output>
+impl<Input, I> Parser<Input> for Store<I, I::Output>
 where
     I: Parser<Input>,
 {
-    type Output = DelayedVal<I::Output>;
+    type Output = ForwardRef<I::Output>;
 
     fn name(&self) -> String {
         self.inner.name()
@@ -50,14 +50,14 @@ where
     }
 }
 
-impl<Input, P> DelayedParser<Input> for Delayed<P, P::Output>
+impl<Input, P> StoringParser<Input> for Store<P, P::Output>
 where
     P: Parser<Input>,
 {
     type Value = P::Output;
-    type DelayedValue = Self::Output;
+    type Ref = Self::Output;
 
-    fn output(&self) -> Self::DelayedValue {
+    fn output(&self) -> Self::Ref {
         self.value.clone()
     }
 }
@@ -69,11 +69,11 @@ mod tests {
 
     #[test]
     fn test_delayed() {
-        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = DelayedVal<u8>> {
-            u8::LE.delay()
+        fn create_parser() -> impl for<'a> Parser<&'a [u8], Output = ForwardRef<u8>> {
+            u8::LE.store()
         }
 
-        fn use_parser() -> (Vec<u8>, DelayedVal<u8>) {
+        fn use_parser() -> (Vec<u8>, ForwardRef<u8>) {
             let mut parser = create_parser();
 
             let input = vec![0; 5];

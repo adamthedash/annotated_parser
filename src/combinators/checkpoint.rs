@@ -1,4 +1,4 @@
-use crate::{AnnotationMode, Parser, ParserSpec, combinators::delayed::DelayedParser};
+use crate::{AnnotationMode, Parser, ParserSpec, combinators::store::StoringParser};
 
 /// Wrapper which resets the input stream on failure
 pub struct Checkpoint<P>(P);
@@ -47,15 +47,15 @@ where
     }
 }
 
-impl<Input, P> DelayedParser<Input> for Checkpoint<P>
+impl<Input, P> StoringParser<Input> for Checkpoint<P>
 where
-    P: DelayedParser<Input>,
+    P: StoringParser<Input>,
     Input: Copy,
 {
     type Value = P::Value;
-    type DelayedValue = P::DelayedValue;
+    type Ref = P::Ref;
 
-    fn output(&self) -> Self::DelayedValue {
+    fn output(&self) -> Self::Ref {
         self.0.output()
     }
 }
@@ -108,15 +108,15 @@ where
     }
 }
 
-impl<Input, P> DelayedParser<Input> for Peek<P>
+impl<Input, P> StoringParser<Input> for Peek<P>
 where
-    P: DelayedParser<Input>,
+    P: StoringParser<Input>,
     Input: Copy,
 {
     type Value = P::Value;
-    type DelayedValue = P::DelayedValue;
+    type Ref = P::Ref;
 
-    fn output(&self) -> Self::DelayedValue {
+    fn output(&self) -> Self::Ref {
         self.0.output()
     }
 }

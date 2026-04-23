@@ -3,15 +3,14 @@ use num_traits::AsPrimitive;
 use crate::combinators::{
     Configured, Configuring, Dispatch, Many, ParameterInput, Parameterize, Parameters, ParserTuple,
     Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, Surrounded,
-    SurroundedSymmetrical, Terminated, TraceOpaque, delayed::DelayedValGet,
+    SurroundedSymmetrical, Terminated, TraceOpaque, store::ForwardRefGet,
 };
 use std::fmt::{Debug, Display};
 
 use crate::{
     Parser,
     combinators::{
-        Checkpoint, Cond, Delayed, Map, MapSilent, Opt, RepeatArray, RepeatVec, Trace, TryMap,
-        Verify,
+        Checkpoint, Cond, Map, MapSilent, Opt, RepeatArray, RepeatVec, Store, Trace, TryMap, Verify,
     },
 };
 
@@ -62,7 +61,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
 
     fn repeat_vec<C>(self, count: C) -> RepeatVec<Self, C>
     where
-        C: DelayedValGet,
+        C: ForwardRefGet,
         C::Value: AsPrimitive<usize>,
     {
         RepeatVec::new(self, count)
@@ -75,20 +74,20 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         Many::new(self)
     }
 
-    fn delay(self) -> Delayed<Self, Self::Output> {
-        Delayed::new(self)
+    fn store(self) -> Store<Self, Self::Output> {
+        Store::new(self)
     }
 
     fn run_if<C>(self, cond: C) -> Cond<C, Self>
     where
-        C: DelayedValGet<Value = bool>,
+        C: ForwardRefGet<Value = bool>,
     {
         Cond::new(cond, self)
     }
 
     fn configured<C>(self, cond: C) -> (Configured<Self>, impl Fn())
     where
-        C: DelayedValGet<Value = bool>,
+        C: ForwardRefGet<Value = bool>,
     {
         let parser = Configured::new(self);
         let conf = parser.configure_with(cond);
@@ -128,7 +127,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     fn dispatch<D>(self, discriminant: D) -> Dispatch<D, Self>
     where
         Self: SameParserTuple<Input>,
-        D: DelayedValGet<Value = Option<usize>>,
+        D: ForwardRefGet<Value = Option<usize>>,
     {
         Dispatch::new(discriminant, self)
     }

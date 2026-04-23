@@ -3,7 +3,7 @@ use paste::paste;
 
 use crate::{
     Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
-    combinators::delayed::{DelayedVal, DelayedValGet, DelayedValSet},
+    combinators::store::{ForwardRef, ForwardRefGet, ForwrdRefSet},
     helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
@@ -23,7 +23,7 @@ pub trait Parameters {
     fn len(&self) -> usize;
 }
 
-impl<T> Parameters for DelayedVal<Vec<T>>
+impl<T> Parameters for ForwardRef<Vec<T>>
 where
     T: Clone,
 {
@@ -39,7 +39,7 @@ where
 }
 
 // Separate impl for 1-tuple as izip doesn't work with single iterables
-impl<T> Parameters for (DelayedVal<Vec<T>>,)
+impl<T> Parameters for (ForwardRef<Vec<T>>,)
 where
     T: Clone,
 {
@@ -67,7 +67,7 @@ pub trait ParameterInput {
     fn set_temp(&self, value: Self::Value);
 }
 
-impl<T> ParameterInput for DelayedVal<T> {
+impl<T> ParameterInput for ForwardRef<T> {
     type Value = T;
 
     fn set_temp(&self, value: Self::Value) {
@@ -75,7 +75,7 @@ impl<T> ParameterInput for DelayedVal<T> {
     }
 }
 
-impl<T> ParameterInput for (DelayedVal<T>,) {
+impl<T> ParameterInput for (ForwardRef<T>,) {
     type Value = (T,);
 
     fn set_temp(&self, value: Self::Value) {
@@ -85,11 +85,11 @@ impl<T> ParameterInput for (DelayedVal<T>,) {
 
 // ==================================================================
 
-/// Parameters, ParameterInput for tuples of DelayedVal's
+/// Parameters, ParameterInput for tuples of ForwardRef's
 macro_rules! impl_parameters {
     ($($idx:tt, )*) => {
     paste!{
-        impl<$([<T $idx>],)*> Parameters for ($(DelayedVal<Vec<[<T $idx>]>>, )*)
+        impl<$([<T $idx>],)*> Parameters for ($(ForwardRef<Vec<[<T $idx>]>>, )*)
         where
             $(
                 [<T $idx>]: Clone,
@@ -114,7 +114,7 @@ macro_rules! impl_parameters {
             }
         }
 
-        impl<$([<T $idx>],)*> ParameterInput for ($(DelayedVal<[<T $idx>]>, )*) {
+        impl<$([<T $idx>],)*> ParameterInput for ($(ForwardRef<[<T $idx>]>, )*) {
             type Value = ($([<T $idx>],)*);
 
             fn set_temp(&self, value: Self::Value) {
