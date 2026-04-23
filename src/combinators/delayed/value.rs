@@ -1,3 +1,4 @@
+use paste::paste;
 use std::{
     cell::{Ref, RefCell},
     fmt::Debug,
@@ -225,3 +226,58 @@ impl<T> DelayedValGet for DerivedValue<T> {
         })
     }
 }
+
+// =====================================================================
+
+/// Tuples of delayed values
+pub trait DelayedValTuple {
+    /// Tuple of references
+    type Ref<'a>
+    where
+        Self: 'a;
+
+    /// DelayedValGet::get on all
+    fn get_tuple(&self) -> Self::Ref<'_>;
+
+    /// New derived value with |(&V1, &V2, ...)| -> O applied
+    fn map<F, O>(self, func: F) -> DelayedVal<O>
+    where
+        F: Fn(Self::Ref<'_>) -> O + 'static,
+        O: 'static,
+        Self: Sized + 'static,
+    {
+        DelayedVal::new_derived(move || func(self.get_tuple()))
+    }
+}
+
+macro_rules! impl_tuple {
+    ($($idx:tt, )*) => {
+    paste!{
+        impl<$([<T $idx>],)*> DelayedValTuple for ($(DelayedVal<[<T $idx>]>, )*)
+        where
+            $(
+                [<T $idx>]: 'static,
+            )*
+        {
+            type Ref<'a> = ($(Ref<'a, [<T $idx>]>,)*);
+
+            fn get_tuple(&self) -> Self::Ref<'_> {
+                ($(self.$idx.get(),)*)
+            }
+        }
+    }
+    };
+}
+
+impl_tuple!(0,);
+impl_tuple!(0, 1,);
+impl_tuple!(0, 1, 2,);
+impl_tuple!(0, 1, 2, 3,);
+impl_tuple!(0, 1, 2, 3, 4,);
+impl_tuple!(0, 1, 2, 3, 4, 5,);
+impl_tuple!(0, 1, 2, 3, 4, 5, 6,);
+impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7,);
+impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8,);
+impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9,);
+impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,);
+impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,);

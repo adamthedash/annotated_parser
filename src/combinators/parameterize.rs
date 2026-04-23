@@ -38,6 +38,7 @@ where
     }
 }
 
+// Separate impl for 1-tuple as izip doesn't work with single iterables
 impl<T> Parameters for (DelayedVal<Vec<T>>,)
 where
     T: Clone,
@@ -45,6 +46,8 @@ where
     type Item = (T,);
 
     fn iter(&self) -> impl Iterator<Item = Self::Item> {
+        // NOTE: Clone entire vec upfront as we need to clone anyway to store it in the temp
+        // location. This helps with lifetimes.
         self.0.get().clone().into_iter().map(|x| (x,))
     }
 
@@ -95,6 +98,8 @@ macro_rules! impl_parameters {
             type Item = ($([<T $idx>],)*);
 
             fn iter(&self) -> impl Iterator<Item = Self::Item> {
+                // NOTE: Clone entire vec upfront as we need to clone anyway to store it in the temp
+                // location. This helps with lifetimes.
                 $(
                     let [<p $idx>] = self.$idx.get().clone();
                 )*
@@ -103,7 +108,8 @@ macro_rules! impl_parameters {
             }
 
             fn len(&self) -> usize {
-                // NOTE: All parameters should be the same length
+                // NOTE: All parameters should be the same length.
+                // TODO: Check all and panic if they're not?
                 self.0.len()
             }
         }

@@ -2,7 +2,7 @@ mod parser;
 mod value;
 
 pub use parser::Delayed;
-pub use value::{DelayedVal, DelayedValGet, DelayedValSet};
+pub use value::{DelayedVal, DelayedValGet, DelayedValSet, DelayedValTuple};
 
 use crate::Parser;
 
