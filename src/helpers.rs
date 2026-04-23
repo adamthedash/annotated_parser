@@ -35,7 +35,7 @@ where
             Ok((value, annotation)) => {
                 let new_offset = if annotation_mode.success {
                     let (new_offset, new_child_annotations) = fold_success(
-                        annotation.annotation(),
+                        annotation.annotation().expect("Annotated path"),
                         child_annotations.unwrap_or_default(),
                         offset,
                         child_index,
@@ -45,7 +45,7 @@ where
                     new_offset
                 } else {
                     // Extract offset
-                    offset + annotation.span().end
+                    offset + annotation.span().expect("Unannoated path").end
                 };
 
                 Ok((value, new_offset, child_annotations))
@@ -54,7 +54,7 @@ where
                 let annotation = if annotation_mode.fail {
                     // Accumulate into Annotation::Child
                     fold_child_err(
-                        annotation.annotation(),
+                        annotation.annotation().expect("Annotated path"),
                         child_annotations.unwrap_or_default(),
                         offset,
                         parent_name(),
@@ -63,7 +63,7 @@ where
                     .into()
                 } else {
                     // Extract start offset
-                    let start = annotation.start();
+                    let start = annotation.start().expect("Unannoated path");
 
                     AnnotationReturn::Start(offset + start)
                 };

@@ -45,8 +45,8 @@ pub trait Parser<Input> {
     #[inline]
     fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
         match self.parse_with(input, AnnotationMode::ALL) {
-            Ok((value, anno)) => Ok((value, anno.annotation())),
-            Err(anno) => Err(anno.annotation()),
+            Ok((value, anno)) => Ok((value, anno.annotation().expect("Annotated path"))),
+            Err(anno) => Err(anno.annotation().expect("Annotated path")),
         }
     }
 
@@ -71,8 +71,8 @@ pub trait Parser<Input> {
     #[inline]
     fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
         match self.parse_with(input, AnnotationMode::FAIL) {
-            Ok((value, anno)) => Ok((value, anno.span().end)),
-            Err(anno) => Err(anno.annotation()),
+            Ok((value, anno)) => Ok((value, anno.span().expect("Unannoated path").end)),
+            Err(anno) => Err(anno.annotation().expect("Annotated path")),
         }
     }
 }
@@ -81,32 +81,38 @@ pub type ParseWithResult<T> = std::result::Result<(T, AnnotationReturn), Annotat
 
 #[derive(Debug)]
 pub enum AnnotationReturn {
+    /// Annotated success/failure
     Annotated(Annotation),
+    /// Unannoated success, invalid failure
     Span(Range<usize>),
+    /// Unannoated incomplete failure
     Start(usize),
 }
 
 impl AnnotationReturn {
-    pub fn annotation(self) -> Annotation {
-        let Self::Annotated(a) = self else {
-            unreachable!()
-        };
-        a
+    pub fn annotation(self) -> Option<Annotation> {
+        if let Self::Annotated(a) = self {
+            Some(a)
+        } else {
+            None
+        }
     }
 
-    pub fn span(self) -> Range<usize> {
-        let Self::Span(span) = self else {
-            unreachable!()
-        };
-        span
+    pub fn span(self) -> Option<Range<usize>> {
+        if let Self::Span(span) = self {
+            Some(span)
+        } else {
+            None
+        }
     }
 
-    pub fn start(self) -> usize {
-        match self {
+    pub fn start(self) -> Option<usize> {
+        let start = match self {
             Self::Span(span) => span.start,
             Self::Start(start) => start,
-            _ => unreachable!(),
-        }
+            _ => return None,
+        };
+        Some(start)
     }
 }
 

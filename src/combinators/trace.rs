@@ -111,8 +111,13 @@ where
         match self.inner.parse_with(input, inner_mode) {
             Ok((value, annotation)) => {
                 let annotation = if annotation_mode.success {
-                    Annotation::success(self.name(), annotation.span(), value.clone(), vec![])
-                        .into()
+                    Annotation::success(
+                        self.name(),
+                        annotation.span().expect("Inner un-annotated path"),
+                        value.clone(),
+                        vec![],
+                    )
+                    .into()
                 } else {
                     annotation
                 };
@@ -123,7 +128,7 @@ where
                 let annotation = if annotation_mode.fail {
                     // Materialise the failure case to give some indication to user where the
                     // internal failure happened
-                    let mut annotation = annotation.annotation();
+                    let mut annotation = annotation.annotation().expect("Annotated path");
                     annotation.materialize();
 
                     let Some(source) = annotation.err_source() else {
