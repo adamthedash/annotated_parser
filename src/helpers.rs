@@ -7,6 +7,7 @@ where
     P: FnOnce() -> S,
     S: Into<String>,
 {
+    /// Accumulate the result of this parser into the surrounding context
     fn fold(
         self,
         annotation_mode: AnnotationMode,
@@ -34,6 +35,7 @@ where
         match self {
             Ok((value, annotation)) => {
                 let new_offset = if annotation_mode.success {
+                    // Accumulate into child annotations
                     let (new_offset, new_child_annotations) = fold_success(
                         annotation.annotation().expect("Annotated path"),
                         child_annotations.unwrap_or_default(),
@@ -76,7 +78,7 @@ where
 
 /// Ok path of crate::Result<T>::fold
 #[inline]
-pub fn fold_success(
+fn fold_success(
     mut annotation: Annotation,
     mut child_annotations: Vec<Annotation>,
     offset: usize,
@@ -99,7 +101,7 @@ pub fn fold_success(
 
 /// Error path of crate::Result<T>::fold
 #[inline]
-pub fn fold_child_err(
+fn fold_child_err(
     mut annotation: Annotation,
     mut child_annotations: Vec<Annotation>,
     offset: usize,

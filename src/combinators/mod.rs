@@ -10,7 +10,7 @@ mod parameterize;
 mod preceded;
 mod repeat;
 mod separated;
-pub mod store;
+pub(super) mod store;
 mod surrounded;
 mod take_till;
 mod terminated;

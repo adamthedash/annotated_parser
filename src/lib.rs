@@ -10,6 +10,10 @@ mod spec;
 
 pub use adapter::ParserAdapter;
 pub use annotation::{Annotation, AnnotationResult};
+pub use combinators::store::{
+    ForwardRef, ForwardRefGet, ForwardRefTuple, ForwrdRefSet, StoringParser,
+};
+pub use combinators::{ParserTuple, SameParserTuple};
 pub use helpers::FoldParseWithResult;
 pub use parser::{
     AnnotatedResult, AnnotationMode, AnnotationReturn, IntoAnnotation, ParseResult,
@@ -20,5 +24,8 @@ pub use spec::ParserSpec;
 
 /// Traits that usually need importing
 pub mod prelude {
-    pub use super::{ByteParser, FoldParseWithResult, IntoAnnotation, Parser, ParserAdapter};
+    pub use super::{
+        ByteParser, FoldParseWithResult, ForwardRefGet, ForwardRefTuple, ForwrdRefSet,
+        IntoAnnotation, Parser, ParserAdapter, ParserTuple, SameParserTuple, StoringParser,
+    };
 }

@@ -1,7 +1,7 @@
 mod byte;
 mod str;
 
-use crate::combinators::store::ForwardRefGet;
+use crate::ForwardRefGet;
 use num_traits::AsPrimitive;
 
 /// Take a fixed amount of bytes into an array

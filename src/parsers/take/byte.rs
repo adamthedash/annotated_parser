@@ -1,4 +1,4 @@
-use crate::{AnnotationReturn, combinators::store::ForwardRefGet, parser::ParseWithResult};
+use crate::{AnnotationReturn, ForwardRefGet, ParseWithResult};
 use num_traits::AsPrimitive;
 
 use crate::{Annotation, Parser, ParserSpec};

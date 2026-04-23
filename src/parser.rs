@@ -1,6 +1,6 @@
 use crate::Annotation;
 use crate::ParserSpec;
-use crate::combinators::store::StoringParser;
+use crate::StoringParser;
 use std::fmt::Debug;
 use std::ops::Range;
 

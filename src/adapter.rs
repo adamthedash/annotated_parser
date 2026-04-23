@@ -1,9 +1,10 @@
 use num_traits::AsPrimitive;
 
+use crate::ForwardRefGet;
 use crate::combinators::{
     Configured, Configuring, Dispatch, Many, ParameterInput, Parameterize, Parameters, ParserTuple,
     Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, Surrounded,
-    SurroundedSymmetrical, Terminated, TraceOpaque, store::ForwardRefGet,
+    SurroundedSymmetrical, Terminated, TraceOpaque,
 };
 use std::fmt::{Debug, Display};
 
