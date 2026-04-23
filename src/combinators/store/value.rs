@@ -64,7 +64,16 @@ impl<T> Clone for ForwardRef<T> {
 
 impl<T: Debug> Debug for ForwardRef<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        let ForwardRefInner::Source(source) = &self.0 else {
+            unreachable!("Derived values shouldn't ever be displayed");
+        };
+
+        let r = source.0.borrow();
+        let Some(value) = r.as_ref() else {
+            unreachable!("Un-initialised references shouldn't ever be displayed");
+        };
+
+        value.fmt(f)
     }
 }
 
@@ -95,15 +104,6 @@ enum ForwardRefInner<T> {
     Source(SourceValue<T>),
     /// Value derived from others, materialised on request. Only get
     Derived(Rc<DerivedValue<T>>),
-}
-
-impl<T: Debug> Debug for ForwardRefInner<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Source(val) => f.debug_tuple("Source").field(val).finish(),
-            Self::Derived(_val) => f.debug_tuple("Derived").finish(),
-        }
-    }
 }
 
 impl<T> Clone for ForwardRefInner<T> {
@@ -149,7 +149,6 @@ impl<T> ForwrdRefSet for ForwardRefInner<T> {
 // =====================================================================
 
 /// Value which is manually set by a parser
-#[derive(Debug)]
 struct SourceValue<T>(Rc<RefCell<Option<T>>>);
 
 impl<T> SourceValue<T> {
