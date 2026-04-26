@@ -42,9 +42,10 @@ impl<T: 'static> ForwardRef<T> {
     }
 
     /// Create a new derived value with the given value generation function
+    /// Function should return None if value cannot be generated
     pub fn new_derived<F>(func: F) -> Self
     where
-        F: Fn() -> T + 'static,
+        F: Fn() -> Option<T> + 'static,
     {
         Self(ForwardRefInner::Derived(Rc::new(DerivedValue::new(func))))
     }
@@ -56,7 +57,13 @@ impl<T: 'static> ForwardRef<T> {
         O: 'static,
     {
         let value = self.clone();
-        ForwardRef::new_derived(move || func(&value.get()))
+        ForwardRef::new_derived(move || {
+            let borrow = value.try_get();
+            // If upstream value is None, then this is also None
+            let value = borrow.as_ref()?;
+            let out = func(value);
+            Some(out)
+        })
     }
 }
 
@@ -183,13 +190,13 @@ impl<T> ForwrdRefSet for SourceValue<T> {
 struct DerivedValue<T> {
     /// Cache result internally so lifetime is bound to self instead of get()
     value: RefCell<Option<T>>,
-    func: Box<dyn Fn() -> T>,
+    func: Box<dyn Fn() -> Option<T>>,
 }
 
 impl<T> DerivedValue<T> {
     fn new<F>(func: F) -> Self
     where
-        F: Fn() -> T + 'static,
+        F: Fn() -> Option<T> + 'static,
     {
         Self {
             value: RefCell::default(),
@@ -203,8 +210,7 @@ impl<T> ForwardRefGet for DerivedValue<T> {
 
     fn try_get(&self) -> Ref<'_, Option<Self::Value>> {
         // Compute & cache
-        let value = (self.func)();
-        *self.value.borrow_mut() = Some(value);
+        *self.value.borrow_mut() = (self.func)();
 
         self.value.borrow()
     }
@@ -222,6 +228,9 @@ pub trait ForwardRefTuple {
     /// ForwardRef::get on all
     fn get_tuple(&self) -> Self::Ref<'_>;
 
+    /// ForwardRef::try_get on all. If any are None then this is None
+    fn try_get_tuple(&self) -> Option<Self::Ref<'_>>;
+
     /// New derived value with |(&V1, &V2, ...)| -> O applied
     fn map<F, O>(self, func: F) -> ForwardRef<O>
     where
@@ -229,7 +238,11 @@ pub trait ForwardRefTuple {
         O: 'static,
         Self: Sized + 'static,
     {
-        ForwardRef::new_derived(move || func(self.get_tuple()))
+        ForwardRef::new_derived(move || {
+            let refs = self.try_get_tuple()?;
+            let out = func(refs);
+            Some(out)
+        })
     }
 }
 
@@ -246,6 +259,18 @@ macro_rules! impl_tuple {
 
             fn get_tuple(&self) -> Self::Ref<'_> {
                 ($(self.$idx.get(),)*)
+            }
+
+            fn try_get_tuple(&self) -> Option<Self::Ref<'_>> {
+                let refs = ($({
+                    let r = self.$idx.try_get();
+                    if r.is_none() {
+                        return None;
+                    }
+                    Ref::map(r, |r| r.as_ref().expect("Checked above"))
+                },)*);
+
+                Some(refs)
             }
         }
     }
