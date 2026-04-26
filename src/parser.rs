@@ -2,6 +2,7 @@ use crate::Annotation;
 use crate::ParserSpec;
 use crate::StoringParser;
 use std::fmt::Debug;
+use std::fmt::Display;
 use std::ops::Range;
 
 pub type AnnotatedResult<T> = std::result::Result<(T, Annotation), Annotation>;
@@ -22,10 +23,14 @@ impl<T> IntoAnnotation for AnnotatedResult<T> {
 
 pub type ParseResult<T> = std::result::Result<(T, usize), Annotation>;
 
+/// A type which can be safely cloned & boxed up for annotations
+pub trait ParserOutput: Debug + Clone + Send + Sync + 'static {}
+impl<T> ParserOutput for T where T: Debug + Clone + Send + Sync + 'static {}
+
 /// All parsing functions must implement this trait
 pub trait Parser<Input> {
     /// Debug/Clone as we store a copy in the return annotations
-    type Output: Debug + Clone + 'static;
+    type Output: ParserOutput;
 
     /// Simple name of the parser, should not include children or generics
     // TODO: Change this to a CoW so we're not constantly copying `&'static str`s
@@ -119,6 +124,18 @@ impl AnnotationReturn {
 impl From<Annotation> for AnnotationReturn {
     fn from(value: Annotation) -> Self {
         Self::Annotated(value)
+    }
+}
+
+impl std::error::Error for AnnotationReturn {}
+
+impl Display for AnnotationReturn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AnnotationReturn::Annotated(annotation) => write!(f, "Parse failure: {:?}", annotation),
+            AnnotationReturn::Span(range) => write!(f, "Parse failure at {:?}", range),
+            AnnotationReturn::Start(start) => write!(f, "Parse failure starting at {start}"),
+        }
     }
 }
 

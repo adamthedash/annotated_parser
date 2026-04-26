@@ -1,8 +1,6 @@
-use std::fmt::Debug;
-
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
-    parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserOutput, ParserSpec,
+    helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
 use super::{TakeTillExc, TakeTillInc};
@@ -69,7 +67,7 @@ where
 impl<P, PO> Parser<&str> for TakeTillInc<P>
 where
     P: for<'a> Parser<&'a str, Output = PO>,
-    PO: Clone + Debug + 'static,
+    PO: ParserOutput,
 {
     type Output = (String, PO);
 

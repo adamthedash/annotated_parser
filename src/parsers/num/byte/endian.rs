@@ -2,7 +2,9 @@ use std::{fmt::Debug, marker::PhantomData};
 
 use num_traits::FromBytes;
 
-use crate::{Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult};
+use crate::{
+    Annotation, AnnotationReturn, Parser, ParserOutput, ParserSpec, parser::ParseWithResult,
+};
 
 /// Little-endian parser for types which can be directly interpreted from a byte array
 #[derive(Clone)]
@@ -11,7 +13,7 @@ pub struct LE<T>(PhantomData<T>);
 impl<const N: usize, T> Parser<&[u8]> for LE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
-    T: Debug + Clone + 'static,
+    T: ParserOutput,
 {
     type Output = T;
 
@@ -63,7 +65,7 @@ pub struct BE<T>(PhantomData<T>);
 impl<const N: usize, T> Parser<&[u8]> for BE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
-    T: Debug + Clone + 'static,
+    T: ParserOutput,
 {
     type Output = T;
 

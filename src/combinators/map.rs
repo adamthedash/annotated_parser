@@ -1,8 +1,8 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
-    parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserOutput, ParserSpec,
+    helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
 /// For fallible functions
@@ -16,7 +16,7 @@ impl<P, F> TryMap<P, F> {
     where
         P: Parser<Input>,
         F: FnMut(P::Output) -> std::result::Result<O, E>,
-        O: Debug + Clone + 'static,
+        O: ParserOutput,
         E: Display,
     {
         Self { inner, func }
@@ -27,7 +27,7 @@ impl<Input, P, F, O, E> Parser<Input> for TryMap<P, F>
 where
     P: Parser<Input>,
     F: FnMut(P::Output) -> std::result::Result<O, E>,
-    O: Debug + Clone + 'static,
+    O: ParserOutput,
     E: Display,
 {
     type Output = O;
@@ -102,7 +102,7 @@ impl<P, F> Map<P, F> {
     where
         P: Parser<Input>,
         F: FnMut(P::Output) -> O,
-        O: Debug + Clone + 'static,
+        O: ParserOutput,
     {
         Self { inner, func }
     }
@@ -112,7 +112,7 @@ impl<Input, P, F, O> Parser<Input> for Map<P, F>
 where
     P: Parser<Input>,
     F: FnMut(P::Output) -> O,
-    O: Debug + Clone + 'static,
+    O: ParserOutput,
 {
     type Output = O;
 
@@ -169,7 +169,7 @@ impl<P, F> MapSilent<P, F> {
     where
         P: Parser<Input>,
         F: FnMut(P::Output) -> O,
-        O: Debug + Clone + 'static,
+        O: ParserOutput,
     {
         Self { inner, func }
     }
@@ -179,7 +179,7 @@ impl<Input, P, F, O> Parser<Input> for MapSilent<P, F>
 where
     P: Parser<Input>,
     F: FnMut(P::Output) -> O,
-    O: Debug + Clone + 'static,
+    O: ParserOutput,
 {
     type Output = O;
 

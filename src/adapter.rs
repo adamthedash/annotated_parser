@@ -1,12 +1,12 @@
 use num_traits::AsPrimitive;
 
-use crate::ForwardRefGet;
 use crate::combinators::{
     Configured, Configuring, Dispatch, Many, ParameterInput, Parameterize, Parameters, ParserTuple,
     Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, Surrounded,
     SurroundedSymmetrical, Terminated, TraceOpaque,
 };
-use std::fmt::{Debug, Display};
+use crate::{ForwardRefGet, ParserOutput};
+use std::fmt::Display;
 
 use crate::{
     Parser,
@@ -20,7 +20,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     fn map<F, O>(self, func: F) -> Map<Self, F>
     where
         F: FnMut(Self::Output) -> O,
-        O: Debug + Clone + 'static,
+        O: ParserOutput,
     {
         Map::new(self, func)
     }
@@ -28,7 +28,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     fn map_silent<F, O>(self, func: F) -> MapSilent<Self, F>
     where
         F: FnMut(Self::Output) -> O,
-        O: Debug + Clone + 'static,
+        O: ParserOutput,
     {
         MapSilent::new(self, func)
     }
@@ -36,7 +36,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     fn try_map<F, O, E>(self, func: F) -> TryMap<Self, F>
     where
         F: FnMut(Self::Output) -> std::result::Result<O, E>,
-        O: Debug + Clone + 'static,
+        O: ParserOutput,
         E: Display,
     {
         TryMap::new(self, func)

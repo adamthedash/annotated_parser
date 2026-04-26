@@ -3,6 +3,8 @@ use std::{
     ops::Range,
 };
 
+use crate::ParserOutput;
+
 #[derive(Debug)]
 pub struct Annotation {
     pub parser_id: String,
@@ -18,7 +20,7 @@ pub struct Annotation {
 pub enum AnnotationResult {
     Success {
         span: Range<usize>,
-        value: Box<dyn Debug>,
+        value: Box<dyn Debug + Send + Sync>,
     },
 
     /// Not enough data for the parser
@@ -50,7 +52,7 @@ impl Annotation {
     pub fn success(
         parser_id: impl Into<String>,
         span: Range<usize>,
-        value: impl std::fmt::Debug + 'static,
+        value: impl ParserOutput,
         children: Vec<Self>,
     ) -> Self {
         Self::new(

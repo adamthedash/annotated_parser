@@ -1,8 +1,7 @@
 use crate::parser::ParseWithResult;
 use crate::{Annotation, Parser, ParserSpec, helpers::FoldParseWithResult};
-use crate::{AnnotationMode, AnnotationReturn};
+use crate::{AnnotationMode, AnnotationReturn, ParserOutput};
 use paste::paste;
-use std::fmt::Debug;
 
 /// Tuples of parsers
 macro_rules! impl_parser_for_tuple {
@@ -115,7 +114,7 @@ impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11)
 
 /// Helper trait for interacting with tuples of parsers
 pub trait SameParserTuple<Input>: ParserTuple<Input> {
-    type Output: Debug + Clone + 'static;
+    type Output: ParserOutput;
 
     /// Call Parser::parse_with on a specific child parser
     fn parse_with(
