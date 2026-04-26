@@ -9,7 +9,14 @@ pub trait ForwardRefGet {
     type Value;
 
     /// Get a ref to the currently stored value
-    fn get(&self) -> Ref<'_, Self::Value>;
+    fn get(&self) -> Ref<'_, Self::Value> {
+        Ref::map(self.try_get(), |v| {
+            v.as_ref().expect("Value has not yet been set")
+        })
+    }
+
+    /// Get a ref to the currently stored value. Returns None if the value has not yet been set
+    fn try_get(&self) -> Ref<'_, Option<Self::Value>>;
 }
 
 pub trait ForwrdRefSet {
@@ -17,9 +24,6 @@ pub trait ForwrdRefSet {
 
     /// Set/overwrite the stored value
     fn set(&self, value: Self::Value);
-
-    /// Take the stored value, un-setting the storage
-    fn take(&self) -> Self::Value;
 }
 
 // =====================================================================
@@ -80,8 +84,8 @@ impl<T: Debug> Debug for ForwardRef<T> {
 impl<T> ForwardRefGet for ForwardRef<T> {
     type Value = T;
 
-    fn get(&self) -> Ref<'_, Self::Value> {
-        self.0.get()
+    fn try_get(&self) -> Ref<'_, Option<Self::Value>> {
+        self.0.try_get()
     }
 }
 
@@ -90,10 +94,6 @@ impl<T> ForwrdRefSet for ForwardRef<T> {
 
     fn set(&self, value: Self::Value) {
         self.0.set(value);
-    }
-
-    fn take(&self) -> Self::Value {
-        self.0.take()
     }
 }
 
@@ -118,10 +118,10 @@ impl<T> Clone for ForwardRefInner<T> {
 impl<T> ForwardRefGet for ForwardRefInner<T> {
     type Value = T;
 
-    fn get(&self) -> Ref<'_, Self::Value> {
+    fn try_get(&self) -> Ref<'_, Option<Self::Value>> {
         match self {
-            ForwardRefInner::Source(value) => value.get(),
-            ForwardRefInner::Derived(value) => value.get(),
+            ForwardRefInner::Source(value) => value.try_get(),
+            ForwardRefInner::Derived(value) => value.try_get(),
         }
     }
 }
@@ -135,14 +135,6 @@ impl<T> ForwrdRefSet for ForwardRefInner<T> {
         };
 
         val.set(value);
-    }
-
-    fn take(&self) -> Self::Value {
-        let Self::Source(val) = self else {
-            panic!("Only Source values are takeable");
-        };
-
-        val.take()
     }
 }
 
@@ -172,10 +164,8 @@ impl<T> Clone for SourceValue<T> {
 impl<T> ForwardRefGet for SourceValue<T> {
     type Value = T;
 
-    fn get(&self) -> Ref<'_, Self::Value> {
-        Ref::map(self.0.borrow(), |value| {
-            value.as_ref().expect("Value has not yet been set")
-        })
+    fn try_get(&self) -> Ref<'_, Option<Self::Value>> {
+        self.0.borrow()
     }
 }
 
@@ -184,10 +174,6 @@ impl<T> ForwrdRefSet for SourceValue<T> {
 
     fn set(&self, value: Self::Value) {
         *self.0.borrow_mut() = Some(value);
-    }
-
-    fn take(&self) -> Self::Value {
-        self.0.take().expect("Take on None")
     }
 }
 
@@ -215,14 +201,12 @@ impl<T> DerivedValue<T> {
 impl<T> ForwardRefGet for DerivedValue<T> {
     type Value = T;
 
-    fn get(&self) -> Ref<'_, Self::Value> {
+    fn try_get(&self) -> Ref<'_, Option<Self::Value>> {
         // Compute & cache
         let value = (self.func)();
         *self.value.borrow_mut() = Some(value);
 
-        Ref::map(self.value.borrow(), |value| {
-            value.as_ref().expect("Value has not yet been set")
-        })
+        self.value.borrow()
     }
 }
 
