@@ -118,6 +118,25 @@ impl Annotation {
         Some(trimmed)
     }
 
+    /// Returns a flat chain of annotations from the source upwards
+    pub fn failure_path(mut self) -> Vec<Self> {
+        if self.result.is_ok() {
+            return vec![];
+        }
+
+        let mut failures = if let Some(child_failure) =
+            self.children.drain(..).find(|child| !child.result.is_ok())
+        {
+            child_failure.failure_path()
+        } else {
+            vec![]
+        };
+
+        failures.push(self);
+
+        failures
+    }
+
     pub fn max_depth(&self) -> usize {
         1 + self
             .children
@@ -190,6 +209,30 @@ impl Annotation {
             .next()
     }
 }
+
+impl Display for Annotation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use AnnotationResult::*;
+        let (level, location, info) = match &self.result {
+            Success { span, value } => ("success", format!("{span:?}"), format!("{value:?}")),
+            Incomplete { start } => (
+                "incomplete",
+                start.to_string(),
+                "Expected more data".to_owned(),
+            ),
+            Child { start } => (
+                "child",
+                start.to_string(),
+                "A child parser failed".to_owned(),
+            ),
+            Invalid { span, reason } => ("invalid", format!("{span:?}"), reason.to_owned()),
+        };
+
+        write!(f, "[{level}] @ {location} {}, {:?}", self.parser_id, info)
+    }
+}
+
+impl std::error::Error for Annotation {}
 
 impl AnnotationResult {
     #[inline]
