@@ -1,6 +1,7 @@
-use crate::AnnotationReturn;
 use crate::helpers::FoldParseWithResult;
 use crate::parser::ParseWithResult;
+use crate::{AnnotationReturn, ForwardRefGet};
+use num_traits::AsPrimitive;
 use paste::paste;
 use std::{marker::PhantomData, mem::MaybeUninit};
 
@@ -113,6 +114,98 @@ where
         // SAFETY: All values have been populated by the parser, or the function has exited
         // Ideally could use MaybeUninit::array_assume_init, but we are on stable
         let values = values.map(|v| unsafe { v.assume_init() });
+
+        let annotation = if annotation_mode.success {
+            Annotation::success(
+                self.name(),
+                0..offset,
+                values.clone(),
+                child_annotations.unwrap(),
+            )
+            .into()
+        } else {
+            AnnotationReturn::Span(0..offset)
+        };
+
+        Ok((values, annotation))
+    }
+}
+
+pub struct SeparatedVec<P, S, C> {
+    separator: S,
+    inner: P,
+    count: C,
+}
+
+impl<P, S, C> SeparatedVec<P, S, C> {
+    pub fn new<Input>(separator: S, inner: P, count: C) -> Self
+    where
+        S: Parser<Input>,
+        P: Parser<Input>,
+        C: ForwardRefGet,
+        C::Value: AsPrimitive<usize>,
+    {
+        Self {
+            separator,
+            inner,
+            count,
+        }
+    }
+}
+
+impl<Input, P, S, C> Parser<Input> for SeparatedVec<P, S, C>
+where
+    P: Parser<Input>,
+    S: Parser<Input>,
+    C: ForwardRefGet,
+    C::Value: AsPrimitive<usize>,
+{
+    type Output = Vec<P::Output>;
+
+    fn name(&self) -> String {
+        "separated".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.separator.spec(), self.inner.spec()])
+    }
+
+    fn parse_with(
+        &mut self,
+        input: &mut Input,
+        annotation_mode: crate::AnnotationMode,
+    ) -> ParseWithResult<Self::Output> {
+        let count = self.count.get().as_();
+
+        let mut child_annotations = annotation_mode.success.then(|| Vec::with_capacity(count));
+
+        let mut values = Vec::with_capacity(count);
+        let mut offset = 0;
+
+        let mut value;
+        for i in 0..count {
+            if i > 0 {
+                (_, offset, child_annotations) =
+                    self.separator.parse_with(input, annotation_mode).fold(
+                        annotation_mode,
+                        || self.name(),
+                        child_annotations,
+                        offset,
+                        0,
+                    )?;
+            }
+
+            (value, offset, child_annotations) =
+                self.inner.parse_with(input, annotation_mode).fold(
+                    annotation_mode,
+                    || self.name(),
+                    child_annotations,
+                    offset,
+                    1,
+                )?;
+
+            values.push(value);
+        }
 
         let annotation = if annotation_mode.success {
             Annotation::success(

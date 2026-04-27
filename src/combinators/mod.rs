@@ -29,7 +29,7 @@ pub use optional::Opt;
 pub use parameterize::{ParameterInput, Parameterize, Parameters};
 pub use preceded::Preceded;
 pub use repeat::{RepeatArray, RepeatVec};
-pub use separated::{SeparatedArray, SeparatedTuple};
+pub use separated::{SeparatedArray, SeparatedTuple, SeparatedVec};
 pub use store::Store;
 pub use surrounded::{Surrounded, SurroundedSymmetrical};
 pub use take_till::{TakeTillExc, TakeTillInc};

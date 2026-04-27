@@ -2,7 +2,7 @@ use num_traits::AsPrimitive;
 
 use crate::combinators::{
     Configured, Configuring, Dispatch, Many, ParameterInput, Parameterize, Parameters, ParserTuple,
-    Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, Surrounded,
+    Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, SeparatedVec, Surrounded,
     SurroundedSymmetrical, Terminated, TraceOpaque,
 };
 use crate::{ForwardRefGet, ParserOutput};
@@ -163,7 +163,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         self.verify(|values| !values.is_empty())
     }
 
-    fn separated<const N: usize, S>(
+    fn separated_arr<const N: usize, S>(
         self,
         separator: S,
     ) -> SeparatedArray<Self, S, [Self::Output; N]>
@@ -171,6 +171,15 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         S: Parser<Input>,
     {
         SeparatedArray::new(separator, self)
+    }
+
+    fn separated_vec<S, C>(self, separator: S, count: C) -> SeparatedVec<Self, S, C>
+    where
+        S: Parser<Input>,
+        C: ForwardRefGet,
+        C::Value: AsPrimitive<usize>,
+    {
+        SeparatedVec::new(separator, self, count)
     }
 
     fn separated_tuple<S>(self, separator: S) -> SeparatedTuple<S, Self>
