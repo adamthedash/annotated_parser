@@ -164,6 +164,18 @@ where
     }
 }
 
+impl<Input, P> StoringParser<Input> for TraceOpaque<P>
+where
+    P: StoringParser<Input>,
+{
+    type Value = P::Value;
+    type Ref = P::Ref;
+
+    fn output(&self) -> Self::Ref {
+        self.inner.output()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
