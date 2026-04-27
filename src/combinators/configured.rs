@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, StoringParser,
     combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
@@ -136,5 +136,19 @@ where
         let res = self.inner.parse_with(input, annotation_mode)?;
         (self.configurator)();
         Ok(res)
+    }
+}
+
+impl<Input, P, F> StoringParser<Input> for Configuring<P, F>
+where
+    P: StoringParser<Input>,
+    F: Fn(),
+{
+    type Value = P::Value;
+
+    type Ref = P::Ref;
+
+    fn output(&self) -> Self::Ref {
+        self.inner.output()
     }
 }
