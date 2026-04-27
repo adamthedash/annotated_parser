@@ -7,7 +7,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
     type Output = &'static [u8; N];
 
     fn name(&self) -> String {
-        format!("literal({:?})", self)
+        format!("literal({:x?})", self)
     }
 
     fn spec(&self) -> crate::ParserSpec {
@@ -28,7 +28,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
                     Annotation::invalid(
                         self.name(),
                         0..N,
-                        format!("Expected {self:?}, found {:?}", &input[..N]),
+                        format!("Expected {self:x?}, found {:x?}", &input[..N]),
                         vec![],
                     )
                 };
