@@ -1,9 +1,16 @@
 use std::{
+    any::Any,
+    boxed::Box,
     fmt::{Debug, Display},
+    marker::{Send, Sync},
     ops::Range,
+    option::Option,
 };
 
 use crate::ParserOutput;
+
+pub trait DebugObject: Debug + Any + Send + Sync {}
+impl<T> DebugObject for T where T: Debug + Any + Send + Sync {}
 
 #[derive(Debug)]
 pub struct Annotation {
@@ -20,7 +27,7 @@ pub struct Annotation {
 pub enum AnnotationResult {
     Success {
         span: Range<usize>,
-        value: Box<dyn Debug + Send + Sync>,
+        value: Box<dyn DebugObject>,
     },
 
     /// Not enough data for the parser
@@ -260,6 +267,19 @@ impl AnnotationResult {
             }
             Incomplete { start } | Child { start } => *start += offset,
         }
+    }
+
+    /// Get a reference to the annotated value
+    pub fn get_value_as<T: 'static>(&self) -> Option<&T> {
+        let AnnotationResult::Success { value, .. } = self else {
+            return None;
+        };
+
+        // Attempt to cast to T
+        let value = value.as_ref() as &dyn Any;
+        let value = value.downcast_ref()?;
+
+        Some(value)
     }
 }
 
