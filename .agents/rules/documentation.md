@@ -1,41 +1,81 @@
-# Parser-Level Documentation
+# Documentation Guidelines
 
-## Scope
+## General Principle
 
-- Add `///` doc comments **only on parser structs** (the types that implement `Parser`).
-- This includes both **leaf parsers** (`src/parsers/`) and **combinator structs** (`src/combinators/`).
-- Do not add module-level docs, file-level docs, or README updates unless explicitly requested.
+Every public item (`pub`) gets a `///` doc comment unless explicitly excluded.
+Documentation should be concise but informative — one sentence for simple items,
+a short paragraph for complex ones. Cross-reference related items with `[]`
+links.
 
-## Content
+## What Gets Documented
 
-Each parser struct doc comment should contain:
+### Traits
+Explain the trait's purpose, who implements it, and why a user would care.
+Include a `# Example` block on the trait itself if it is a primary user-facing
+API (e.g. `ByteParser`). Document all associated types and constants.
 
-1. **A short description** (2–3 sentences) of what the parser does, what it consumes, and when it fails.
-2. **One minimal usage example** in a `/// ```rust` (or `/// ```ignore` for nightly-only code) block showing how to call the parser.
+### Structs
+- **Description**: 2–3 sentences of what the parser does, what it consumes, and
+  when it fails.
+- **Example**: One minimal usage example in a `/// ```rust` (or `/// ```ignore`
+  for nightly-only code) block showing how to call the parser.
+- **Combinator pairs**: For combinators designed to work in tandem (e.g.
+  `Configured` + `Configuring`), the example should show the **complete
+  real-world pattern**, not an isolated example.
 
-## Example Style
+### Enums
+Describe the enum's purpose and document each variant with its meaning.
 
-```rust
-/// Parse a value from its little-endian byte representation.
-///
-/// Consumes exactly `N` bytes from the input and interprets them as a little-endian
-/// value of type `T`, where `N` is the byte size of `T`. Fails if the input is too short.
-///
-/// # Example
-///
-/// ```
-/// use annotated_parser::prelude::*;
-/// use annotated_parser::parsers::byte::ByteParser;
-///
-/// let mut input = &[0x01, 0x00, 0x00, 0x00][..];
-/// let (value, _) = u32::LE.parse(&mut input).unwrap();
-/// assert_eq!(value, 1);
-/// ```
-```
+### Type Aliases
+Describe what the alias represents and when it is used. Note if it is
+public-facing for custom parser authors (e.g. `ParseWithResult`).
 
-## Macro Doc Tests
+### Fields and Variants
+Briefly describe what the field or variant holds.
 
-If the parser is generated inside a `macro_rules!` macro, macro metavariables like `$name` are **not expanded** inside `///` doc test blocks. Use `#[doc = concat!(...)]` with `stringify!` instead:
+### Constants
+Briefly describe the value and when it applies.
+
+### Associated Types
+Describe what the type represents in the trait's context.
+
+### Module-Level Docs (`//!`)
+Explain the module's purpose at a high level. Point to the primary entry points
+for users. Mention `impl Parser` types that are not re-exported as structs (e.g.
+`&[u8; N]`, `&str`). Defer to item-level docs for details. No examples at the
+module level.
+
+## What Does NOT Get Documented
+
+- `impl` blocks (e.g. `impl Parser for Box<P>`, `impl Parser for &mut P`,
+  `impl From<<Annotation> for AnnotationReturn`).
+- Private helpers, macro internals, or macro-generated tuple parser
+  implementations (e.g. `impl Parser for (A, B, C)`).
+- Module re-export lines (cargo doc handles this automatically).
+
+## Documentation Style by Category
+
+### Trait Methods
+For methods that are primarily convenience wrappers (e.g. `ParserAdapter`
+methods), use a one-liner + `See [Struct] for more info.` pattern.
+
+### Core Traits
+For foundational traits (e.g. `Parser`), provide a comprehensive trait-level doc
+explaining the trait's role, key concepts, and entry points. Document each
+method's behavior and any default implementation.
+
+### Parser Structs
+Follow the **Structs** section above. Use public re-exports in examples.
+
+### Internal-But-Public Types
+Types like `AnnotationReturn` and `ParseWithResult` are documented as
+public-facing API for custom parser authors, not just as internal types.
+
+## Doc Test Conventions
+
+- Use `/// ```rust` blocks (or `/// ```ignore` for nightly-only code).
+- Always import via `annotated_parser::prelude::*` and public re-exports.
+- For macro-generated parsers, use `#[doc = concat!(...)]` with `stringify!`:
 
 ```rust
 #[doc = concat!(
@@ -54,22 +94,8 @@ If the parser is generated inside a `macro_rules!` macro, macro metavariables li
 )]
 ```
 
-## What Not to Document
+## Cross-References
 
-- Do not add `///` docs to private helpers, macro internals, or traits.
-- Do not change the `parsers/mod.rs` re-export structure.
-- Do not add module-level or crate-level docs.
-- Skip macro-generated tuple parser implementations (e.g., `impl Parser for (A, B, C)`).
-
-## Import Rules
-
-- Always use public re-exports when creating doc test examples, as this is what the user reading the documentation will use.
-
-## Complex Combinators
-
-Some combinators are designed to work in tandem (e.g., `Configured` + `Configuring`). For these, the doc example should show the **complete real-world pattern**, not an isolated example.
-
-- `Configured` + `Configuring`: Show a version flag parsed once, followed by optional data configured by that flag.
-- `Dispatch`: Show a version tag dispatching to different parsers based on a mapped discriminant.
-- `Parameterize`: Show a list of parameters (e.g., chunk sizes) driving repeated parser execution.
-
+Use `[]` for intra-doc links (e.g. `[Parser::parse]`, `[ByteParser]`,
+`[AnnotationMode]`). Reference related structs from trait methods and vice
+versa.
