@@ -2,12 +2,54 @@ use std::ops::Range;
 
 use crate::{Annotation, AnnotationMode, AnnotationResult, AnnotationReturn};
 
+/// Accumulate the result of a child parser into the parent context.
+///
+/// This trait is implemented on [`ParseWithResult`](crate::parser::ParseWithResult)
+/// and can be used to reduce boilerplate associated with the bookkeeping of byte
+/// offsets, child annotations, and failure propagation.
+///
+/// When implementing a custom combinator, you call `parse_with` on each child
+/// parser and then `.fold()` on the result to update the consumed offset and
+/// collect child annotations (in success mode) or wrap child failures into a
+/// `Child` annotation (in fail mode).
+///
+/// # Example
+///
+/// In a custom combinator, you would typically call `parse_with` on each child
+/// and then `.fold()` to accumulate the results:
+///
+/// ```rust ignore
+/// // Parser::parse_with(...) {
+///     let mut child_annotations = mode.success.then(Vec::new);
+///     let mut offset = 0;
+///
+///     // Run the inner parser and accumulate its result
+///     let value;
+///     (value, offset, child_annotations) = u8::LE
+///         .parse_with(input, mode)
+///         .fold(mode, || self.name(), child_annotations, offset, 0)?;
+///
+///     // Rest of parse_with body...
+/// // }
+/// ```
 pub trait FoldParseWithResult<T, P, S>
 where
     P: FnOnce() -> S,
     S: Into<String>,
 {
-    /// Accumulate the result of this parser into the surrounding context
+    /// Accumulate the result of this parser into the surrounding context.
+    ///
+    /// Returns the parsed value, the updated byte offset, and the accumulated child
+    /// annotations on success. On failure, returns an `AnnotationReturn` that is
+    /// either a `Child` annotation (in fail mode) or an unannotated start offset.
+    ///
+    /// # Parameters
+    ///
+    /// - `annotation_mode`: Controls whether success and failure paths are annotated.
+    /// - `parent_name`: Closure returning the parent parser's name for failure annotations.
+    /// - `child_annotations`: Optional vector of already collected child annotations.
+    /// - `offset`: Current byte offset into the input.
+    /// - `child_index`: Index of this child within the parent parser spec.
     fn fold(
         self,
         annotation_mode: AnnotationMode,
