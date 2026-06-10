@@ -1,3 +1,4 @@
+use num_traits::{PrimInt, Unsigned};
 use paste::paste;
 use std::{
     cell::{Ref, RefCell},
@@ -64,6 +65,14 @@ impl<T: 'static> ForwardRef<T> {
             let out = func(value);
             Some(out)
         })
+    }
+
+    /// Check if the given bit is 1
+    pub fn bitflag(&self, bit: usize) -> ForwardRef<bool>
+    where
+        T: PrimInt + Unsigned,
+    {
+        self.map(move |flags| (*flags >> bit) & T::one() == T::one())
     }
 }
 
