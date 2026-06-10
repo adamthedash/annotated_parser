@@ -15,9 +15,14 @@ use crate::{AnnotationMode, Parser, ParserSpec};
 /// use annotated_parser::ByteParser;
 ///
 /// let mut parser = u8::LE.store();
+/// let output = parser.output();
+/// assert_eq!(*output.try_get(), None);
+///
 /// let mut input = &[1_u8][..];
 /// let (value, _) = parser.parse(&mut input).unwrap();
 /// assert_eq!(value, 1);
+/// assert_eq!(*output.try_get(), Some(1));
+/// assert_eq!(*output.get(), 1);
 /// ```
 pub struct Store<I, O> {
     inner: I,

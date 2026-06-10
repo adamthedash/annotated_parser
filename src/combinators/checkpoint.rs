@@ -4,7 +4,6 @@ use crate::{AnnotationMode, Parser, ParserSpec, combinators::store::StoringParse
 ///
 /// Wraps a parser and saves the input state before running it.
 /// If the inner parser fails, the input is restored to its original position.
-/// Requires `Input: Copy`.
 ///
 /// # Example
 ///
@@ -81,7 +80,6 @@ where
 ///
 /// Wraps a parser and restores the input position in all cases.
 /// Succeeds or fails just like the inner parser, but never consumes input.
-/// Requires `Input: Copy`.
 ///
 /// # Example
 ///
