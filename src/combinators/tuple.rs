@@ -80,9 +80,13 @@ impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
 impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
 impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
 
-/// Marker trait for tuples of parsers
+/// A marker trait for tuples of parsers.
+///
+/// Implemented for tuples of up to 12 parsers. Provides a way to collect
+/// `ParserSpec`s from all parsers in the tuple without needing to know
+/// the tuple arity at the call site.
 pub trait ParserTuple<Input> {
-    /// Call Parser::spec on all child parsers
+    /// Collect `ParserSpec`s from all parsers in the tuple.
     fn specs(&self) -> Vec<ParserSpec>;
 }
 
@@ -112,11 +116,21 @@ impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9);
 impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10);
 impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11);
 
-/// Helper trait for interacting with tuples of parsers
+/// A trait for tuples of parsers that all produce the same output type.
+///
+/// This is used by combinators like [`Dispatch`](crate::combinators::Dispatch)
+/// which need to select one parser from a tuple by index, and all alternatives
+/// must have a compatible output type.
+///
+/// Implemented for tuples of up to 12 parsers where every element has the same
+/// `Output` type.
 pub trait SameParserTuple<Input>: ParserTuple<Input> {
+    /// The common output type of all parsers in the tuple.
     type Output: ParserOutput;
 
-    /// Call Parser::parse_with on a specific child parser
+    /// Run a specific child parser by index.
+    ///
+    /// Returns `None` if the index is out of bounds.
     fn parse_with(
         &mut self,
         input: &mut Input,
