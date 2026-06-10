@@ -15,7 +15,7 @@ use crate::{
 ///
 /// This is designed to be used with [`Configuring`]: a value is parsed once,
 /// the parser is configured based on that value, and then the configured parser
-/// is applied repeatedly. Unlike [`Cond`], the condition is checked once after
+/// is applied repeatedly. Unlike [`Cond`](crate::combinators::Cond), the condition is checked once after
 /// the value is read, making it efficient for repeated application.
 ///
 /// # Example
@@ -131,7 +131,7 @@ where
 ///
 /// The configurator is run after the inner parser succeeds.
 /// This is typically used with [`Configured`] to set up flags after a value is parsed.
-/// The key difference from [`Cond`] is that the condition is evaluated once after parsing,
+/// The key difference from [`Cond`](crate::combinators::Cond) is that the condition is evaluated once after parsing,
 /// making it efficient for repeated application of the configured parser.
 ///
 /// # Example

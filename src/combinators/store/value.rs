@@ -45,7 +45,7 @@ pub trait ForwrdRefSet {
 ///
 /// `ForwardRef` is the core of the forward-reference system. It is used to
 /// pass values from one parser to another without needing to know the parse
-/// order at compile time. Values are typically set by [`Store`] and read by
+/// order at compile time. Values are typically set by [`Store`](super::Store) and read by
 /// combinators like [`Cond`](crate::combinators::Cond), [`RepeatVec`](crate::combinators::RepeatVec), and [`Dispatch`](crate::combinators::Dispatch).
 ///
 /// There are two kinds:
