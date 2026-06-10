@@ -6,7 +6,21 @@ use crate::{
     Annotation, AnnotationReturn, Parser, ParserOutput, ParserSpec, parser::ParseWithResult,
 };
 
-/// Little-endian parser for types which can be directly interpreted from a byte array
+/// Parse a value from its little-endian byte representation.
+///
+/// Consumes exactly `N` bytes from the input and interprets them as a little-endian
+/// value of type `T`, where `N` is the byte size of `T`. Fails if the input is too short.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::byte::ByteParser;
+///
+/// let mut input = &[0x01, 0x00, 0x00, 0x00][..];
+/// let (value, _) = u32::LE.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 #[derive(Clone)]
 pub struct LE<T>(PhantomData<T>);
 
@@ -58,7 +72,21 @@ where
     }
 }
 
-/// Big-endian parser for types which can be directly interpreted from a byte array
+/// Parse a value from its big-endian byte representation.
+///
+/// Consumes exactly `N` bytes from the input and interprets them as a big-endian
+/// value of type `T`, where `N` is the byte size of `T`. Fails if the input is too short.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::byte::ByteParser;
+///
+/// let mut input = &[0x00, 0x00, 0x00, 0x01][..];
+/// let (value, _) = u32::BE.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 #[derive(Clone)]
 pub struct BE<T>(PhantomData<T>);
 

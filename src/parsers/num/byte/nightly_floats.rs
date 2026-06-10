@@ -1,5 +1,19 @@
 use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserSpec};
 
+/// Parse a half-precision float from its little-endian byte representation.
+///
+/// Consumes 2 bytes and interprets them as a little-endian `f16`.
+/// Fails if the input is shorter than 2 bytes.
+///
+/// # Example
+///
+/// ```ignore
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::byte::F16LE;
+///
+/// let mut input = &[0x00, 0x3C][..];
+/// let (value, _) = F16LE.parse(&mut input).unwrap();
+/// ```
 #[derive(Clone)]
 pub struct F16LE;
 
@@ -46,6 +60,20 @@ impl Parser<&[u8]> for F16LE {
     }
 }
 
+/// Parse a half-precision float from its big-endian byte representation.
+///
+/// Consumes 2 bytes and interprets them as a big-endian `f16`.
+/// Fails if the input is shorter than 2 bytes.
+///
+/// # Example
+///
+/// ```ignore
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::byte::F16BE;
+///
+/// let mut input = &[0x3C, 0x00][..];
+/// let (value, _) = F16BE.parse(&mut input).unwrap();
+/// ```
 #[derive(Clone)]
 pub struct F16BE;
 

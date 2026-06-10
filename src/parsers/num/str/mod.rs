@@ -7,6 +7,24 @@ use crate::{Annotation, Parser, ParserSpec};
 macro_rules! impl_uint_parser {
     ($($name:ident => $ty:ty),* $(,)?) => {
         $(
+            /// Parse an unsigned integer from its string representation.
+            ///
+            /// Consumes consecutive ASCII digits and returns the corresponding value.
+            /// Fails if the input is empty or the number overflows the target type.
+            ///
+            /// # Example
+            ///
+            #[doc = concat!(
+                "```\n",
+                "use annotated_parser::prelude::*;\n",
+                "use annotated_parser::parsers::str::", stringify!($name), ";\n",
+                "\n",
+                "let mut input = \"42\";\n",
+                "let (value, _) = ", stringify!($name), ".parse(&mut input).unwrap();\n",
+                "assert_eq!(value, 42);\n",
+                "assert_eq!(input, \"\");\n",
+                "```"
+            )]
             pub struct $name;
 
             impl Parser<&str> for $name {
@@ -87,6 +105,24 @@ impl_uint_parser! {
 macro_rules! impl_int_parser {
     ($($name:ident => $ty:ty),* $(,)?) => {
         $(
+            /// Parse a signed integer from its string representation.
+            ///
+            /// Consumes an optional leading `-` followed by ASCII digits and returns the corresponding value.
+            /// Fails if the input is empty, contains only a sign, or the number overflows the target type.
+            ///
+            /// # Example
+            ///
+            #[doc = concat!(
+                "```\n",
+                "use annotated_parser::prelude::*;\n",
+                "use annotated_parser::parsers::str::", stringify!($name), ";\n",
+                "\n",
+                "let mut input = \"-42\";\n",
+                "let (value, _) = ", stringify!($name), ".parse(&mut input).unwrap();\n",
+                "assert_eq!(value, -42);\n",
+                "assert_eq!(input, \"\");\n",
+                "```"
+            )]
             pub struct $name;
 
             impl Parser<&str> for $name {
@@ -173,6 +209,23 @@ impl_int_parser! {
 macro_rules! impl_float_parser {
     ($($name:ident => $ty:ty),* $(,)?) => {
         $(
+            /// Parse a floating-point number from its string representation.
+            ///
+            /// Consumes an optional leading `-`, digits, an optional decimal point, and more digits.
+            /// Fails if the input does not match a valid float format.
+            ///
+            /// # Example
+            ///
+            #[doc = concat!(
+                "```\n",
+                "use annotated_parser::prelude::*;\n",
+                "use annotated_parser::parsers::str::", stringify!($name), ";\n",
+                "\n",
+                "let mut input = \"-1.5\";\n",
+                "let (value, _) = ", stringify!($name), ".parse(&mut input).unwrap();\n",
+                "assert_eq!(input, \"\");\n",
+                "```"
+            )]
             pub struct $name;
 
             impl Parser<&str> for $name {

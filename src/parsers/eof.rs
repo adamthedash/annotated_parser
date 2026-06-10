@@ -1,5 +1,18 @@
 use crate::{Annotation, AnnotationMode, AnnotationReturn, ParseWithResult, Parser, ParserSpec};
 
+/// A parser that succeeds only when the input has been fully consumed.
+///
+/// Fails if any data remains. Works with both `&[u8]` and `&str` inputs.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::EoF;
+///
+/// let mut input = "";
+/// let (_, _) = EoF.parse(&mut input).unwrap();
+/// ```
 pub struct EoF;
 
 impl Parser<&[u8]> for EoF {

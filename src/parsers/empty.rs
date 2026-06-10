@@ -1,6 +1,19 @@
 use crate::{Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult};
 
-/// Always succeeds, consumes nothing
+/// A parser that always succeeds without consuming any input.
+///
+/// Useful as a no-op or identity element in parser combinators.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::Empty;
+///
+/// let mut input = &[1, 2, 3][..];
+/// let (_, _) = Empty.parse(&mut input).unwrap();
+/// assert_eq!(input, &[1, 2, 3]);
+/// ```
 pub struct Empty;
 
 impl<Input> Parser<Input> for Empty {

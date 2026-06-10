@@ -8,7 +8,21 @@ pub use nightly_floats::{F16BE, F16LE};
 
 use crate::{Annotation, AnnotationReturn, Parser, ParserSpec};
 
-/// 0 or 1 stored in u8
+/// Parse a boolean value from a single byte.
+///
+/// Expects `0` for `false` and `1` for `true`. Any other byte value is an error.
+/// Fails if the input is empty.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::byte::Bool;
+///
+/// let mut input = &[1_u8][..];
+/// let (value, _) = Bool.parse(&mut input).unwrap();
+/// assert_eq!(value, true);
+/// ```
 #[derive(Clone)]
 pub struct Bool;
 
