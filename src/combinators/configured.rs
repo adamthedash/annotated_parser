@@ -10,11 +10,41 @@ use crate::{
 
 /// A parser that can be externally enabled or disabled.
 ///
-/// The parser is only executed when the internal `AtomicBool` is `true`.
 /// Use `configure_with` to create a closure that updates the flag from a `ForwardRef`.
 /// If disabled, returns `None` without consuming input.
 ///
-/// This is useful for feature-gated or runtime-configurable parser sections.
+/// This is designed to be used with [`Configuring`]: a value is parsed once,
+/// the parser is configured based on that value, and then the configured parser
+/// is applied repeatedly. Unlike [`Cond`], the condition is checked once after
+/// the value is read, making it efficient for repeated application.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::{Configured, Configuring};
+/// use annotated_parser::combinators::Store;
+/// use annotated_parser::ByteParser;
+///
+/// let version = u8::LE.store();
+///
+/// // Only present when version >= 1
+/// let extra = Configured::new(u8::LE);
+/// let configure_extra = extra.configure_with(
+///     version.output().map(|v| *v >= 1)
+/// );
+///
+/// // Configure extra after the version is read
+/// let version = Configuring::new(version, || {
+///     configure_extra();
+/// });
+///
+/// let mut parser = (version, extra);
+/// let mut input = &[1, 42][..];
+/// let ((ver, ext), _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(ver, 1);
+/// assert_eq!(ext, Some(42));
+/// ```
 pub struct Configured<P> {
     enabled: Arc<AtomicBool>,
     inner: P,
@@ -99,10 +129,38 @@ where
 
 /// Run a parser, then execute a side-effect closure.
 ///
-/// Applies the inner parser normally, then runs the configurator function.
-/// This is useful for one-off configuration of future parsers after a value has been parsed.
+/// The configurator is run after the inner parser succeeds.
+/// This is typically used with [`Configured`] to set up flags after a value is parsed.
+/// The key difference from [`Cond`] is that the condition is evaluated once after parsing,
+/// making it efficient for repeated application of the configured parser.
 ///
-/// The configurator is run after parsing, so it can inspect or set up state based on the result.
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::{Configured, Configuring};
+/// use annotated_parser::combinators::Store;
+/// use annotated_parser::ByteParser;
+///
+/// let version = u8::LE.store();
+///
+/// // Only present when version >= 1
+/// let extra = Configured::new(u8::LE);
+/// let configure_extra = extra.configure_with(
+///     version.output().map(|v| *v >= 1)
+/// );
+///
+/// // Configure extra after the version is read
+/// let version = Configuring::new(version, || {
+///     configure_extra();
+/// });
+///
+/// let mut parser = (version, extra);
+/// let mut input = &[1, 42][..];
+/// let ((ver, ext), _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(ver, 1);
+/// assert_eq!(ext, Some(42));
+/// ```
 pub struct Configuring<P, F> {
     inner: P,
     configurator: F,

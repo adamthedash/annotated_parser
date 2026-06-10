@@ -7,11 +7,40 @@ use crate::{Annotation, Parser, ParserSpec, combinators::store::ForwardRefGet};
 
 /// Select a parser from a tuple by index.
 ///
-/// The discriminant is a `ForwardRefGet<Option<usize>>` that determines which parser in the tuple to run.
 /// If the discriminant is `None` or out of bounds, the parser fails.
 /// All parsers in the tuple must have the same output type.
 ///
 /// This is useful for union-type or tagged-union parsing where the tag determines the variant.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Dispatch;
+/// use annotated_parser::combinators::Store;
+/// use annotated_parser::ByteParser;
+///
+/// let version = u8::LE.store();
+/// let value = Dispatch::new(
+///     version.output().map(|v| {
+///         match v {
+///             0..5 => Some(0),
+///             5..10 => Some(1),
+///             _ => None,
+///         }
+///     }),
+///     (
+///         u8::LE.map(|x| x as u16),
+///         u16::LE,
+///     ),
+/// );
+///
+/// let mut parser = (version, value);
+/// let mut input = &[0, 42][..];
+/// let ((ver, val), _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(ver, 0);
+/// assert_eq!(val, 42);
+/// ```
 pub struct Dispatch<D, P> {
     discriminant: D,
     parsers: P,

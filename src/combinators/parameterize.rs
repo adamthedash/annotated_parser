@@ -148,6 +148,23 @@ impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,);
 ///
 /// This is useful for running the same parser shape with varying arguments,
 /// such as different expected magic numbers or lengths.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Parameterize;
+/// use annotated_parser::ForwardRef;
+/// use annotated_parser::parsers::TakeVec;
+///
+/// let params = ForwardRef::with_value(vec![2usize, 3, 1]);
+/// let slot = ForwardRef::new_source();
+/// let mut chunks = Parameterize::new(params, slot.clone(), TakeVec::new(slot));
+///
+/// let mut input = &[10, 11, 20, 21, 22, 30][..];
+/// let (chunks, _) = chunks.parse(&mut input).unwrap();
+/// assert_eq!(chunks, vec![vec![10, 11], vec![20, 21, 22], vec![30]]);
+/// ```
 pub struct Parameterize<S, V, P> {
     parameters: V,
     parameter_input: S,
