@@ -6,44 +6,67 @@ use std::{
     rc::Rc,
 };
 
+/// Read access to a lazily-populated value.
+///
+/// Implementors provide a `try_get` method that returns `None` if the value
+/// has not been set yet. This is the read-side of the forward-reference system.
 pub trait ForwardRefGet {
+    /// Type of the stored value.
     type Value;
 
-    /// Get a ref to the currently stored value
+    /// Get a reference to the currently stored value.
+    ///
+    /// Panics if the value has not yet been set.
     fn get(&self) -> Ref<'_, Self::Value> {
         Ref::map(self.try_get(), |v| {
             v.as_ref().expect("Value has not yet been set")
         })
     }
 
-    /// Get a ref to the currently stored value. Returns None if the value has not yet been set
+    /// Get a reference to the currently stored value, or `None` if not yet set.
     fn try_get(&self) -> Ref<'_, Option<Self::Value>>;
 }
 
+/// Write access to a forward-reference value.
+///
+/// Implementors provide a `set` method to populate the value. This is the
+/// write-side of the forward-reference system.
 pub trait ForwrdRefSet {
+    /// Type of the stored value.
     type Value;
 
-    /// Set/overwrite the stored value
+    /// Set or overwrite the stored value.
     fn set(&self, value: Self::Value);
 }
 
 // =====================================================================
 
+/// A shared, lazily-initialised value that can be read before it is written.
+///
+/// `ForwardRef` is the core of the forward-reference system. It is used to
+/// pass values from one parser to another without needing to know the parse
+/// order at compile time. Values are typically set by [`Store`] and read by
+/// combinators like [`Cond`](crate::combinators::Cond), [`RepeatVec`](crate::combinators::RepeatVec), and [`Dispatch`](crate::combinators::Dispatch).
+///
+/// There are two kinds:
+/// - **Source**: set directly by a parser, created via `new_source()` or `with_value()`.
+/// - **Derived**: computed from other `ForwardRef`s, created via `new_derived()` or `map()`.
 pub struct ForwardRef<T>(ForwardRefInner<T>);
 
 impl<T: 'static> ForwardRef<T> {
-    /// Create a new uninitialised source value
+    /// Create a new uninitialised source value.
     pub fn new_source() -> Self {
         Self(ForwardRefInner::Source(SourceValue::default()))
     }
 
-    /// Create a new source value initialised with the given value
+    /// Create a new source value initialised with the given value.
     pub fn with_value(value: T) -> Self {
         Self(ForwardRefInner::Source(SourceValue::with_value(value)))
     }
 
-    /// Create a new derived value with the given value generation function
-    /// Function should return None if value cannot be generated
+    /// Create a new derived value with the given value generation function.
+    ///
+    /// The function should return `None` if the value cannot be generated.
     pub fn new_derived<F>(func: F) -> Self
     where
         F: Fn() -> Option<T> + 'static,
@@ -51,7 +74,7 @@ impl<T: 'static> ForwardRef<T> {
         Self(ForwardRefInner::Derived(Rc::new(DerivedValue::new(func))))
     }
 
-    /// Create a new derived value by mapping the value of this one
+    /// Create a new derived value by mapping the value of this one.
     pub fn map<F, O>(&self, func: F) -> ForwardRef<O>
     where
         F: Fn(&T) -> O + 'static,
@@ -67,7 +90,7 @@ impl<T: 'static> ForwardRef<T> {
         })
     }
 
-    /// Check if the given bit is 1
+    /// Check if the given bit is set.
     pub fn bitflag(&self, bit: usize) -> ForwardRef<bool>
     where
         T: PrimInt + Unsigned,
@@ -227,20 +250,24 @@ impl<T> ForwardRefGet for DerivedValue<T> {
 
 // =====================================================================
 
-/// Tuples of ForwardRef's
+/// Tuple of `ForwardRef`s that can be read together.
+///
+/// Implemented for tuples of `ForwardRef` so that multiple references can be
+/// dereferenced in a single call. Also provides `map()` for combining multiple
+/// references into a derived value.
 pub trait ForwardRefTuple {
-    /// Tuple of references
+    /// Tuple of references to the stored values.
     type Ref<'a>
     where
         Self: 'a;
 
-    /// ForwardRef::get on all
+    /// Get all references. Panics if any value has not yet been set.
     fn get_tuple(&self) -> Self::Ref<'_>;
 
-    /// ForwardRef::try_get on all. If any are None then this is None
+    /// Get all references, returning `None` if any value has not yet been set.
     fn try_get_tuple(&self) -> Option<Self::Ref<'_>>;
 
-    /// New derived value with |(&V1, &V2, ...)| -> O applied
+    /// Create a derived `ForwardRef` by applying a function to all references.
     fn map<F, O>(self, func: F) -> ForwardRef<O>
     where
         F: Fn(Self::Ref<'_>) -> O + 'static,
