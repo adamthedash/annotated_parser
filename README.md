@@ -15,6 +15,8 @@ This library provides parser combinators that produce inspectable execution trac
 
 ## Quick start
 
+### Parsing
+
 ```rust
 use annotated_parser::prelude::*;
 use annotated_parser::parsers::byte::ByteParser;
@@ -34,7 +36,7 @@ assert_eq!(input, " world");
 assert_eq!(chars_consumed, 5);
 ```
 
-Combinators compose via `ParserAdapter` methods:
+### Combinators
 
 ```rust
 use annotated_parser::prelude::*;
@@ -44,6 +46,69 @@ let mut parser = (u32::LE, u32::LE).map(|(a, b)| a + b);
 let mut input = &[0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00][..];
 let (value, _) = parser.parse(&mut input).unwrap();
 assert_eq!(value, 3);
+```
+
+### Inspecting structure
+
+Every parser exposes its static structure via `spec()` without running on any data:
+
+```rust
+use annotated_parser::prelude::*;
+
+let parser = ("hello", "world").separated_tuple(" ").trace("greeting");
+println!("{}", parser.spec());
+```
+
+Output:
+
+```
+separated_tuple @ greeting
+|literal(" ")
+|literal("hello")
+|literal("world")
+```
+
+### Tracing execution
+
+`annotate()` collects a full tree of every parser's outcome:
+
+```rust
+use annotated_parser::prelude::*;
+
+let mut parser = "a".then_ignore("b");
+let mut input = "aa";
+let annotation = parser.annotate(&mut input).into_annotation();
+
+println!("{:#?}", annotation);
+```
+
+Output (simplified for brevity):
+
+```
+Annotation {
+    parser_id: "terminated",
+    children: [
+        Annotation {
+            parser_id: "literal(a)",
+            child_index: 0,
+            result: Success {
+                span: 0..1,
+                value: "a",
+            },
+        },
+        Annotation {
+            parser_id: "literal(b)",
+            child_index: 1,
+            result: Invalid {
+                span: 1..2,
+                reason: "Expected "b", found "a"",
+            },
+        },
+    ],
+    result: Child {
+        start: 0,
+    },
+}
 ```
 
 ## Core concepts
