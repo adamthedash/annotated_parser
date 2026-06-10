@@ -138,11 +138,30 @@ where
     }
 }
 
+/// Provides little-endian and big-endian byte parsers for a type.
+///
+/// Implemented automatically for types that implement `FromBytes` (from `num_traits`).
+/// Use the constants `LE` and `BE` to get the parsers.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::byte::ByteParser;
+///
+/// let mut input = &[0x01, 0x00, 0x00, 0x00][..];
+/// let (value, _) = u32::LE.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 pub trait ByteParser: Sized {
+    /// The little-endian parser for this type.
     type LEParser;
+    /// The big-endian parser for this type.
     type BEParser;
 
+    /// Little-endian parser instance.
     const LE: Self::LEParser;
+    /// Big-endian parser instance.
     const BE: Self::BEParser;
 }
 
