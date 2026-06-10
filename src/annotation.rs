@@ -12,35 +12,55 @@ use crate::ParserOutput;
 pub trait DebugObject: Debug + Any + Send + Sync {}
 impl<T> DebugObject for T where T: Debug + Any + Send + Sync {}
 
+/// A node in the parse annotation tree.
+///
+/// Each `Annotation` represents the outcome of a single parser. Annotations form a
+/// hierarchy mirroring the parser structure, making the full parse trace inspectable.
 #[derive(Debug)]
 pub struct Annotation {
+    /// Name or identifier of the parser that produced this annotation.
     pub parser_id: String,
     /// If this annotation is the child of another, this is the index of it within the parent
-    /// parser spec
+    /// parser spec.
     pub child_index: Option<usize>,
+    /// Child annotations from nested parsers.
     pub children: Vec<Annotation>,
+    /// Outcome of this parse attempt.
     pub result: AnnotationResult,
+    /// Whether `materialize()` has been called to update spans and parser IDs.
     materialized: bool,
 }
 
+/// Outcome of running a parser.
 #[derive(Debug)]
 pub enum AnnotationResult {
+    /// The parser matched input and produced a value.
     Success {
+        /// Byte range in the input that was consumed.
         span: Range<usize>,
+        /// The parsed value, boxed as a trait object.
         value: Box<dyn DebugObject>,
     },
 
-    /// Not enough data for the parser
-    Incomplete { start: usize },
+    /// Not enough data for the parser.
+    Incomplete {
+        /// Starting offset of the parser which ran out of input.
+        start: usize,
+    },
 
-    /// Child parser has failed for any reason
-    Child { start: usize },
+    /// Child parser has failed for any reason.
+    Child {
+        /// Starting offset where a child parser failed.
+        start: usize,
+    },
 
-    /// Enough data, but data was unexpected
-    /// Eg. parse_digit("A")
-    /// Child parsers have succeeded, but something at this level has failed
-    /// Eg. Length-take of chars suceeded, but resulting string was in the expected format
-    Invalid { span: Range<usize>, reason: String },
+    /// Enough data, but data was unexpected.
+    Invalid {
+        /// Byte range consumed before the failure.
+        span: Range<usize>,
+        /// Description of why the data was unexpected.
+        reason: String,
+    },
 }
 
 impl Annotation {
