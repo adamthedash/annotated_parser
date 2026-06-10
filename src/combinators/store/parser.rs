@@ -2,7 +2,23 @@ use super::{ForwardRef, ForwrdRefSet, StoringParser};
 use crate::parser::ParseWithResult;
 use crate::{AnnotationMode, Parser, ParserSpec};
 
-/// A parser whos output can be referenced before it has been executed
+/// Wrap a parser and store its output in a `ForwardRef`.
+///
+/// Every time the parser runs, its output is written into a `ForwardRef`.
+/// This allows later parsers to reference the value before it has been parsed.
+/// Implements `StoringParser` so the stored value can be accessed via `.output()`.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u8::LE.store();
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 pub struct Store<I, O> {
     inner: I,
     /// This will be populated / overwritten whenever the parser is ran.

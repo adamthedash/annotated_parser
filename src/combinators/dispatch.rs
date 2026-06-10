@@ -5,6 +5,13 @@ use crate::{AnnotationMode, AnnotationReturn};
 use crate::parser::ParseWithResult;
 use crate::{Annotation, Parser, ParserSpec, combinators::store::ForwardRefGet};
 
+/// Select a parser from a tuple by index.
+///
+/// The discriminant is a `ForwardRefGet<Option<usize>>` that determines which parser in the tuple to run.
+/// If the discriminant is `None` or out of bounds, the parser fails.
+/// All parsers in the tuple must have the same output type.
+///
+/// This is useful for union-type or tagged-union parsing where the tag determines the variant.
 pub struct Dispatch<D, P> {
     discriminant: D,
     parsers: P,

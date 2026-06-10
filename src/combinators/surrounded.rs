@@ -3,6 +3,23 @@ use crate::{
     parser::ParseWithResult,
 };
 
+/// Parse an inner value surrounded by left and right delimiters.
+///
+/// Applies the left parser, the inner parser, and the right parser in sequence.
+/// Returns the inner parser's output.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Surrounded;
+///
+/// let mut parser = Surrounded::new("\"", "hello", "\"");
+/// let mut input = "\"hello\" world";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, "hello");
+/// assert_eq!(input, " world");
+/// ```
 pub struct Surrounded<L, P, R> {
     left: L,
     inner: P,
@@ -89,6 +106,23 @@ where
     }
 }
 
+/// Parse an inner value surrounded by the same delimiter on both sides.
+///
+/// Applies the outer parser, the inner parser, and the outer parser again.
+/// Returns the inner parser's output.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::SurroundedSymmetrical;
+///
+/// let mut parser = SurroundedSymmetrical::new("hello", "\"");
+/// let mut input = "\"hello\" world";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, "hello");
+/// assert_eq!(input, " world");
+/// ```
 pub struct SurroundedSymmetrical<P, Q> {
     inner: P,
     outer: Q,

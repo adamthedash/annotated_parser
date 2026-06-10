@@ -7,6 +7,23 @@ use std::{marker::PhantomData, mem::MaybeUninit};
 
 use crate::{Annotation, Parser, ParserSpec, combinators::ParserTuple};
 
+/// Parse a fixed number of elements separated by a delimiter.
+///
+/// Applies the inner parser `N` times, consuming a separator parser between each element.
+/// Fails if any element or separator fails.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::SeparatedArray;
+///
+/// let mut parser = SeparatedArray::new(" ", "A");
+/// let mut input = "A A A A A";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, ["A"; 5]);
+/// assert_eq!(input, "");
+/// ```
 pub struct SeparatedArray<P, S, O> {
     separator: S,
     inner: P,
@@ -131,6 +148,26 @@ where
     }
 }
 
+/// Parse a runtime-determined number of elements separated by a delimiter.
+///
+/// The count is provided by a `ForwardRefGet` value. Applies the inner parser that many times,
+/// consuming a separator parser between each element.
+/// Fails if any element or separator fails.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::SeparatedVec;
+/// use annotated_parser::ForwardRef;
+///
+/// let count = ForwardRef::with_value(3usize);
+/// let mut parser = SeparatedVec::new(" ", "A", count);
+/// let mut input = "A A A";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, vec!["A", "A", "A"]);
+/// assert_eq!(input, "");
+/// ```
 pub struct SeparatedVec<P, S, C> {
     separator: S,
     inner: P,
@@ -223,6 +260,23 @@ where
     }
 }
 
+/// Parse a tuple of parsers with separators between them.
+///
+/// Applies each parser in order, consuming a separator parser between consecutive elements.
+/// Returns a tuple of all parser outputs.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::SeparatedTuple;
+///
+/// let mut parser = SeparatedTuple::new(" ", (ParserAdapter::repeat::<2>("A"), "B"));
+/// let mut input = "AA B";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, (["A", "A"], "B"));
+/// assert_eq!(input, "");
+/// ```
 pub struct SeparatedTuple<S, P> {
     separator: S,
     parsers: P,

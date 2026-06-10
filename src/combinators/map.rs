@@ -5,7 +5,25 @@ use crate::{
     helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
-/// For fallible functions
+/// Apply a fallible function to the output of a parser.
+///
+/// Runs the inner parser, then applies a function that may fail.
+/// If the function returns `Err`, the parser fails with a validation error.
+/// For infallible transformations, use [`Map`] instead.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u8::LE.try_map(|x| {
+///     if x == 1 { Ok(x) } else { Err("expected 1") }
+/// });
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 pub struct TryMap<P, F> {
     inner: P,
     func: F,
@@ -91,7 +109,23 @@ where
     }
 }
 
-/// For infallible functions
+/// Apply an infallible function to the output of a parser.
+///
+/// Runs the inner parser, then transforms the result with a user-provided function.
+/// The transformed value is included in annotations. For a silent variant that does not
+/// add noise to the trace, use [`MapSilent`].
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u8::LE.map(|x| x * 2);
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 2);
+/// ```
 pub struct Map<P, F> {
     inner: P,
     func: F,
@@ -157,8 +191,22 @@ where
     }
 }
 
-/// For infallible functions. Doesn't introduce anything new in the spec. Can be used for simple
-/// functions where it would just add noise to track them in the annotations
+/// Apply a silent transformation to the output of a parser.
+///
+/// Like [`Map`], but does not add any new node to the annotation or spec tree.
+/// Useful for lightweight conversions that would just add noise to the trace.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u8::LE.map_silent(|x| x * 2);
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 2);
+/// ```
 pub struct MapSilent<P, F> {
     inner: P,
     func: F,

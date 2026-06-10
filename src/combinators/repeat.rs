@@ -6,7 +6,23 @@ use std::{marker::PhantomData, mem::MaybeUninit};
 
 use crate::{Annotation, Parser, ParserSpec};
 
-/// Compile-time repeat
+/// Repeat a parser a fixed number of times at compile time.
+///
+/// Applies the inner parser `N` times and collects the results into an array.
+/// Fails if any repetition fails.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u8::LE.repeat::<2>();
+/// let mut input = &[1, 2, 3][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, [1, 2]);
+/// assert_eq!(input, &[3]);
+/// ```
 pub struct RepeatArray<P, O> {
     inner: P,
     // Needed to constrain N
@@ -101,7 +117,25 @@ where
     }
 }
 
-/// Runtime repeat
+/// Repeat a parser a runtime-determined number of times.
+///
+/// The count is provided by a `ForwardRefGet` value. Collects results into a `Vec`.
+/// Fails if any repetition fails.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+/// use annotated_parser::ForwardRef;
+///
+/// let count = ForwardRef::with_value(2usize);
+/// let mut parser = u8::LE.repeat_vec(count);
+/// let mut input = &[1, 2, 3][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, vec![1, 2]);
+/// assert_eq!(input, &[3]);
+/// ```
 pub struct RepeatVec<P, C> {
     inner: P,
     count: C,

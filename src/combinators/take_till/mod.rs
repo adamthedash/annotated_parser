@@ -6,9 +6,25 @@ use crate::{
     combinators::{Checkpoint, Peek},
 };
 
-/// Keep taking bytes until the inner parser succeeds
-/// On success, input is moved to the start of where the inner parser has succeeded
-/// This parser will fail if EOF is reached before the parser succeeds
+/// Consume input until the inner parser succeeds, stopping at the match point.
+///
+/// Repeatedly advances the input and peeks at the inner parser.
+/// When the inner parser succeeds, stops and returns the consumed prefix.
+/// The input is left positioned at the start of the match.
+/// Fails if EOF is reached before the inner parser succeeds.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::TakeTillExc;
+///
+/// let mut parser = TakeTillExc::new(b"b");
+/// let mut input = b"aaaaabb".as_slice();
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, b"aaaaa");
+/// assert_eq!(input, b"bb");
+/// ```
 pub struct TakeTillExc<P> {
     inner: Peek<P>,
 }
@@ -25,10 +41,26 @@ impl<P> TakeTillExc<P> {
     }
 }
 
-/// Keep taking bytes until the inner parser succeeds
-/// On success, input is moved to the end of where the inner parser has succeeded, and both
-/// preceeding tokens and the output of the inner parser are returned.
-/// This parser will fail if EOF is reached before the parser succeeds
+/// Consume input until the inner parser succeeds, including the match.
+///
+/// Repeatedly advances the input and tries the inner parser.
+/// When the inner parser succeeds, stops and returns both the consumed prefix and the match's output.
+/// The input is left positioned after the match.
+/// Fails if EOF is reached before the inner parser succeeds.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::TakeTillInc;
+///
+/// let mut parser = TakeTillInc::new(b"b");
+/// let mut input = b"aaaaabb".as_slice();
+/// let ((bytes, value), _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(bytes, b"aaaaa");
+/// assert_eq!(value, b"b");
+/// assert_eq!(input, b"b");
+/// ```
 pub struct TakeTillInc<P> {
     inner: Checkpoint<P>,
 }

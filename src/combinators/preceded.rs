@@ -3,6 +3,23 @@ use crate::{
     parser::ParseWithResult,
 };
 
+/// Parse a prefix, then return the result of the keeper parser.
+///
+/// Applies the ignore parser first, then the keep parser.
+/// Returns the keep parser's output.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Preceded;
+///
+/// let mut parser = Preceded::new("hello", "_world");
+/// let mut input = "hello_world";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, "_world");
+/// assert_eq!(input, "");
+/// ```
 pub struct Preceded<I, K> {
     ignore: I,
     keep: K,

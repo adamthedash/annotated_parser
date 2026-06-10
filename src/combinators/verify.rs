@@ -3,6 +3,22 @@ use crate::{
     parser::ParseWithResult,
 };
 
+/// Validate the output of a parser with a predicate.
+///
+/// Runs the inner parser, then applies a predicate to the result.
+/// If the predicate returns `false`, the parser fails with a validation error.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u8::LE.verify(|x| *x == 1);
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 #[derive(Clone)]
 pub struct Verify<P, F> {
     inner: P,

@@ -8,8 +8,13 @@ use crate::{
     combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
-/// Parser which can be externally enabled/disabled rather than checking a reference value on each
-/// execution
+/// A parser that can be externally enabled or disabled.
+///
+/// The parser is only executed when the internal `AtomicBool` is `true`.
+/// Use `configure_with` to create a closure that updates the flag from a `ForwardRef`.
+/// If disabled, returns `None` without consuming input.
+///
+/// This is useful for feature-gated or runtime-configurable parser sections.
 pub struct Configured<P> {
     enabled: Arc<AtomicBool>,
     inner: P,
@@ -92,8 +97,12 @@ where
     }
 }
 
-/// A combinator which first runs the inner parser, then runs the configuring function
-/// This can be used to perform a one-off configuring of future parsers
+/// Run a parser, then execute a side-effect closure.
+///
+/// Applies the inner parser normally, then runs the configurator function.
+/// This is useful for one-off configuration of future parsers after a value has been parsed.
+///
+/// The configurator is run after parsing, so it can inspect or set up state based on the result.
 pub struct Configuring<P, F> {
     inner: P,
     configurator: F,

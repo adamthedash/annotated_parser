@@ -4,7 +4,24 @@ use crate::{
     helpers::FoldParseWithResult,
 };
 
-/// Optional parser. If inner parser fails, then this succeed but produces no value
+/// Optionally apply a parser.
+///
+/// If the inner parser succeeds, returns `Some(output)`.
+/// If the inner parser fails, returns `None` and consumes nothing.
+/// The inner parser is wrapped in `Checkpoint` so input is restored on failure.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+///
+/// let mut parser = u32::LE.optional();
+/// let mut input = &[0, 0, 0, 0, 1][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, Some(0));
+/// assert_eq!(input, &[1]);
+/// ```
 pub struct Opt<P> {
     inner: Checkpoint<P>,
 }

@@ -3,7 +3,23 @@ use crate::{
     combinators::store::StoringParser, parser::ParseWithResult,
 };
 
-/// For adding a user-friendly name to the spec
+/// Add a user-friendly name to a parser's spec.
+///
+/// Transparent wrapper: the inner parser's behavior is unchanged.
+/// The name appears in the parser spec and annotations, making traces more readable.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+/// use annotated_parser::combinators::Trace;
+///
+/// let mut parser = Trace::new(u8::LE, "byte");
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 #[derive(Clone)]
 pub struct Trace<P> {
     inner: P,
@@ -61,11 +77,26 @@ where
     }
 }
 
-/// Overrides the inner parser with a friendly name. Does not propagate spec or annotations from
-/// inner parser upwards. From the user's perspective, this becomes a "base" parser. This can be
-/// useful to reduce noise in the output for complex combinators where the inner workings aren't
-/// that relevant. Eg. a whitespace parser consisting of Take + Verify + Repeat
-// TODO: Impl - also maybe rename to BlackBox?
+/// Hide a parser's internal details from the annotation tree.
+///
+/// The inner parser is treated as an opaque base parser.
+/// Success annotations show the final span and value, but the internal hierarchy is hidden.
+/// Failure annotations propagate with a simplified error message.
+///
+/// This is useful for reducing noise from complex sub-parsers like whitespace or checksum logic.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+/// use annotated_parser::combinators::TraceOpaque;
+///
+/// let mut parser = TraceOpaque::new(u8::LE, "byte");
+/// let mut input = &[1_u8][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, 1);
+/// ```
 pub struct TraceOpaque<P> {
     inner: P,
     name: String,

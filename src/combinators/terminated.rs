@@ -3,6 +3,23 @@ use crate::{
     parser::ParseWithResult,
 };
 
+/// Parse a keeper, then a suffix, returning the keeper's result.
+///
+/// Applies the keep parser first, then the ignore parser.
+/// Returns the keep parser's output.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Terminated;
+///
+/// let mut parser = Terminated::new("hello", "_world");
+/// let mut input = "hello_world";
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, "hello");
+/// assert_eq!(input, "");
+/// ```
 pub struct Terminated<I, K> {
     ignore: I,
     keep: K,

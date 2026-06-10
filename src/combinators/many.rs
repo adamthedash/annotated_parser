@@ -3,7 +3,22 @@ use crate::{
     helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
-/// Apply the inner parser repeatedly until it fails
+/// Apply a parser repeatedly until it fails.
+///
+/// Consumes zero or more matches of the inner parser, returning a `Vec`.
+/// Uses `Checkpoint` internally so the input is restored on each failure.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+///
+/// let mut parser = b"a".many();
+/// let mut input = b"aaaabb".as_slice();
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, vec![b"a"; 4]);
+/// assert_eq!(input, b"bb");
+/// ```
 pub struct Many<P> {
     inner: Checkpoint<P>,
 }

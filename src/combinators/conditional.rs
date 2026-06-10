@@ -3,7 +3,26 @@ use crate::{
     combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
-/// A parser which may or may not be ran depending on the result of some previous parser
+/// Conditionally run a parser based on a boolean value.
+///
+/// If the condition is `true`, applies the inner parser and returns `Some(output)`.
+/// If the condition is `false`, returns `None` without consuming input.
+/// The condition is evaluated via a `ForwardRefGet<bool>`.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Cond;
+/// use annotated_parser::ForwardRef;
+///
+/// let flag = ForwardRef::with_value(true);
+/// let mut parser = Cond::new(flag, b"a");
+/// let mut input = b"aaa".as_slice();
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, Some(b"a"));
+/// assert_eq!(input, b"aa");
+/// ```
 pub struct Cond<C, P> {
     cond: C,
     inner: P,

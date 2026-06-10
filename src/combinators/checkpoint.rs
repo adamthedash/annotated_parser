@@ -1,6 +1,23 @@
 use crate::{AnnotationMode, Parser, ParserSpec, combinators::store::StoringParser};
 
-/// Wrapper which resets the input stream on failure
+/// Restore input position on failure.
+///
+/// Wraps a parser and saves the input state before running it.
+/// If the inner parser fails, the input is restored to its original position.
+/// Requires `Input: Copy`.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Checkpoint;
+///
+/// let mut parser = Checkpoint::new(b"hello");
+/// let mut input = b"hello_world".as_slice();
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, b"hello");
+/// assert_eq!(input, b"_world");
+/// ```
 pub struct Checkpoint<P>(P);
 
 impl<P> Checkpoint<P> {
@@ -60,7 +77,24 @@ where
     }
 }
 
-/// Wrapper which resets the input stream in all cases
+/// Look ahead without consuming input.
+///
+/// Wraps a parser and restores the input position in all cases.
+/// Succeeds or fails just like the inner parser, but never consumes input.
+/// Requires `Input: Copy`.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::combinators::Peek;
+///
+/// let mut parser = Peek::new(b"hello");
+/// let mut input = b"hello_world".as_slice();
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, b"hello");
+/// assert_eq!(input, b"hello_world");
+/// ```
 pub struct Peek<P>(P);
 
 impl<P> Peek<P> {

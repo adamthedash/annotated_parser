@@ -5,6 +5,24 @@ use crate::{
     parser::ParseWithResult,
 };
 
+/// Parse a length, then repeat a value parser that many times.
+///
+/// First applies the length parser, interprets its output as a `usize`,
+/// then repeats the value parser that many times.
+/// Fails if the length parser or any value repetition fails.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::ByteParser;
+/// use annotated_parser::combinators::LengthRepeat;
+///
+/// let mut parser = LengthRepeat::new(u32::LE, u16::LE);
+/// let mut input = &[2, 0, 0, 0, 1, 0, 2, 0][..];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value, vec![1, 2]);
+/// ```
 pub struct LengthRepeat<L, V> {
     length: L,
     value: V,

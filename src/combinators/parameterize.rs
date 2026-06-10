@@ -141,7 +141,13 @@ impl_parameters!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,);
 
 // ==================================================================
 
-/// A combinator which parameterises the inner parser with each value before running it
+/// Repeat a parser with different parameter values each time.
+///
+/// Iterates over the provided parameters, sets each one into a `ParameterInput` slot,
+/// then runs the inner parser. Collects all results into a `Vec`.
+///
+/// This is useful for running the same parser shape with varying arguments,
+/// such as different expected magic numbers or lengths.
 pub struct Parameterize<S, V, P> {
     parameters: V,
     parameter_input: S,
