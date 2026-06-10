@@ -3,6 +3,7 @@
 ## Scope
 
 - Add `///` doc comments **only on parser structs** (the types that implement `Parser`).
+- This includes both **leaf parsers** (`src/parsers/`) and **combinator structs** (`src/combinators/`).
 - Do not add module-level docs, file-level docs, or README updates unless explicitly requested.
 
 ## Content
@@ -55,6 +56,20 @@ If the parser is generated inside a `macro_rules!` macro, macro metavariables li
 
 ## What Not to Document
 
-- Do not add `///` docs to private helpers, macro internals, or combinator types.
+- Do not add `///` docs to private helpers, macro internals, or traits.
 - Do not change the `parsers/mod.rs` re-export structure.
 - Do not add module-level or crate-level docs.
+- Skip macro-generated tuple parser implementations (e.g., `impl Parser for (A, B, C)`).
+
+## Import Rules
+
+- Always use public re-exports when creating doc test examples, as this is what the user reading the documentation will use.
+
+## Complex Combinators
+
+Some combinators are designed to work in tandem (e.g., `Configured` + `Configuring`). For these, the doc example should show the **complete real-world pattern**, not an isolated example.
+
+- `Configured` + `Configuring`: Show a version flag parsed once, followed by optional data configured by that flag.
+- `Dispatch`: Show a version tag dispatching to different parsers based on a mapped discriminant.
+- `Parameterize`: Show a list of parameters (e.g., chunk sizes) driving repeated parser execution.
+
