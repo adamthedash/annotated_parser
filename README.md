@@ -9,3 +9,7 @@ Example of where it's used in my [hex viewer](https://github.com/adamthedash/hex
 - Ergonomic use of parsers once they are defined
 - Strong type inference at call site
 - Good performance in non-annotating mode
+
+# AI Disclaimer
+LLMs use has been limited to:
+- Documentation

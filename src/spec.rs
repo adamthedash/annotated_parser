@@ -1,11 +1,19 @@
 use std::fmt::{Display, Write};
 
-/// A representation of the entire parser that is applied to each file
-/// Does not hold any state
+/// A static, stateless representation of a parser's structure.
+///
+/// `ParserSpec` mirrors the parser hierarchy (leaf parsers, combinators, nested
+/// combinators) without holding any runtime state. It is used to inspect the
+/// shape of a parser, generate identifiers for each node, and produce a
+/// human-readable tree display.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParserSpec {
+    /// Identifier of this parser node (e.g., "map", "repeat", "u8").
     pub name: String,
+    /// Child parser specs, mirroring the nested structure of the parser.
     pub inner: Vec<ParserSpec>,
+    /// Human-readable name for display purposes.
+    /// Eg. "version_number" instead of "u8"
     pub friendly_name: Option<String>,
 }
 
@@ -23,6 +31,7 @@ impl ParserSpec {
         Self::new(name, vec![])
     }
 
+    /// Set the human readable name field
     pub fn with_friendly(self, name: impl Into<String>) -> Self {
         Self {
             friendly_name: Some(name.into()),
@@ -30,7 +39,7 @@ impl ParserSpec {
         }
     }
 
-    /// Create unique paths to each hierarchy leaf
+    /// Create a flat list of unique paths to each hierarchy node
     pub fn identifiers(&self) -> Vec<String> {
         let me = std::iter::once(self.name.clone());
         let children = self.inner.iter().enumerate().flat_map(|(i, child)| {
