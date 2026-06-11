@@ -2,6 +2,14 @@
 name = "annotated_parser"
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Parser combinators with execution annotations"
+readme = "README.md"
+repository = "https://github.com/adamthedash/annotated_parser"
+categories = ["parsing"]
+
+# Exclude LLM stuff from crates.io upload, they're in the repo anyway
+exclude = ["AGENTS.md", ".agents"]
 
 [dependencies]
 itertools = "0.14.0"
