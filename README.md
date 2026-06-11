@@ -1,4 +1,8 @@
-# annotated_parser
+# Annotated Parser
+[![LICENSE-MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
+[![LICENSE-APACHE](https://img.shields.io/badge/license-Apache_2.0-blue.svg)](LICENSE-APACHE)
+[![Crates.io Version](https://img.shields.io/crates/v/annotated_parser.svg)](https://crates.io/crates/annotated_parser)
+[![Docs](https://docs.rs/bevy/badge.svg)](https://docs.rs/annotated_parser/latest/annotated_parser)
 
 Parser combinators with execution annotations for Rust.
 
