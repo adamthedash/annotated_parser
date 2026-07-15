@@ -2,8 +2,8 @@ use num_traits::AsPrimitive;
 
 use crate::combinators::{
     Configured, Configuring, Dispatch, Many, ParameterInput, Parameterize, Parameters, ParserTuple,
-    Peek, Preceded, SameParserTuple, SeparatedArray, SeparatedTuple, SeparatedVec, Surrounded,
-    SurroundedSymmetrical, Terminated, TraceOpaque,
+    Peek, Preceded, RepeatTillExc, RepeatTillInc, SameParserTuple, SeparatedArray, SeparatedTuple,
+    SeparatedVec, Surrounded, SurroundedSymmetrical, Terminated, TraceOpaque,
 };
 use crate::{ForwardRefGet, ParserOutput};
 use std::fmt::Display;
@@ -87,6 +87,28 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
         C::Value: AsPrimitive<usize>,
     {
         RepeatVec::new(self, count)
+    }
+
+    /// Apply the parser repeatedly until the terminator succeeds, without consuming it.
+    ///
+    /// See [`RepeatTillExc`] for more info.
+    fn repeat_till_exc<T>(self, terminator: T) -> RepeatTillExc<Self, T>
+    where
+        T: Parser<Input>,
+        Input: Copy,
+    {
+        RepeatTillExc::new(self, terminator)
+    }
+
+    /// Apply the parser repeatedly until the terminator succeeds, consuming it.
+    ///
+    /// See [`RepeatTillInc`] for more info.
+    fn repeat_till_inc<T>(self, terminator: T) -> RepeatTillInc<Self, T>
+    where
+        T: Parser<Input>,
+        Input: Copy,
+    {
+        RepeatTillInc::new(self, terminator)
     }
 
     /// Apply the parser repeatedly until it fails.
