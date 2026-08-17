@@ -5,9 +5,6 @@ use crate::ForwardRefGet;
 use num_traits::AsPrimitive;
 
 /// Take a fixed number of elements into an array.
-///
-/// For `&[u8]` inputs, consumes `N` bytes and returns `[u8; N]`.
-/// For `&str` inputs, consumes `N` characters and returns a `String`.
 /// Fails if the input is too short.
 ///
 /// # Example
@@ -24,9 +21,7 @@ use num_traits::AsPrimitive;
 pub struct TakeArray<const N: usize>;
 
 /// Take a dynamic number of bytes into a `Vec<u8>`.
-///
-/// The count is determined by the value produced by the inner `C` parser
-/// at parse time. Fails if the input is shorter than the requested count.
+/// Fails if the input is shorter than the requested count.
 ///
 /// # Example
 ///
