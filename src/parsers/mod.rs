@@ -18,11 +18,13 @@ mod empty;
 mod eof;
 mod literal;
 mod num;
+mod rest;
 mod skip;
 mod take;
 
 pub use empty::Empty;
 pub use eof::EoF;
 pub use num::{byte, str};
+pub use rest::Rest;
 pub use skip::{SkipArray, SkipVec};
 pub use take::{TakeArray, TakeVec};
