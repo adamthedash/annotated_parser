@@ -5,8 +5,43 @@ use crate::ForwardRefGet;
 mod byte;
 mod str;
 
+/// Skip a fixed number of elements without returning them.
+///
+/// For `&[u8]` inputs, consumes `N` bytes and returns `()`.
+/// For `&str` inputs, consumes `N` characters and returns `()`.
+/// Fails if the input is too short.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::SkipArray;
+///
+/// let mut input = "hello";
+/// let (value, _) = SkipArray::<3>.parse(&mut input).unwrap();
+/// assert_eq!(value, ());
+/// assert_eq!(input, "lo");
+/// ```
 pub struct SkipArray<const N: usize>;
 
+/// Skip a dynamic number of elements without returning them.
+///
+/// The count is determined by the value produced by the inner `C` parser
+/// at parse time. Fails if the input is shorter than the requested count.
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::SkipVec;
+/// use annotated_parser::ForwardRef;
+///
+/// let count = ForwardRef::with_value(3usize);
+/// let mut input = &[1, 2, 3, 4][..];
+/// let (value, _) = SkipVec::new(count).parse(&mut input).unwrap();
+/// assert_eq!(value, ());
+/// assert_eq!(input, &[4]);
+/// ```
 pub struct SkipVec<C>(C);
 
 impl<C> SkipVec<C> {
