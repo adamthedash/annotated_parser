@@ -2,6 +2,20 @@ use crate::{AnnotationReturn, ParseWithResult};
 
 use crate::{Annotation, Parser, ParserSpec};
 
+/// Consume all remaining input.
+/// Always succeeds, even when the input is empty.
+///
+/// # Examples
+///
+/// ```
+/// use annotated_parser::prelude::*;
+/// use annotated_parser::parsers::Rest;
+///
+/// let mut input = "hello";
+/// let (value, _) = Rest.parse(&mut input).unwrap();
+/// assert_eq!(value, "hello");
+/// assert_eq!(input, "");
+/// ```
 pub struct Rest;
 
 impl Parser<&[u8]> for Rest {
