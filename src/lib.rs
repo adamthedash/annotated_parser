@@ -4,6 +4,7 @@ mod adapter;
 mod annotation;
 pub mod combinators;
 pub mod helpers;
+mod input;
 mod parser;
 pub mod parsers;
 mod spec;
