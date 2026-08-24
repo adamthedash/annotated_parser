@@ -14,6 +14,7 @@ mod many;
 mod map;
 mod optional;
 mod parameterize;
+mod parse_struct;
 mod preceded;
 mod repeat;
 mod repeat_till;
