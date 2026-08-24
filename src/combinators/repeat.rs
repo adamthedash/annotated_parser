@@ -1,8 +1,8 @@
-use crate::{AnnotationReturn, helpers::FoldParseWithResult, parser::ParseWithResult};
+use crate::{ALLOC_LIMIT, AnnotationReturn, helpers::FoldParseWithResult, parser::ParseWithResult};
 use num_traits::AsPrimitive;
 
 use crate::combinators::store::ForwardRefGet;
-use std::{marker::PhantomData, mem::MaybeUninit};
+use std::{marker::PhantomData, mem::MaybeUninit, sync::atomic::Ordering};
 
 use crate::{Annotation, Parser, ParserSpec};
 
@@ -178,6 +178,17 @@ where
     ) -> ParseWithResult<Self::Output> {
         let count = self.count.get().as_();
 
+        // Ensure we don't blow up
+        if count > ALLOC_LIMIT.load(Ordering::Relaxed) {
+            let annotation = if annotation_mode.fail {
+                Annotation::oom(self.name(), 0, count).into()
+            } else {
+                AnnotationReturn::Start(0)
+            };
+
+            return Err(annotation);
+        }
+
         let mut child_annotations = annotation_mode.success.then(|| Vec::with_capacity(count));
 
         let mut values = Vec::with_capacity(count);
@@ -210,5 +221,24 @@ where
         };
 
         Ok((values, annotation))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{AnnotationResult, ForwardRef, prelude::*};
+
+    #[test]
+    fn test_repeat_oom() {
+        let mut parser = u32::LE.repeat_vec(ForwardRef::with_value(u64::MAX));
+        let input = b"123";
+
+        let anno = parser.annotate(&mut input.as_slice()).unwrap_err();
+
+        let AnnotationResult::OOM { start, requested } = anno.result else {
+            panic!("expected OOM got {:?}", anno.result);
+        };
+        assert_eq!(start, 0);
+        assert_eq!(requested, u64::MAX as usize);
     }
 }

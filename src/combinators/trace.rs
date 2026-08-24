@@ -176,6 +176,9 @@ where
                             format!("{} @ {:?}: {} ", source.parser_id, span, reason),
                             vec![],
                         ),
+                        AnnotationResult::OOM { requested, .. } => {
+                            Annotation::oom(self.name(), 0, *requested)
+                        }
                         AnnotationResult::Success { .. } | AnnotationResult::Child { .. } => {
                             unreachable!("At failure source")
                         }

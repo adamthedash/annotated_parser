@@ -8,6 +8,8 @@ mod parser;
 pub mod parsers;
 mod spec;
 
+use std::sync::atomic::AtomicUsize;
+
 pub use adapter::ParserAdapter;
 pub use annotation::{Annotation, AnnotationResult};
 pub use combinators::store::{
@@ -21,6 +23,9 @@ pub use parser::{
 };
 pub use parsers::byte::ByteParser;
 pub use spec::ParserSpec;
+
+/// Limit on the number of items that an be parsed by any dynamically sized parser
+pub static ALLOC_LIMIT: AtomicUsize = AtomicUsize::new(1_000_000);
 
 /// Traits that usually need importing
 pub mod prelude {

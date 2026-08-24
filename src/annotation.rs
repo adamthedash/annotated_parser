@@ -5,9 +5,10 @@ use std::{
     marker::{Send, Sync},
     ops::Range,
     option::Option,
+    sync::atomic::Ordering,
 };
 
-use crate::ParserOutput;
+use crate::{ALLOC_LIMIT, ParserOutput};
 
 pub trait DebugObject: Debug + Any + Send + Sync {}
 impl<T> DebugObject for T where T: Debug + Any + Send + Sync {}
@@ -61,6 +62,9 @@ pub enum AnnotationResult {
         /// Description of why the data was unexpected.
         reason: String,
     },
+
+    /// Dynamic allocation exceeded the limit allowed
+    OOM { start: usize, requested: usize },
 }
 
 impl Annotation {
@@ -116,11 +120,22 @@ impl Annotation {
         )
     }
 
+    #[inline]
+    pub fn oom(parser_id: impl Into<String>, start: usize, requested: usize) -> Self {
+        Self::new(
+            parser_id,
+            vec![],
+            AnnotationResult::OOM { start, requested },
+        )
+    }
+
     /// If this annotation is a failure, find the source node
     pub fn err_source(&self) -> Option<&Self> {
         match self.result {
             AnnotationResult::Success { .. } => None,
-            AnnotationResult::Incomplete { .. } | AnnotationResult::Invalid { .. } => Some(self),
+            AnnotationResult::Incomplete { .. }
+            | AnnotationResult::Invalid { .. }
+            | AnnotationResult::OOM { .. } => Some(self),
             AnnotationResult::Child { .. } => {
                 self.children.iter().flat_map(|c| c.err_source()).next()
             }
@@ -253,6 +268,14 @@ impl Display for Annotation {
                 "A child parser failed".to_owned(),
             ),
             Invalid { span, reason } => ("invalid", format!("{span:?}"), reason.to_owned()),
+            OOM { start, requested } => (
+                "out_of_memory",
+                start.to_string(),
+                format!(
+                    "tried to allocate {requested} items (limit {})",
+                    ALLOC_LIMIT.load(Ordering::Relaxed)
+                ),
+            ),
         };
 
         write!(f, "[{level}] @ {location} {}, {:?}", self.parser_id, info)
@@ -267,7 +290,7 @@ impl AnnotationResult {
         use AnnotationResult::*;
         match self {
             Success { span, .. } | Invalid { span, .. } => (span.start, Some(span.end)),
-            Incomplete { start } | Child { start } => (*start, None),
+            Incomplete { start } | Child { start } | OOM { start, .. } => (*start, None),
         }
     }
 
@@ -285,7 +308,7 @@ impl AnnotationResult {
                 span.start += offset;
                 span.end += offset;
             }
-            Incomplete { start } | Child { start } => *start += offset,
+            Incomplete { start } | Child { start } | OOM { start, .. } => *start += offset,
         }
     }
 
@@ -311,6 +334,7 @@ impl Display for AnnotationResult {
             Incomplete { .. } => f.write_str("ERR(INCOMPLETE)"),
             Child { .. } => f.write_str("ERR(CHILD)"),
             Invalid { reason, .. } => write!(f, "ERR({reason})"),
+            OOM { .. } => f.write_str("ERR(OOM)"),
         }
     }
 }
