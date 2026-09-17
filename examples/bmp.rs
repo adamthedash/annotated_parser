@@ -1,5 +1,5 @@
 use annotated_parser::parsers::byte::ByteParser;
-use annotated_parser::prelude::*;
+use annotated_parser::{parse_struct, prelude::*};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
@@ -36,70 +36,32 @@ struct Bmp {
 }
 
 fn bmp_parser() -> impl for<'a> Parser<&'a [u8], Output = Bmp> {
-    let file_header = (
-        b"BM".trace("signature"),
-        u32::LE.trace("file_size"),
-        u16::LE.trace("reserved1"),
-        u16::LE.trace("reserved2"),
-        u32::LE.trace("pixel_offset"),
-    )
-        .map(
-            |(signature, file_size, reserved1, reserved2, pixel_offset)| BMPFileHeader {
-                signature: *signature,
-                file_size,
-                reserved1,
-                reserved2,
-                pixel_offset,
-            },
-        )
-        .trace("file_header");
+    let file_header = parse_struct!(BMPFileHeader {
+        signature: b"BM".map_silent(ToOwned::to_owned),
+        file_size: u32::LE,
+        reserved1: u16::LE,
+        reserved2: u16::LE,
+        pixel_offset: u32::LE,
+    });
 
     let width = u32::LE.trace("width").store();
     let width_ref = width.output();
     let height = u32::LE.trace("height").store();
     let height_ref = height.output();
 
-    let info_header = (
-        u32::LE.trace("header_size"),
-        width,
-        height,
-        u16::LE.trace("color_planes"),
-        u16::LE.trace("bits_per_pixel"),
-        u32::LE.trace("compression"),
-        u32::LE.trace("image_size"),
-        u32::LE.trace("h_resolution"),
-        u32::LE.trace("v_resolution"),
-        u32::LE.trace("palette_colors"),
-        u32::LE.trace("important_colors"),
-    )
-        .map(
-            |(
-                header_size,
-                width,
-                height,
-                color_planes,
-                bits_per_pixel,
-                compression,
-                image_size,
-                h_resolution,
-                v_resolution,
-                palette_colors,
-                important_colors,
-            )| BMPInfoHeader {
-                header_size,
-                width,
-                height,
-                color_planes,
-                bits_per_pixel,
-                compression,
-                image_size,
-                h_resolution,
-                v_resolution,
-                palette_colors,
-                important_colors,
-            },
-        )
-        .trace("info_header");
+    let info_header = parse_struct!(BMPInfoHeader {
+        header_size: u32::LE,
+        width: width,
+        height: height,
+        color_planes: u16::LE,
+        bits_per_pixel: u16::LE,
+        compression: u32::LE,
+        image_size: u32::LE,
+        h_resolution: u32::LE,
+        v_resolution: u32::LE,
+        palette_colors: u32::LE,
+        important_colors: u32::LE,
+    });
 
     let pixel_data = u8::LE
         .repeat::<4>()
@@ -109,13 +71,11 @@ fn bmp_parser() -> impl for<'a> Parser<&'a [u8], Output = Bmp> {
         .repeat_vec(height_ref.clone())
         .trace("pixel_data");
 
-    (file_header, info_header, pixel_data)
-        .map(|(file_header, info_header, pixel_data)| Bmp {
-            file_header,
-            info_header,
-            pixel_data,
-        })
-        .trace("bmp")
+    parse_struct!(Bmp {
+        file_header: file_header,
+        info_header: info_header,
+        pixel_data: pixel_data,
+    })
 }
 
 fn main() {
