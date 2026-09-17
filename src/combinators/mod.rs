@@ -2,8 +2,8 @@
 //!
 //! Combinators wrap existing parsers to change their behavior, repeat them,
 //! validate their output, or sequence them together. They are typically
-//! constructed via [`ParserAdapter`](crate::ParserAdapter) methods or by calling the struct
-//! constructors directly.
+//! constructed via [`ParserAdapter`](crate::ParserAdapter) methods, by calling
+//! the struct constructors directly, or with the [`parse_struct!`] macro.
 
 mod checkpoint;
 mod conditional;

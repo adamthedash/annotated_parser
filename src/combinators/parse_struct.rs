@@ -1,3 +1,36 @@
+/// Build a parser that fills a struct's fields from a sequence of field parsers.
+///
+/// Each field parser is traced with its field name.
+/// The resulting parser is traced with the struct name.
+/// The parsers are executed in the order they are defined within the macro.
+///
+/// # Notes
+///
+/// - The struct must be [`ParserOutput`](crate::ParserOutput)
+/// - Supports up to 12 fields (the tuple parser limit).
+///
+/// # Example
+///
+/// ```
+/// use annotated_parser::parse_struct;
+/// use annotated_parser::prelude::*;
+///
+/// #[derive(Debug, Clone)]
+/// struct Header {
+///     magic: u16,
+///     count: u8,
+/// }
+///
+/// let mut parser = parse_struct!(Header {
+///     magic: u16::LE,
+///     count: u8::LE,
+/// });
+///
+/// let mut input: &[u8] = &[0x2a, 0x00, 0x03];
+/// let (value, _) = parser.parse(&mut input).unwrap();
+/// assert_eq!(value.magic, 0x2a);
+/// assert_eq!(value.count, 3);
+/// ```
 #[macro_export]
 macro_rules! parse_struct {
     ($struct_name:ident { $($field_name:ident: $parser: expr ),* $(,)? }) => {
