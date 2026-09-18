@@ -1,6 +1,6 @@
-use crate::{AnnotationReturn, ParseWithResult};
+use crate::{AnnotationReturn, ParseWithResult, ParserExec, ParserInfo};
 
-use crate::{Annotation, Parser, ParserSpec};
+use crate::{Annotation, ParserSpec};
 
 /// Consume all remaining input.
 /// Always succeeds, even when the input is empty.
@@ -18,16 +18,18 @@ use crate::{Annotation, Parser, ParserSpec};
 /// ```
 pub struct Rest;
 
-impl Parser<&[u8]> for Rest {
-    type Output = Vec<u8>;
-
+impl ParserInfo for Rest {
     fn name(&self) -> String {
         "rest".to_owned()
     }
 
     fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&str>::name(self))
+        ParserSpec::empty(self.name())
     }
+}
+
+impl ParserExec<&[u8]> for Rest {
+    type Output = Vec<u8>;
 
     fn parse_with(
         &mut self,
@@ -39,13 +41,7 @@ impl Parser<&[u8]> for Rest {
         *input = &[];
 
         let annotation = if annotation_mode.success {
-            Annotation::success(
-                Parser::<&str>::name(self),
-                0..value.len(),
-                value.clone(),
-                vec![],
-            )
-            .into()
+            Annotation::success(self.name(), 0..value.len(), value.clone(), vec![]).into()
         } else {
             AnnotationReturn::Span(0..value.len())
         };
@@ -54,16 +50,8 @@ impl Parser<&[u8]> for Rest {
     }
 }
 
-impl Parser<&str> for Rest {
+impl ParserExec<&str> for Rest {
     type Output = String;
-
-    fn name(&self) -> String {
-        "rest".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&str>::name(self))
-    }
 
     fn parse_with(
         &mut self,
@@ -76,13 +64,7 @@ impl Parser<&str> for Rest {
         *input = "";
 
         let annotation = if annotation_mode.success {
-            Annotation::success(
-                Parser::<&str>::name(self),
-                0..num_chars,
-                value.clone(),
-                vec![],
-            )
-            .into()
+            Annotation::success(self.name(), 0..num_chars, value.clone(), vec![]).into()
         } else {
             AnnotationReturn::Span(0..num_chars)
         };
@@ -94,7 +76,6 @@ impl Parser<&str> for Rest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Parser;
 
     mod byte {
         use super::*;

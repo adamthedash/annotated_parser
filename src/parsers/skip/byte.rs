@@ -1,20 +1,10 @@
 use num_traits::AsPrimitive;
 
 use super::{SkipArray, SkipVec};
-use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, Parser, ParserSpec};
+use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, ParserExec, ParserInfo};
 
-impl<const N: usize> Parser<&[u8]> for SkipArray<N> {
+impl<const N: usize> ParserExec<&[u8]> for SkipArray<N> {
     type Output = ();
-
-    #[inline]
-    fn name(&self) -> String {
-        format!("skip({N})")
-    }
-
-    #[inline]
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&[u8]>::name(self))
-    }
 
     #[inline]
     fn parse_with(
@@ -24,7 +14,7 @@ impl<const N: usize> Parser<&[u8]> for SkipArray<N> {
     ) -> ParseWithResult<Self::Output> {
         if input.len() < N {
             let annotation = if annotation_mode.fail {
-                Annotation::incomplete(Parser::<&[u8]>::name(self), 0, vec![]).into()
+                Annotation::incomplete(self.name(), 0, vec![]).into()
             } else {
                 AnnotationReturn::Start(0)
             };
@@ -34,7 +24,7 @@ impl<const N: usize> Parser<&[u8]> for SkipArray<N> {
         *input = &input[N..];
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&[u8]>::name(self), 0..N, (), vec![]).into()
+            Annotation::success(self.name(), 0..N, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..N)
         };
@@ -43,22 +33,12 @@ impl<const N: usize> Parser<&[u8]> for SkipArray<N> {
     }
 }
 
-impl<C> Parser<&[u8]> for SkipVec<C>
+impl<C> ParserExec<&[u8]> for SkipVec<C>
 where
     C: ForwardRefGet,
     C::Value: AsPrimitive<usize>,
 {
     type Output = ();
-
-    #[inline]
-    fn name(&self) -> String {
-        "skip".to_owned()
-    }
-
-    #[inline]
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&[u8]>::name(self))
-    }
 
     #[inline]
     fn parse_with(
@@ -70,7 +50,7 @@ where
 
         if input.len() < count {
             let annotation = if annotation_mode.fail {
-                Annotation::incomplete(Parser::<&[u8]>::name(self), 0, vec![]).into()
+                Annotation::incomplete(self.name(), 0, vec![]).into()
             } else {
                 AnnotationReturn::Start(0)
             };
@@ -80,7 +60,7 @@ where
         *input = &input[count..];
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&[u8]>::name(self), 0..count, (), vec![]).into()
+            Annotation::success(self.name(), 0..count, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..count)
         };

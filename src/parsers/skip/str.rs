@@ -3,20 +3,10 @@ use std::cmp::Ordering;
 use num_traits::AsPrimitive;
 
 use super::{SkipArray, SkipVec};
-use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, Parser, ParserSpec};
+use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, ParserExec, ParserInfo};
 
-impl<const N: usize> Parser<&str> for SkipArray<N> {
+impl<const N: usize> ParserExec<&str> for SkipArray<N> {
     type Output = ();
-
-    #[inline]
-    fn name(&self) -> String {
-        format!("skip({N})")
-    }
-
-    #[inline]
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&str>::name(self))
-    }
 
     #[inline]
     fn parse_with(
@@ -27,7 +17,7 @@ impl<const N: usize> Parser<&str> for SkipArray<N> {
         let end = match input.chars().count().cmp(&N) {
             Ordering::Less => {
                 let annotation = if annotation_mode.fail {
-                    Annotation::incomplete(Parser::<&str>::name(self), 0, vec![]).into()
+                    Annotation::incomplete(self.name(), 0, vec![]).into()
                 } else {
                     AnnotationReturn::Start(0)
                 };
@@ -47,7 +37,7 @@ impl<const N: usize> Parser<&str> for SkipArray<N> {
         *input = &input[end..];
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&str>::name(self), 0..N, (), vec![]).into()
+            Annotation::success(self.name(), 0..N, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..N)
         };
@@ -56,22 +46,12 @@ impl<const N: usize> Parser<&str> for SkipArray<N> {
     }
 }
 
-impl<C> Parser<&str> for SkipVec<C>
+impl<C> ParserExec<&str> for SkipVec<C>
 where
     C: ForwardRefGet,
     C::Value: AsPrimitive<usize>,
 {
     type Output = ();
-
-    #[inline]
-    fn name(&self) -> String {
-        "skip".to_owned()
-    }
-
-    #[inline]
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&str>::name(self))
-    }
 
     #[inline]
     fn parse_with(
@@ -84,7 +64,7 @@ where
         let end = match input.chars().count().cmp(&count) {
             Ordering::Less => {
                 let annotation = if annotation_mode.fail {
-                    Annotation::incomplete(Parser::<&str>::name(self), 0, vec![]).into()
+                    Annotation::incomplete(self.name(), 0, vec![]).into()
                 } else {
                     AnnotationReturn::Start(0)
                 };
@@ -104,7 +84,7 @@ where
         *input = &input[end..];
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&str>::name(self), 0..count, (), vec![]).into()
+            Annotation::success(self.name(), 0..count, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..count)
         };

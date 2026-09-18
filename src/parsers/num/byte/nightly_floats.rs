@@ -1,4 +1,4 @@
-use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserSpec};
+use crate::{Annotation, AnnotationReturn, ParseWithResult, ParserExec, ParserInfo, ParserSpec};
 
 /// Parse a half-precision float from its little-endian byte representation.
 ///
@@ -17,16 +17,20 @@ use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserSpec};
 #[derive(Clone)]
 pub struct F16LE;
 
-impl Parser<&[u8]> for F16LE {
-    type Output = f16;
-
+impl ParserInfo for F16LE {
+    #[inline]
     fn name(&self) -> String {
         "le_f16".to_owned()
     }
 
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+impl ParserExec<&[u8]> for F16LE {
+    type Output = f16;
 
     #[inline]
     fn parse_with(
@@ -77,16 +81,20 @@ impl Parser<&[u8]> for F16LE {
 #[derive(Clone)]
 pub struct F16BE;
 
-impl Parser<&[u8]> for F16BE {
-    type Output = f16;
-
+impl ParserInfo for F16BE {
+    #[inline]
     fn name(&self) -> String {
         "be_f16".to_owned()
     }
 
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+impl ParserExec<&[u8]> for F16BE {
+    type Output = f16;
 
     #[inline]
     fn parse_with(

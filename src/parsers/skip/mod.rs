@@ -1,6 +1,6 @@
 use num_traits::AsPrimitive;
 
-use crate::ForwardRefGet;
+use crate::{ForwardRefGet, ParserInfo, ParserSpec};
 
 mod byte;
 mod str;
@@ -23,6 +23,18 @@ mod str;
 /// assert_eq!(input, "lo");
 /// ```
 pub struct SkipArray<const N: usize>;
+
+impl<const N: usize> ParserInfo for SkipArray<N> {
+    #[inline]
+    fn name(&self) -> String {
+        format!("skip({N})")
+    }
+
+    #[inline]
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
+    }
+}
 
 /// Skip a dynamic number of elements without returning them.
 ///
@@ -54,10 +66,26 @@ impl<C> SkipVec<C> {
     }
 }
 
+impl<C> ParserInfo for SkipVec<C>
+where
+    C: ForwardRefGet,
+    C::Value: AsPrimitive<usize>,
+{
+    #[inline]
+    fn name(&self) -> String {
+        "skip".to_owned()
+    }
+
+    #[inline]
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ForwardRef, Parser};
+    use crate::{ForwardRef, ParserExec};
 
     mod byte {
         use super::*;

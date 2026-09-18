@@ -17,7 +17,7 @@ pub use combinators::{ParserTuple, SameParserTuple};
 pub use helpers::FoldParseWithResult;
 pub use parser::{
     AnnotatedResult, AnnotationMode, AnnotationReturn, IntoAnnotation, ParseResult,
-    ParseWithResult, Parser, ParserOutput,
+    ParseWithResult, Parser, ParserExec, ParserInfo, ParserOutput,
 };
 pub use parsers::byte::ByteParser;
 pub use spec::ParserSpec;

@@ -1,23 +1,13 @@
 use std::cmp::Ordering;
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, ParserExec, ParserInfo, parser::ParseWithResult,
 };
 
 use super::TakeArray;
 
-impl<const N: usize> Parser<&str> for TakeArray<N> {
+impl<const N: usize> ParserExec<&str> for TakeArray<N> {
     type Output = String;
-
-    #[inline]
-    fn name(&self) -> String {
-        format!("take({})", N)
-    }
-
-    #[inline]
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<&str>::name(self))
-    }
 
     #[inline]
     fn parse_with(
@@ -28,7 +18,7 @@ impl<const N: usize> Parser<&str> for TakeArray<N> {
         let end = match input.chars().count().cmp(&N) {
             Ordering::Less => {
                 let annotation = if annotation_mode.fail {
-                    Annotation::incomplete(Parser::<&str>::name(self), 0, vec![]).into()
+                    Annotation::incomplete(self.name(), 0, vec![]).into()
                 } else {
                     AnnotationReturn::Start(0)
                 };
@@ -49,7 +39,7 @@ impl<const N: usize> Parser<&str> for TakeArray<N> {
         *input = &input[end..];
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&str>::name(self), 0..N, value.clone(), vec![]).into()
+            Annotation::success(self.name(), 0..N, value.clone(), vec![]).into()
         } else {
             AnnotationReturn::Span(0..N)
         };

@@ -121,74 +121,8 @@ pub trait ParserExec<Input> {
 ///
 /// A `Parser` defines how to consume an input and produce a value. It also
 /// provides metadata about its structure.
-pub trait Parser<Input> {
-    /// The type produced on success.
-    type Output: ParserOutput;
-
-    /// Simple name of the parser, used as the base identifier in the annotation tree.
-    ///
-    /// Should not include children or generics; those are handled by [`ParserSpec`].
-    // TODO: Change this to a CoW so we're not constantly copying `&'static str`s
-    fn name(&self) -> String;
-
-    /// A static representation of the parser structure.
-    ///
-    /// Mirrors the parser hierarchy (leaf parsers, combinators, nested
-    /// combinators) without holding any runtime state.
-    fn spec(&self) -> ParserSpec;
-
-    /// Low-level parse method with full annotation control.
-    ///
-    /// This is the single method that all other entry points (`parse`, `annotate`)
-    /// build on top of. It is intended for custom parser and combinator authors
-    /// who need fine-grained control over which paths are annotated.
-    ///
-    /// The `annotation_mode` parameter controls whether success and/or failure
-    /// paths are annotated. See [`AnnotationMode`] for the available modes.
-    fn parse_with(
-        &mut self,
-        _input: &mut Input,
-        _annotation_mode: AnnotationMode,
-    ) -> ParseWithResult<Self::Output>;
-
-    /// Parse and return both the output value and the full annotation tree.
-    ///
-    /// This is the slow path: it collects annotations for every parser in the
-    /// hierarchy, regardless of success or failure. Useful for debugging and
-    /// visualising the parse trace.
-    #[inline]
-    fn annotate(&mut self, input: &mut Input) -> AnnotatedResult<Self::Output> {
-        match self.parse_with(input, AnnotationMode::ALL) {
-            Ok((value, anno)) => Ok((value, anno.annotation().expect("Annotated path"))),
-            Err(anno) => Err(anno.annotation().expect("Annotated path")),
-        }
-    }
-
-    /// "Fast" parse: only produces annotations on failure. The returned annotation
-    /// contains only the hierarchy leading to the failure source.
-    ///
-    /// For example, if `LengthRepeat(u32, u16)` fails because the 5th `u16`
-    /// parse fails, the returned annotation should look roughly like:
-    /// ```ignore
-    ///     Annotation::Child {
-    ///         name: "length_repeat",
-    ///         start: 0,
-    ///         children: [
-    ///             Annotation::Incomplete {
-    ///                 name: "u16",
-    ///                 start: 12,
-    ///             }
-    ///         ]
-    ///     }
-    /// ```
-    #[inline]
-    fn parse(&mut self, input: &mut Input) -> crate::ParseResult<Self::Output> {
-        match self.parse_with(input, AnnotationMode::FAIL) {
-            Ok((value, anno)) => Ok((value, anno.span().expect("Unannoated path").end)),
-            Err(anno) => Err(anno.annotation().expect("Annotated path")),
-        }
-    }
-}
+pub trait Parser<Input>: ParserInfo + ParserExec<Input> {}
+impl<P, Input> Parser<Input> for P where P: ParserInfo + ParserExec<Input> {}
 
 /// Returned annotation type for [`parse_with`](Parser::parse_with).
 ///
