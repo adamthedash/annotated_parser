@@ -1,6 +1,6 @@
 use super::{TakeTillExc, TakeTillInc};
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserOutput, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserOutput,
     helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
@@ -9,14 +9,6 @@ where
     P: for<'a> Parser<&'a [u8]>,
 {
     type Output = Vec<u8>;
-
-    fn name(&self) -> String {
-        "take_till_exc".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.inner.spec()])
-    }
 
     #[inline]
     fn parse_with(
@@ -63,14 +55,6 @@ where
     PO: ParserOutput,
 {
     type Output = (Vec<u8>, PO);
-
-    fn name(&self) -> String {
-        "take_till_inc".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.inner.spec()])
-    }
 
     #[inline]
     fn parse_with(

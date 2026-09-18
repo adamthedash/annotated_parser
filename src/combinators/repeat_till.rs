@@ -1,5 +1,6 @@
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, FoldParseWithResult, Parser, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, FoldParseWithResult, Parser, ParserInfo,
+    ParserSpec,
     combinators::{Checkpoint, Peek},
 };
 
@@ -38,14 +39,11 @@ impl<P, T> RepeatTillExc<P, T> {
     }
 }
 
-impl<Input, P, T> Parser<Input> for RepeatTillExc<P, T>
+impl<P, T> ParserInfo for RepeatTillExc<P, T>
 where
-    P: Parser<Input>,
-    T: Parser<Input>,
-    Input: Copy,
+    P: ParserInfo,
+    T: ParserInfo,
 {
-    type Output = Vec<P::Output>;
-
     fn name(&self) -> String {
         "repeat_till_exc".to_owned()
     }
@@ -53,6 +51,15 @@ where
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec(), self.terminator.spec()])
     }
+}
+
+impl<Input, P, T> Parser<Input> for RepeatTillExc<P, T>
+where
+    P: Parser<Input>,
+    T: Parser<Input>,
+    Input: Copy,
+{
+    type Output = Vec<P::Output>;
 
     fn parse_with(
         &mut self,
@@ -125,14 +132,11 @@ impl<P, T> RepeatTillInc<P, T> {
     }
 }
 
-impl<Input, P, T> Parser<Input> for RepeatTillInc<P, T>
+impl<P, T> ParserInfo for RepeatTillInc<P, T>
 where
-    P: Parser<Input>,
-    T: Parser<Input>,
-    Input: Copy,
+    P: ParserInfo,
+    T: ParserInfo,
 {
-    type Output = (Vec<P::Output>, T::Output);
-
     fn name(&self) -> String {
         "repeat_till_inc".to_owned()
     }
@@ -140,6 +144,15 @@ where
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec(), self.terminator.spec()])
     }
+}
+
+impl<Input, P, T> Parser<Input> for RepeatTillInc<P, T>
+where
+    P: Parser<Input>,
+    T: Parser<Input>,
+    Input: Copy,
+{
+    type Output = (Vec<P::Output>, T::Output);
 
     fn parse_with(
         &mut self,

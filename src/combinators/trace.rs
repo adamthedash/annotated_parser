@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, AnnotationMode, AnnotationResult, AnnotationReturn, Parser, ParserSpec,
+    Annotation, AnnotationMode, AnnotationResult, AnnotationReturn, Parser, ParserInfo, ParserSpec,
     combinators::store::StoringParser, parser::ParseWithResult,
 };
 
@@ -38,12 +38,10 @@ impl<P> Trace<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for Trace<P>
+impl<P> ParserInfo for Trace<P>
 where
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         // TODO: Pass through inner name?
         //  Or "trace"?
@@ -54,6 +52,13 @@ where
     fn spec(&self) -> ParserSpec {
         self.inner.spec().with_friendly(self.name())
     }
+}
+
+impl<Input, P> Parser<Input> for Trace<P>
+where
+    P: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(
@@ -114,12 +119,10 @@ impl<P> TraceOpaque<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for TraceOpaque<P>
+impl<P> ParserInfo for TraceOpaque<P>
 where
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         "trace_opaque".to_string()
     }
@@ -127,6 +130,13 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name()).with_friendly(self.name.clone())
     }
+}
+
+impl<Input, P> Parser<Input> for TraceOpaque<P>
+where
+    P: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(

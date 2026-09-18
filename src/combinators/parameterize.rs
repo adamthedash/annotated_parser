@@ -2,7 +2,7 @@ use itertools::izip;
 use paste::paste;
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserSpec,
     combinators::store::{ForwardRef, ForwardRefGet, ForwrdRefSet},
     helpers::FoldParseWithResult,
     parser::ParseWithResult,
@@ -186,14 +186,10 @@ impl<S, V, P> Parameterize<S, V, P> {
     }
 }
 
-impl<Input, S, V, P> Parser<Input> for Parameterize<S, V, P>
+impl<S, V, P> ParserInfo for Parameterize<S, V, P>
 where
-    V: Parameters,
-    S: ParameterInput<Value = V::Item>,
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = Vec<P::Output>;
-
     fn name(&self) -> String {
         "parameterize".to_owned()
     }
@@ -201,6 +197,15 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.parser.spec()])
     }
+}
+
+impl<Input, S, V, P> Parser<Input> for Parameterize<S, V, P>
+where
+    V: Parameters,
+    S: ParameterInput<Value = V::Item>,
+    P: Parser<Input>,
+{
+    type Output = Vec<P::Output>;
 
     fn parse_with(
         &mut self,

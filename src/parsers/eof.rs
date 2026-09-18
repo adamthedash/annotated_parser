@@ -1,4 +1,6 @@
-use crate::{Annotation, AnnotationMode, AnnotationReturn, ParseWithResult, Parser, ParserSpec};
+use crate::{
+    Annotation, AnnotationMode, AnnotationReturn, ParseWithResult, Parser, ParserInfo, ParserSpec,
+};
 
 /// A parser that succeeds only when the input has been fully consumed.
 ///
@@ -15,16 +17,18 @@ use crate::{Annotation, AnnotationMode, AnnotationReturn, ParseWithResult, Parse
 /// ```
 pub struct EoF;
 
-impl Parser<&[u8]> for EoF {
-    type Output = ();
-
+impl ParserInfo for EoF {
     fn name(&self) -> String {
         "eof".to_string()
     }
 
     fn spec(&self) -> crate::ParserSpec {
-        ParserSpec::empty(Parser::<&[u8]>::name(self))
+        ParserSpec::empty(self.name())
     }
+}
+
+impl Parser<&[u8]> for EoF {
+    type Output = ();
 
     fn parse_with(
         &mut self,
@@ -33,13 +37,7 @@ impl Parser<&[u8]> for EoF {
     ) -> ParseWithResult<Self::Output> {
         if !input.is_empty() {
             let annotation = if annotation_mode.fail {
-                Annotation::invalid(
-                    Parser::<&[u8]>::name(self),
-                    0..0,
-                    "Data remaining".to_owned(),
-                    vec![],
-                )
-                .into()
+                Annotation::invalid(self.name(), 0..0, "Data remaining".to_owned(), vec![]).into()
             } else {
                 AnnotationReturn::Span(0..0)
             };
@@ -48,7 +46,7 @@ impl Parser<&[u8]> for EoF {
         }
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&[u8]>::name(self), 0..0, (), vec![]).into()
+            Annotation::success(self.name(), 0..0, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..0)
         };
@@ -60,14 +58,6 @@ impl Parser<&[u8]> for EoF {
 impl Parser<&str> for EoF {
     type Output = ();
 
-    fn name(&self) -> String {
-        "eof".to_string()
-    }
-
-    fn spec(&self) -> crate::ParserSpec {
-        ParserSpec::empty(Parser::<&str>::name(self))
-    }
-
     fn parse_with(
         &mut self,
         input: &mut &str,
@@ -75,13 +65,7 @@ impl Parser<&str> for EoF {
     ) -> ParseWithResult<Self::Output> {
         if !input.is_empty() {
             let annotation = if annotation_mode.fail {
-                Annotation::invalid(
-                    Parser::<&str>::name(self),
-                    0..0,
-                    "Data remaining".to_owned(),
-                    vec![],
-                )
-                .into()
+                Annotation::invalid(self.name(), 0..0, "Data remaining".to_owned(), vec![]).into()
             } else {
                 AnnotationReturn::Span(0..0)
             };
@@ -90,7 +74,7 @@ impl Parser<&str> for EoF {
         }
 
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<&str>::name(self), 0..0, (), vec![]).into()
+            Annotation::success(self.name(), 0..0, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..0)
         };

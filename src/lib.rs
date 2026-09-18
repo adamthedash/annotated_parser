@@ -17,7 +17,7 @@ pub use combinators::{ParserTuple, SameParserTuple};
 pub use helpers::FoldParseWithResult;
 pub use parser::{
     AnnotatedResult, AnnotationMode, AnnotationReturn, IntoAnnotation, ParseResult,
-    ParseWithResult, Parser, ParserOutput,
+    ParseWithResult, Parser, ParserInfo, ParserOutput,
 };
 pub use parsers::byte::ByteParser;
 pub use spec::ParserSpec;
@@ -26,6 +26,7 @@ pub use spec::ParserSpec;
 pub mod prelude {
     pub use super::{
         ByteParser, FoldParseWithResult, ForwardRefGet, ForwardRefTuple, ForwrdRefSet,
-        IntoAnnotation, Parser, ParserAdapter, ParserTuple, SameParserTuple, StoringParser,
+        IntoAnnotation, Parser, ParserAdapter, ParserInfo, ParserTuple, SameParserTuple,
+        StoringParser,
     };
 }

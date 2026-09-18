@@ -1,10 +1,12 @@
-use crate::{AnnotationReturn, helpers::FoldParseWithResult, parser::ParseWithResult};
+use crate::{
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec, helpers::FoldParseWithResult,
+    parser::ParseWithResult,
+};
+
 use num_traits::AsPrimitive;
 
 use crate::combinators::store::ForwardRefGet;
 use std::{marker::PhantomData, mem::MaybeUninit};
-
-use crate::{Annotation, Parser, ParserSpec};
 
 /// Repeat a parser a fixed number of times at compile time.
 ///
@@ -41,12 +43,10 @@ impl<const N: usize, P, O> RepeatArray<P, [O; N]> {
     }
 }
 
-impl<const N: usize, Input, P> Parser<Input> for RepeatArray<P, [P::Output; N]>
+impl<const N: usize, P, O> ParserInfo for RepeatArray<P, [O; N]>
 where
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = [P::Output; N];
-
     #[inline]
     fn name(&self) -> String {
         format!("repeat({})", N)
@@ -56,6 +56,13 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<const N: usize, Input, P> Parser<Input> for RepeatArray<P, [P::Output; N]>
+where
+    P: Parser<Input>,
+{
+    type Output = [P::Output; N];
 
     #[inline]
     fn parse_with(
@@ -152,14 +159,10 @@ impl<P, C> RepeatVec<P, C> {
     }
 }
 
-impl<Input, P, C, V> Parser<Input> for RepeatVec<P, C>
+impl<P, C> ParserInfo for RepeatVec<P, C>
 where
-    P: Parser<Input>,
-    C: ForwardRefGet<Value = V>,
-    V: AsPrimitive<usize>,
+    P: ParserInfo,
 {
-    type Output = Vec<P::Output>;
-
     #[inline]
     fn name(&self) -> String {
         "repeat".to_owned()
@@ -169,6 +172,15 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, P, C, V> Parser<Input> for RepeatVec<P, C>
+where
+    P: Parser<Input>,
+    C: ForwardRefGet<Value = V>,
+    V: AsPrimitive<usize>,
+{
+    type Output = Vec<P::Output>;
 
     #[inline]
     fn parse_with(

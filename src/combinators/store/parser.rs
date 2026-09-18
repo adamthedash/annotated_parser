@@ -1,6 +1,6 @@
 use super::{ForwardRef, ForwrdRefSet, StoringParser};
 use crate::parser::ParseWithResult;
-use crate::{AnnotationMode, Parser, ParserSpec};
+use crate::{AnnotationMode, Parser, ParserInfo, ParserSpec};
 
 /// Wrap a parser and store its output in a `ForwardRef`.
 ///
@@ -42,12 +42,10 @@ impl<I, O: 'static> Store<I, O> {
     }
 }
 
-impl<Input, I> Parser<Input> for Store<I, I::Output>
+impl<I, O> ParserInfo for Store<I, O>
 where
-    I: Parser<Input>,
+    I: ParserInfo,
 {
-    type Output = I::Output;
-
     fn name(&self) -> String {
         self.inner.name()
     }
@@ -55,6 +53,13 @@ where
     fn spec(&self) -> ParserSpec {
         self.inner.spec()
     }
+}
+
+impl<Input, I> Parser<Input> for Store<I, I::Output>
+where
+    I: Parser<Input>,
+{
+    type Output = I::Output;
 
     #[inline]
     fn parse_with(

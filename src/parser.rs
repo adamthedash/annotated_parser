@@ -46,14 +46,7 @@ pub type ParseWithResult<T> = std::result::Result<(T, AnnotationReturn), Annotat
 pub trait ParserOutput: Debug + Clone + Send + Sync + 'static {}
 impl<T> ParserOutput for T where T: Debug + Clone + Send + Sync + 'static {}
 
-/// The core trait that all parsers must implement.
-///
-/// A `Parser` defines how to consume an input and produce a value. It also
-/// provides metadata about its structure.
-pub trait Parser<Input> {
-    /// The type produced on success.
-    type Output: ParserOutput;
-
+pub trait ParserInfo {
     /// Simple name of the parser, used as the base identifier in the annotation tree.
     ///
     /// Should not include children or generics; those are handled by [`ParserSpec`].
@@ -65,6 +58,15 @@ pub trait Parser<Input> {
     /// Mirrors the parser hierarchy (leaf parsers, combinators, nested
     /// combinators) without holding any runtime state.
     fn spec(&self) -> ParserSpec;
+}
+
+/// The core trait that all parsers must implement.
+///
+/// A `Parser` defines how to consume an input and produce a value. It also
+/// provides metadata about its structure.
+pub trait Parser<Input>: ParserInfo {
+    /// The type produced on success.
+    type Output: ParserOutput;
 
     /// Low-level parse method with full annotation control.
     ///
@@ -213,12 +215,10 @@ impl AnnotationMode {
 }
 
 /// Blanket impl for boxed parsers
-impl<Input, P> Parser<Input> for Box<P>
+impl<P> ParserInfo for Box<P>
 where
-    P: Parser<Input> + ?Sized,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         (**self).name()
     }
@@ -226,6 +226,13 @@ where
     fn spec(&self) -> ParserSpec {
         (**self).spec()
     }
+}
+
+impl<Input, P> Parser<Input> for Box<P>
+where
+    P: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(
@@ -250,12 +257,10 @@ where
 }
 
 /// Blanket impl to allow passing parsers by reference
-impl<Input, P> Parser<Input> for &mut P
+impl<P> ParserInfo for &mut P
 where
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         (**self).name()
     }
@@ -263,6 +268,13 @@ where
     fn spec(&self) -> ParserSpec {
         (**self).spec()
     }
+}
+
+impl<Input, P> Parser<Input> for &mut P
+where
+    P: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(

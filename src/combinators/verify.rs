@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec, helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
 
@@ -35,13 +35,10 @@ impl<P, F> Verify<P, F> {
     }
 }
 
-impl<Input, P, F> Parser<Input> for Verify<P, F>
+impl<P, F> ParserInfo for Verify<P, F>
 where
-    P: Parser<Input>,
-    F: FnMut(&P::Output) -> bool,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         "verify".to_owned()
     }
@@ -49,6 +46,14 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, P, F> Parser<Input> for Verify<P, F>
+where
+    P: Parser<Input>,
+    F: FnMut(&P::Output) -> bool,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(

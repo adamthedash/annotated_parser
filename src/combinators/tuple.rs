@@ -1,5 +1,5 @@
 use crate::parser::ParseWithResult;
-use crate::{Annotation, Parser, ParserSpec, helpers::FoldParseWithResult};
+use crate::{Annotation, Parser, ParserInfo, ParserSpec, helpers::FoldParseWithResult};
 use crate::{AnnotationMode, AnnotationReturn, ParserOutput};
 use paste::paste;
 
@@ -7,16 +7,13 @@ use paste::paste;
 macro_rules! impl_parser_for_tuple {
     ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
         paste! {
-            impl<Input, $First $(, $P)*> Parser<Input> for ($First, $($P,)*)
+            impl<$First $(, $P)*> ParserInfo for ($First, $($P,)*)
             where
-                $First: Parser<Input>,
+                $First: ParserInfo,
                 $(
-                    $P: Parser<Input>,
+                    $P: ParserInfo,
                 )*
             {
-
-                type Output = ($First::Output, $($P::Output,)*);
-
                 fn name(&self) -> String {
                     "tuple".to_owned()
                 }
@@ -27,6 +24,17 @@ macro_rules! impl_parser_for_tuple {
                         $( self.$idx.spec(), )*
                     ])
                 }
+            }
+
+            impl<Input, $First $(, $P)*> Parser<Input> for ($First, $($P,)*)
+            where
+                $First: Parser<Input>,
+                $(
+                    $P: Parser<Input>,
+                )*
+            {
+
+                type Output = ($First::Output, $($P::Output,)*);
 
                 #[inline]
                 fn parse_with(
@@ -85,16 +93,16 @@ impl_parser_for_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L
 /// Implemented for tuples of up to 12 parsers. Provides a way to collect
 /// `ParserSpec`s from all parsers in the tuple without needing to know
 /// the tuple arity at the call site.
-pub trait ParserTuple<Input> {
+pub trait ParserTuple {
     /// Collect `ParserSpec`s from all parsers in the tuple.
     fn specs(&self) -> Vec<ParserSpec>;
 }
 
 macro_rules! impl_parser_tuple {
     ( $( $P:ident ~ $idx:tt ),+ ) => {
-        impl<Input, $($P),+> ParserTuple<Input> for ($($P,)+)
+        impl<$($P),+> ParserTuple for ($($P,)+)
         where
-            $($P: Parser<Input>,)+
+            $($P: ParserInfo,)+
         {
             fn specs(&self) -> Vec<ParserSpec> {
                 vec![$( self.$idx.spec() ),+]
@@ -124,7 +132,7 @@ impl_parser_tuple!(A~0, B~1, C~2, D~3, E~4, F~5, G~6, H~7, I~8, J~9, K~10, L~11)
 ///
 /// Implemented for tuples of up to 12 parsers where every element has the same
 /// `Output` type.
-pub trait SameParserTuple<Input>: ParserTuple<Input> {
+pub trait SameParserTuple<Input>: ParserTuple {
     /// The common output type of all parsers in the tuple.
     type Output: ParserOutput;
 

@@ -1,7 +1,7 @@
 mod byte;
 mod str;
 
-use crate::ForwardRefGet;
+use crate::{ForwardRefGet, ParserInfo, ParserSpec};
 use num_traits::AsPrimitive;
 
 /// Take a fixed number of elements into an array.
@@ -19,6 +19,18 @@ use num_traits::AsPrimitive;
 /// assert_eq!(input, "lo");
 /// ```
 pub struct TakeArray<const N: usize>;
+
+impl<const N: usize> ParserInfo for TakeArray<N> {
+    #[inline]
+    fn name(&self) -> String {
+        format!("take({})", N)
+    }
+
+    #[inline]
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
+    }
+}
 
 /// Take a dynamic number of bytes into a `Vec<u8>`.
 /// Fails if the input is shorter than the requested count.
@@ -45,6 +57,22 @@ impl<C> TakeVec<C> {
         C::Value: AsPrimitive<usize>,
     {
         Self(count)
+    }
+}
+
+impl<C> ParserInfo for TakeVec<C>
+where
+    C: ForwardRefGet,
+    C::Value: AsPrimitive<usize>,
+{
+    #[inline]
+    fn name(&self) -> String {
+        "take".to_owned()
+    }
+
+    #[inline]
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::empty(self.name())
     }
 }
 

@@ -1,8 +1,5 @@
-use crate::AnnotationReturn;
-use crate::parser::ParseWithResult;
+use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserInfo, ParserSpec};
 use std::num::IntErrorKind;
-
-use crate::{Annotation, Parser, ParserSpec};
 
 macro_rules! impl_uint_parser {
     ($($name:ident => $ty:ty),* $(,)?) => {
@@ -27,16 +24,20 @@ macro_rules! impl_uint_parser {
             )]
             pub struct $name;
 
-            impl Parser<&str> for $name {
-                type Output = $ty;
-
+            impl ParserInfo for $name {
+                #[inline]
                 fn name(&self) -> String {
                     stringify!($ty).to_owned()
                 }
 
+                #[inline]
                 fn spec(&self) -> ParserSpec {
                     ParserSpec::empty(self.name())
                 }
+            }
+
+            impl Parser<&str> for $name {
+                type Output = $ty;
 
                 #[inline]
                 fn parse_with(
@@ -125,16 +126,20 @@ macro_rules! impl_int_parser {
             )]
             pub struct $name;
 
-            impl Parser<&str> for $name {
-                type Output = $ty;
-
+            impl ParserInfo for $name {
+                #[inline]
                 fn name(&self) -> String {
                     stringify!($ty).to_owned()
                 }
 
+                #[inline]
                 fn spec(&self) -> ParserSpec {
                     ParserSpec::empty(self.name())
                 }
+            }
+
+            impl Parser<&str> for $name {
+                type Output = $ty;
 
                 #[inline]
                 fn parse_with(
@@ -228,16 +233,20 @@ macro_rules! impl_float_parser {
             )]
             pub struct $name;
 
-            impl Parser<&str> for $name {
-                type Output = $ty;
-
+            impl ParserInfo for $name {
+                #[inline]
                 fn name(&self) -> String {
                     stringify!($ty).to_owned()
                 }
 
+                #[inline]
                 fn spec(&self) -> ParserSpec {
                     ParserSpec::empty(self.name())
                 }
+            }
+
+            impl Parser<&str> for $name {
+                type Output = $ty;
 
                 #[inline]
                 fn parse_with(

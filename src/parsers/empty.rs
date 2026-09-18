@@ -1,4 +1,6 @@
-use crate::{Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithResult};
+use crate::{
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec, parser::ParseWithResult,
+};
 
 /// A parser that always succeeds without consuming any input.
 ///
@@ -16,16 +18,18 @@ use crate::{Annotation, AnnotationReturn, Parser, ParserSpec, parser::ParseWithR
 /// ```
 pub struct Empty;
 
-impl<Input> Parser<Input> for Empty {
-    type Output = ();
-
+impl ParserInfo for Empty {
     fn name(&self) -> String {
         "empty".to_owned()
     }
 
     fn spec(&self) -> ParserSpec {
-        ParserSpec::empty(Parser::<Input>::name(self))
+        ParserSpec::empty(self.name())
     }
+}
+
+impl<Input> Parser<Input> for Empty {
+    type Output = ();
 
     #[inline]
     fn parse_with(
@@ -34,7 +38,7 @@ impl<Input> Parser<Input> for Empty {
         annotation_mode: crate::AnnotationMode,
     ) -> ParseWithResult<Self::Output> {
         let annotation = if annotation_mode.success {
-            Annotation::success(Parser::<Input>::name(self), 0..0, (), vec![]).into()
+            Annotation::success(self.name(), 0..0, (), vec![]).into()
         } else {
             AnnotationReturn::Span(0..0)
         };
@@ -45,7 +49,7 @@ impl<Input> Parser<Input> for Empty {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ParserAdapter;
+    use crate::{Parser, ParserAdapter};
 
     #[test]
     fn test_bare() {

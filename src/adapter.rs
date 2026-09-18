@@ -278,7 +278,7 @@ pub trait ParserAdapter<Input>: Parser<Input> + Sized {
     /// See [`SeparatedTuple`] for more info.
     fn separated_tuple<S>(self, separator: S) -> SeparatedTuple<S, Self>
     where
-        Self: ParserTuple<Input>,
+        Self: ParserTuple,
         S: Parser<Input>,
     {
         SeparatedTuple::new(separator, self)

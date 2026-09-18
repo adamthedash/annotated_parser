@@ -3,7 +3,8 @@ use std::{fmt::Debug, marker::PhantomData};
 use num_traits::FromBytes;
 
 use crate::{
-    Annotation, AnnotationReturn, Parser, ParserOutput, ParserSpec, parser::ParseWithResult,
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserOutput, ParserSpec,
+    parser::ParseWithResult,
 };
 
 /// Parse a value from its little-endian byte representation.
@@ -24,22 +25,25 @@ use crate::{
 #[derive(Clone)]
 pub struct LE<T>(PhantomData<T>);
 
-impl<const N: usize, T> Parser<&[u8]> for LE<T>
-where
-    T: FromBytes<Bytes = [u8; N]>,
-    T: ParserOutput,
-{
-    type Output = T;
-
+impl<T> ParserInfo for LE<T> {
     #[inline]
     fn name(&self) -> String {
         // Concat is slightly faster than format!
         ["le_", std::any::type_name::<T>()].concat()
     }
 
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+impl<const N: usize, T> Parser<&[u8]> for LE<T>
+where
+    T: FromBytes<Bytes = [u8; N]>,
+    T: ParserOutput,
+{
+    type Output = T;
 
     #[inline]
     fn parse_with(
@@ -90,22 +94,25 @@ where
 #[derive(Clone)]
 pub struct BE<T>(PhantomData<T>);
 
-impl<const N: usize, T> Parser<&[u8]> for BE<T>
-where
-    T: FromBytes<Bytes = [u8; N]>,
-    T: ParserOutput,
-{
-    type Output = T;
-
+impl<T> ParserInfo for BE<T> {
     #[inline]
     fn name(&self) -> String {
         // Concat is slightly faster than format!
         ["be_", std::any::type_name::<T>()].concat()
     }
 
+    #[inline]
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+impl<const N: usize, T> Parser<&[u8]> for BE<T>
+where
+    T: FromBytes<Bytes = [u8; N]>,
+    T: ParserOutput,
+{
+    type Output = T;
 
     #[inline]
     fn parse_with(

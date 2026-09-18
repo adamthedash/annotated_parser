@@ -6,7 +6,7 @@ mod nightly_floats;
 #[cfg(feature = "f16")]
 pub use nightly_floats::{F16BE, F16LE};
 
-use crate::{Annotation, AnnotationReturn, Parser, ParserSpec};
+use crate::{Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec};
 
 /// Parse a boolean value from a single byte.
 ///
@@ -26,9 +26,7 @@ use crate::{Annotation, AnnotationReturn, Parser, ParserSpec};
 #[derive(Clone)]
 pub struct Bool;
 
-impl Parser<&[u8]> for Bool {
-    type Output = bool;
-
+impl ParserInfo for Bool {
     fn name(&self) -> String {
         "bool".to_owned()
     }
@@ -36,6 +34,10 @@ impl Parser<&[u8]> for Bool {
     fn spec(&self) -> ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+impl Parser<&[u8]> for Bool {
+    type Output = bool;
 
     fn parse_with(
         &mut self,

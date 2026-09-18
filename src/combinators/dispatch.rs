@@ -1,6 +1,6 @@
 use crate::combinators::tuple::{ParserTuple, SameParserTuple};
 use crate::helpers::FoldParseWithResult;
-use crate::{AnnotationMode, AnnotationReturn};
+use crate::{AnnotationMode, AnnotationReturn, ParserInfo};
 
 use crate::parser::ParseWithResult;
 use crate::{Annotation, Parser, ParserSpec, combinators::store::ForwardRefGet};
@@ -50,14 +50,27 @@ impl<D, P> Dispatch<D, P>
 where
     D: ForwardRefGet<Value = Option<usize>>,
 {
-    pub fn new<Input>(discriminant: D, parsers: P) -> Self
+    pub fn new(discriminant: D, parsers: P) -> Self
     where
-        P: ParserTuple<Input>,
+        P: ParserTuple,
     {
         Self {
             discriminant,
             parsers,
         }
+    }
+}
+
+impl<D, P> ParserInfo for Dispatch<D, P>
+where
+    P: ParserTuple,
+{
+    fn name(&self) -> String {
+        "dispatch".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), self.parsers.specs())
     }
 }
 
@@ -67,14 +80,6 @@ where
     P: SameParserTuple<Input>,
 {
     type Output = P::Output;
-
-    fn name(&self) -> String {
-        "dispatch".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), self.parsers.specs())
-    }
 
     #[inline]
     fn parse_with(

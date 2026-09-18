@@ -1,11 +1,9 @@
 use crate::{
-    Annotation, Parser, ParserSpec,
+    Annotation, Parser, ParserInfo, ParserSpec,
     parser::{AnnotationMode, AnnotationReturn, ParseWithResult},
 };
 
-impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
-    type Output = &'static [u8; N];
-
+impl<const N: usize> ParserInfo for &'static [u8; N] {
     fn name(&self) -> String {
         format!("literal({:x?})", self)
     }
@@ -13,6 +11,10 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
+    type Output = &'static [u8; N];
 
     #[inline]
     fn parse_with(
@@ -57,11 +59,7 @@ impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
     }
 }
 
-// NOTE: Unfortunately this conflicts with str::parse, so it must be called with Parser::parse if
-// using on its own
-impl Parser<&str> for &'static str {
-    type Output = &'static str;
-
+impl ParserInfo for &'static str {
     fn name(&self) -> String {
         format!("literal({:?})", self)
     }
@@ -69,6 +67,12 @@ impl Parser<&str> for &'static str {
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::empty(self.name())
     }
+}
+
+// NOTE: Unfortunately this conflicts with str::parse, so it must be called with Parser::parse if
+// using on its own
+impl Parser<&str> for &'static str {
+    type Output = &'static str;
 
     #[inline]
     fn parse_with(

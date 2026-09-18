@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserOutput, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserOutput, ParserSpec,
     helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
@@ -41,6 +41,19 @@ impl<P, F> TryMap<P, F> {
     }
 }
 
+impl<P, F> ParserInfo for TryMap<P, F>
+where
+    P: ParserInfo,
+{
+    fn name(&self) -> String {
+        "try_map".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.inner.spec()])
+    }
+}
+
 impl<Input, P, F, O, E> Parser<Input> for TryMap<P, F>
 where
     P: Parser<Input>,
@@ -49,14 +62,6 @@ where
     E: Display,
 {
     type Output = O;
-
-    fn name(&self) -> String {
-        "try_map".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.inner.spec()])
-    }
 
     #[inline]
     fn parse_with(
@@ -142,14 +147,10 @@ impl<P, F> Map<P, F> {
     }
 }
 
-impl<Input, P, F, O> Parser<Input> for Map<P, F>
+impl<P, F> ParserInfo for Map<P, F>
 where
-    P: Parser<Input>,
-    F: FnMut(P::Output) -> O,
-    O: ParserOutput,
+    P: ParserInfo,
 {
-    type Output = O;
-
     fn name(&self) -> String {
         "map".to_owned()
     }
@@ -157,6 +158,15 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, P, F, O> Parser<Input> for Map<P, F>
+where
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> O,
+    O: ParserOutput,
+{
+    type Output = O;
 
     #[inline]
     fn parse_with(
@@ -223,14 +233,10 @@ impl<P, F> MapSilent<P, F> {
     }
 }
 
-impl<Input, P, F, O> Parser<Input> for MapSilent<P, F>
+impl<P, F> ParserInfo for MapSilent<P, F>
 where
-    P: Parser<Input>,
-    F: FnMut(P::Output) -> O,
-    O: ParserOutput,
+    P: ParserInfo,
 {
-    type Output = O;
-
     fn name(&self) -> String {
         self.inner.name()
     }
@@ -238,6 +244,15 @@ where
     fn spec(&self) -> ParserSpec {
         self.inner.spec()
     }
+}
+
+impl<Input, P, F, O> Parser<Input> for MapSilent<P, F>
+where
+    P: Parser<Input>,
+    F: FnMut(P::Output) -> O,
+    O: ParserOutput,
+{
+    type Output = O;
 
     #[inline]
     fn parse_with(
