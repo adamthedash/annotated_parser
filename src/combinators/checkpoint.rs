@@ -1,4 +1,4 @@
-use crate::{AnnotationMode, Parser, ParserSpec, combinators::store::StoringParser};
+use crate::{AnnotationMode, Parser, ParserInfo, ParserSpec, combinators::store::StoringParser};
 
 /// Restore input position on failure.
 ///
@@ -29,13 +29,10 @@ impl<P> Checkpoint<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for Checkpoint<P>
+impl<P> ParserInfo for Checkpoint<P>
 where
-    P: Parser<Input>,
-    Input: Copy,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         self.0.name()
     }
@@ -43,6 +40,14 @@ where
     fn spec(&self) -> ParserSpec {
         self.0.spec()
     }
+}
+
+impl<Input, P> Parser<Input> for Checkpoint<P>
+where
+    P: Parser<Input>,
+    Input: Copy,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(
@@ -105,13 +110,10 @@ impl<P> Peek<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for Peek<P>
+impl<P> ParserInfo for Peek<P>
 where
-    P: Parser<Input>,
-    Input: Copy,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         self.0.name()
     }
@@ -119,6 +121,14 @@ where
     fn spec(&self) -> ParserSpec {
         self.0.spec()
     }
+}
+
+impl<Input, P> Parser<Input> for Peek<P>
+where
+    P: Parser<Input>,
+    Input: Copy,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(

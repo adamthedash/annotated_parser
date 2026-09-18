@@ -1,4 +1,4 @@
-use crate::{Annotation, AnnotationReturn, ParseWithResult, ParserExec, ParserInfo, ParserSpec};
+use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserInfo, ParserSpec};
 use std::num::IntErrorKind;
 
 macro_rules! impl_uint_parser {
@@ -36,7 +36,7 @@ macro_rules! impl_uint_parser {
                 }
             }
 
-            impl ParserExec<&str> for $name {
+            impl Parser<&str> for $name {
                 type Output = $ty;
 
                 #[inline]
@@ -138,7 +138,7 @@ macro_rules! impl_int_parser {
                 }
             }
 
-            impl ParserExec<&str> for $name {
+            impl Parser<&str> for $name {
                 type Output = $ty;
 
                 #[inline]
@@ -245,7 +245,7 @@ macro_rules! impl_float_parser {
                 }
             }
 
-            impl ParserExec<&str> for $name {
+            impl Parser<&str> for $name {
                 type Output = $ty;
 
                 #[inline]

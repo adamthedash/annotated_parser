@@ -85,7 +85,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ForwardRef, ParserExec};
+    use crate::{ForwardRef, Parser};
 
     mod byte {
         use super::*;

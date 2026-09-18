@@ -1,6 +1,5 @@
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, ParseWithResult, ParserExec, ParserInfo,
-    ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, ParseWithResult, Parser, ParserInfo, ParserSpec,
 };
 
 /// A parser that succeeds only when the input has been fully consumed.
@@ -28,7 +27,7 @@ impl ParserInfo for EoF {
     }
 }
 
-impl ParserExec<&[u8]> for EoF {
+impl Parser<&[u8]> for EoF {
     type Output = ();
 
     fn parse_with(
@@ -56,7 +55,7 @@ impl ParserExec<&[u8]> for EoF {
     }
 }
 
-impl ParserExec<&str> for EoF {
+impl Parser<&str> for EoF {
     type Output = ();
 
     fn parse_with(

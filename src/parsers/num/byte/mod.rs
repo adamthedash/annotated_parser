@@ -6,7 +6,7 @@ mod nightly_floats;
 #[cfg(feature = "f16")]
 pub use nightly_floats::{F16BE, F16LE};
 
-use crate::{Annotation, AnnotationReturn, ParserExec, ParserInfo, ParserSpec};
+use crate::{Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec};
 
 /// Parse a boolean value from a single byte.
 ///
@@ -36,7 +36,7 @@ impl ParserInfo for Bool {
     }
 }
 
-impl ParserExec<&[u8]> for Bool {
+impl Parser<&[u8]> for Bool {
     type Output = bool;
 
     fn parse_with(

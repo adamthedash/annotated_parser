@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, AnnotationReturn, ParserExec, ParserInfo, ParserSpec, parser::ParseWithResult,
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec, parser::ParseWithResult,
 };
 
 /// A parser that always succeeds without consuming any input.
@@ -28,7 +28,7 @@ impl ParserInfo for Empty {
     }
 }
 
-impl<Input> ParserExec<Input> for Empty {
+impl<Input> Parser<Input> for Empty {
     type Output = ();
 
     #[inline]
@@ -49,7 +49,7 @@ impl<Input> ParserExec<Input> for Empty {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Parser, ParserAdapter, ParserExec};
+    use crate::{Parser, ParserAdapter};
 
     #[test]
     fn test_bare() {

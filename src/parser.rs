@@ -60,7 +60,11 @@ pub trait ParserInfo {
     fn spec(&self) -> ParserSpec;
 }
 
-pub trait ParserExec<Input> {
+/// The core trait that all parsers must implement.
+///
+/// A `Parser` defines how to consume an input and produce a value. It also
+/// provides metadata about its structure.
+pub trait Parser<Input>: ParserInfo {
     /// The type produced on success.
     type Output: ParserOutput;
 
@@ -116,13 +120,6 @@ pub trait ParserExec<Input> {
         }
     }
 }
-
-/// The core trait that all parsers must implement.
-///
-/// A `Parser` defines how to consume an input and produce a value. It also
-/// provides metadata about its structure.
-pub trait Parser<Input>: ParserInfo + ParserExec<Input> {}
-impl<P, Input> Parser<Input> for P where P: ParserInfo + ParserExec<Input> {}
 
 /// Returned annotation type for [`parse_with`](Parser::parse_with).
 ///
@@ -218,12 +215,10 @@ impl AnnotationMode {
 }
 
 /// Blanket impl for boxed parsers
-impl<Input, P> Parser<Input> for Box<P>
+impl<P> ParserInfo for Box<P>
 where
-    P: Parser<Input> + ?Sized,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         (**self).name()
     }
@@ -231,6 +226,13 @@ where
     fn spec(&self) -> ParserSpec {
         (**self).spec()
     }
+}
+
+impl<Input, P> Parser<Input> for Box<P>
+where
+    P: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(
@@ -255,12 +257,10 @@ where
 }
 
 /// Blanket impl to allow passing parsers by reference
-impl<Input, P> Parser<Input> for &mut P
+impl<P> ParserInfo for &mut P
 where
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         (**self).name()
     }
@@ -268,6 +268,13 @@ where
     fn spec(&self) -> ParserSpec {
         (**self).spec()
     }
+}
+
+impl<Input, P> Parser<Input> for &mut P
+where
+    P: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(

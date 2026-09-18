@@ -1,12 +1,12 @@
 use std::cmp::Ordering;
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, ParserExec, ParserInfo, parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, parser::ParseWithResult,
 };
 
 use super::TakeArray;
 
-impl<const N: usize> ParserExec<&str> for TakeArray<N> {
+impl<const N: usize> Parser<&str> for TakeArray<N> {
     type Output = String;
 
     #[inline]

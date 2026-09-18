@@ -1,11 +1,11 @@
-use crate::{AnnotationReturn, ForwardRefGet, ParseWithResult, ParserExec, ParserInfo};
+use crate::{AnnotationReturn, ForwardRefGet, ParseWithResult, Parser, ParserInfo};
 use num_traits::AsPrimitive;
 
 use crate::Annotation;
 
 use super::{TakeArray, TakeVec};
 
-impl<const N: usize> ParserExec<&[u8]> for TakeArray<N> {
+impl<const N: usize> Parser<&[u8]> for TakeArray<N> {
     type Output = [u8; N];
 
     #[inline]
@@ -35,7 +35,7 @@ impl<const N: usize> ParserExec<&[u8]> for TakeArray<N> {
     }
 }
 
-impl<C> ParserExec<&[u8]> for TakeVec<C>
+impl<C> Parser<&[u8]> for TakeVec<C>
 where
     C: ForwardRefGet,
     C::Value: AsPrimitive<usize>,

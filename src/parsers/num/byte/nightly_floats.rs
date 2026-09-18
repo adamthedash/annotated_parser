@@ -1,4 +1,4 @@
-use crate::{Annotation, AnnotationReturn, ParseWithResult, ParserExec, ParserInfo, ParserSpec};
+use crate::{Annotation, AnnotationReturn, ParseWithResult, Parser, ParserInfo, ParserSpec};
 
 /// Parse a half-precision float from its little-endian byte representation.
 ///
@@ -29,7 +29,7 @@ impl ParserInfo for F16LE {
     }
 }
 
-impl ParserExec<&[u8]> for F16LE {
+impl Parser<&[u8]> for F16LE {
     type Output = f16;
 
     #[inline]
@@ -93,7 +93,7 @@ impl ParserInfo for F16BE {
     }
 }
 
-impl ParserExec<&[u8]> for F16BE {
+impl Parser<&[u8]> for F16BE {
     type Output = f16;
 
     #[inline]

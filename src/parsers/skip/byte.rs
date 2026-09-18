@@ -1,9 +1,9 @@
 use num_traits::AsPrimitive;
 
 use super::{SkipArray, SkipVec};
-use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, ParserExec, ParserInfo};
+use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, Parser, ParserInfo};
 
-impl<const N: usize> ParserExec<&[u8]> for SkipArray<N> {
+impl<const N: usize> Parser<&[u8]> for SkipArray<N> {
     type Output = ();
 
     #[inline]
@@ -33,7 +33,7 @@ impl<const N: usize> ParserExec<&[u8]> for SkipArray<N> {
     }
 }
 
-impl<C> ParserExec<&[u8]> for SkipVec<C>
+impl<C> Parser<&[u8]> for SkipVec<C>
 where
     C: ForwardRefGet,
     C::Value: AsPrimitive<usize>,

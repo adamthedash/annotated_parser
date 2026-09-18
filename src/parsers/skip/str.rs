@@ -3,9 +3,9 @@ use std::cmp::Ordering;
 use num_traits::AsPrimitive;
 
 use super::{SkipArray, SkipVec};
-use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, ParserExec, ParserInfo};
+use crate::{Annotation, AnnotationReturn, ForwardRefGet, ParseWithResult, Parser, ParserInfo};
 
-impl<const N: usize> ParserExec<&str> for SkipArray<N> {
+impl<const N: usize> Parser<&str> for SkipArray<N> {
     type Output = ();
 
     #[inline]
@@ -46,7 +46,7 @@ impl<const N: usize> ParserExec<&str> for SkipArray<N> {
     }
 }
 
-impl<C> ParserExec<&str> for SkipVec<C>
+impl<C> Parser<&str> for SkipVec<C>
 where
     C: ForwardRefGet,
     C::Value: AsPrimitive<usize>,

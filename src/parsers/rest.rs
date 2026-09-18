@@ -1,4 +1,4 @@
-use crate::{AnnotationReturn, ParseWithResult, ParserExec, ParserInfo};
+use crate::{AnnotationReturn, ParseWithResult, Parser, ParserInfo};
 
 use crate::{Annotation, ParserSpec};
 
@@ -28,7 +28,7 @@ impl ParserInfo for Rest {
     }
 }
 
-impl ParserExec<&[u8]> for Rest {
+impl Parser<&[u8]> for Rest {
     type Output = Vec<u8>;
 
     fn parse_with(
@@ -50,7 +50,7 @@ impl ParserExec<&[u8]> for Rest {
     }
 }
 
-impl ParserExec<&str> for Rest {
+impl Parser<&str> for Rest {
     type Output = String;
 
     fn parse_with(

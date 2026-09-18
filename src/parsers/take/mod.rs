@@ -79,7 +79,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ParserExec;
+    use crate::Parser;
 
     #[test]
     fn test_str() {

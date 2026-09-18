@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, ParserExec, ParserInfo, ParserSpec,
+    Annotation, Parser, ParserInfo, ParserSpec,
     parser::{AnnotationMode, AnnotationReturn, ParseWithResult},
 };
 
@@ -13,7 +13,7 @@ impl<const N: usize> ParserInfo for &'static [u8; N] {
     }
 }
 
-impl<const N: usize> ParserExec<&[u8]> for &'static [u8; N] {
+impl<const N: usize> Parser<&[u8]> for &'static [u8; N] {
     type Output = &'static [u8; N];
 
     #[inline]
@@ -71,7 +71,7 @@ impl ParserInfo for &'static str {
 
 // NOTE: Unfortunately this conflicts with str::parse, so it must be called with Parser::parse if
 // using on its own
-impl ParserExec<&str> for &'static str {
+impl Parser<&str> for &'static str {
     type Output = &'static str;
 
     #[inline]
@@ -132,7 +132,7 @@ mod tests {
             let mut parser = "hello";
 
             let mut input = "hello_world";
-            let (value, _) = ParserExec::parse(&mut parser, &mut input).unwrap();
+            let (value, _) = Parser::parse(&mut parser, &mut input).unwrap();
             assert_eq!(value, "hello");
             assert_eq!(input, "_world");
         }
@@ -142,7 +142,7 @@ mod tests {
             let mut parser = "henlo";
 
             let mut input = "hello_world";
-            let annotation = ParserExec::parse(&mut parser, &mut input).unwrap_err();
+            let annotation = Parser::parse(&mut parser, &mut input).unwrap_err();
             assert!(matches!(
                 annotation.result,
                 crate::AnnotationResult::Invalid { .. }
@@ -155,7 +155,7 @@ mod tests {
             let mut parser = "hello";
 
             let mut input = "hel";
-            let annotation = ParserExec::parse(&mut parser, &mut input).unwrap_err();
+            let annotation = Parser::parse(&mut parser, &mut input).unwrap_err();
             assert!(matches!(
                 annotation.result,
                 crate::AnnotationResult::Incomplete { .. }

@@ -3,7 +3,7 @@ use std::{fmt::Debug, marker::PhantomData};
 use num_traits::FromBytes;
 
 use crate::{
-    Annotation, AnnotationReturn, ParserExec, ParserInfo, ParserOutput, ParserSpec,
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserOutput, ParserSpec,
     parser::ParseWithResult,
 };
 
@@ -38,7 +38,7 @@ impl<T> ParserInfo for LE<T> {
     }
 }
 
-impl<const N: usize, T> ParserExec<&[u8]> for LE<T>
+impl<const N: usize, T> Parser<&[u8]> for LE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: ParserOutput,
@@ -107,7 +107,7 @@ impl<T> ParserInfo for BE<T> {
     }
 }
 
-impl<const N: usize, T> ParserExec<&[u8]> for BE<T>
+impl<const N: usize, T> Parser<&[u8]> for BE<T>
 where
     T: FromBytes<Bytes = [u8; N]>,
     T: ParserOutput,
