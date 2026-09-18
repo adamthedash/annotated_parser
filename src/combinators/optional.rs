@@ -1,3 +1,4 @@
+use crate::ParserInfo;
 use crate::parser::ParseWithResult;
 use crate::{
     Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, combinators::Checkpoint,
@@ -38,13 +39,10 @@ impl<P> Opt<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for Opt<P>
+impl<P> ParserInfo for Opt<P>
 where
-    P: Parser<Input>,
-    Input: Copy,
+    P: ParserInfo,
 {
-    type Output = Option<P::Output>;
-
     fn name(&self) -> String {
         "opt".to_owned()
     }
@@ -52,6 +50,14 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, P> Parser<Input> for Opt<P>
+where
+    P: Parser<Input>,
+    Input: Copy,
+{
+    type Output = Option<P::Output>;
 
     #[inline]
     fn parse_with(

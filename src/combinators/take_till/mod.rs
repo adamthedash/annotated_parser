@@ -2,7 +2,7 @@ mod byte;
 mod str;
 
 use crate::{
-    Parser,
+    Parser, ParserInfo, ParserSpec,
     combinators::{Checkpoint, Peek},
 };
 
@@ -41,6 +41,19 @@ impl<P> TakeTillExc<P> {
     }
 }
 
+impl<P> ParserInfo for TakeTillExc<P>
+where
+    P: ParserInfo,
+{
+    fn name(&self) -> String {
+        "take_till_exc".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.inner.spec()])
+    }
+}
+
 /// Consume input until the inner parser succeeds, including the match.
 ///
 /// Repeatedly advances the input and tries the inner parser.
@@ -74,6 +87,19 @@ impl<P> TakeTillInc<P> {
         Self {
             inner: Checkpoint::new(inner),
         }
+    }
+}
+
+impl<P> ParserInfo for TakeTillInc<P>
+where
+    P: ParserInfo,
+{
+    fn name(&self) -> String {
+        "take_till_inc".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
 }
 

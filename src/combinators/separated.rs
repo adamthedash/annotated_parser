@@ -1,6 +1,6 @@
 use crate::helpers::FoldParseWithResult;
 use crate::parser::ParseWithResult;
-use crate::{AnnotationReturn, ForwardRefGet};
+use crate::{AnnotationReturn, ForwardRefGet, ParserInfo};
 use num_traits::AsPrimitive;
 use paste::paste;
 use std::{marker::PhantomData, mem::MaybeUninit};
@@ -45,13 +45,11 @@ impl<const N: usize, P, S, O> SeparatedArray<P, S, [O; N]> {
     }
 }
 
-impl<const N: usize, Input, P, S> Parser<Input> for SeparatedArray<P, S, [P::Output; N]>
+impl<const N: usize, P, S, O> ParserInfo for SeparatedArray<P, S, [O; N]>
 where
-    S: Parser<Input>,
-    P: Parser<Input>,
+    P: ParserInfo,
+    S: ParserInfo,
 {
-    type Output = [P::Output; N];
-
     fn name(&self) -> String {
         format!("separated({N})")
     }
@@ -59,6 +57,14 @@ where
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::new(self.name(), vec![self.separator.spec(), self.inner.spec()])
     }
+}
+
+impl<const N: usize, Input, P, S> Parser<Input> for SeparatedArray<P, S, [P::Output; N]>
+where
+    S: Parser<Input>,
+    P: Parser<Input>,
+{
+    type Output = [P::Output; N];
 
     #[inline]
     fn parse_with(
@@ -190,6 +196,20 @@ impl<P, S, C> SeparatedVec<P, S, C> {
     }
 }
 
+impl<P, S, C> ParserInfo for SeparatedVec<P, S, C>
+where
+    P: ParserInfo,
+    S: ParserInfo,
+{
+    fn name(&self) -> String {
+        "separated".to_owned()
+    }
+
+    fn spec(&self) -> ParserSpec {
+        ParserSpec::new(self.name(), vec![self.separator.spec(), self.inner.spec()])
+    }
+}
+
 impl<Input, P, S, C> Parser<Input> for SeparatedVec<P, S, C>
 where
     P: Parser<Input>,
@@ -198,14 +218,6 @@ where
     C::Value: AsPrimitive<usize>,
 {
     type Output = Vec<P::Output>;
-
-    fn name(&self) -> String {
-        "separated".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.separator.spec(), self.inner.spec()])
-    }
 
     fn parse_with(
         &mut self,
@@ -286,7 +298,7 @@ impl<S, P> SeparatedTuple<S, P> {
     pub fn new<Input>(separator: S, parsers: P) -> Self
     where
         S: Parser<Input>,
-        P: ParserTuple<Input>,
+        P: ParserTuple,
     {
         Self { separator, parsers }
     }
@@ -295,14 +307,12 @@ impl<S, P> SeparatedTuple<S, P> {
 macro_rules! impl_separated_tuple {
     ( $First:ident ~ $first_idx:tt $(, $P:ident ~ $idx:tt )* ) => {
         paste! {
-            impl<Input, S, $First $(, $P)*> Parser<Input> for SeparatedTuple<S, ($First $(, $P)*)>
+            impl<S, $First $(, $P)*> ParserInfo for SeparatedTuple<S, ($First $(, $P)*)>
             where
-                S: Parser<Input>,
-                $First: Parser<Input>,
-                $($P: Parser<Input>,)*
+                S: ParserInfo,
+                $First: ParserInfo,
+                $($P: ParserInfo,)*
             {
-                type Output = ($First::Output $(, $P::Output)*);
-
                 fn name(&self) -> String {
                     "separated_tuple".to_owned()
                 }
@@ -315,6 +325,16 @@ macro_rules! impl_separated_tuple {
                             .collect(),
                     )
                 }
+            }
+
+            impl<Input, S, $First $(, $P)*> Parser<Input> for SeparatedTuple<S, ($First $(, $P)*)>
+            where
+                S: Parser<Input>,
+                $First: Parser<Input>,
+                $($P: Parser<Input>,)*
+            {
+                type Output = ($First::Output $(, $P::Output)*);
+
 
                 #[inline]
                 fn parse_with(

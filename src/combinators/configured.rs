@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, StoringParser,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserSpec, StoringParser,
     combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
@@ -74,12 +74,10 @@ impl<P> Configured<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for Configured<P>
+impl<P> ParserInfo for Configured<P>
 where
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = Option<P::Output>;
-
     fn name(&self) -> String {
         "configured".to_owned()
     }
@@ -87,6 +85,13 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, P> Parser<Input> for Configured<P>
+where
+    P: Parser<Input>,
+{
+    type Output = Option<P::Output>;
 
     #[inline]
     fn parse_with(
@@ -179,13 +184,10 @@ impl<P, F> Configuring<P, F> {
     }
 }
 
-impl<Input, P, F> Parser<Input> for Configuring<P, F>
+impl<P, F> ParserInfo for Configuring<P, F>
 where
-    P: Parser<Input>,
-    F: Fn(),
+    P: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         self.inner.name()
     }
@@ -193,6 +195,14 @@ where
     fn spec(&self) -> ParserSpec {
         self.inner.spec()
     }
+}
+
+impl<Input, P, F> Parser<Input> for Configuring<P, F>
+where
+    P: Parser<Input>,
+    F: Fn(),
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(

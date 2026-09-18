@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec, helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
 
@@ -35,13 +35,11 @@ impl<I, K> Terminated<I, K> {
     }
 }
 
-impl<Input, I, K> Parser<Input> for Terminated<I, K>
+impl<I, K> ParserInfo for Terminated<I, K>
 where
-    I: Parser<Input>,
-    K: Parser<Input>,
+    I: ParserInfo,
+    K: ParserInfo,
 {
-    type Output = K::Output;
-
     fn name(&self) -> String {
         "terminated".to_owned()
     }
@@ -49,6 +47,14 @@ where
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::new(self.name(), vec![self.keep.spec(), self.ignore.spec()])
     }
+}
+
+impl<Input, I, K> Parser<Input> for Terminated<I, K>
+where
+    I: Parser<Input>,
+    K: Parser<Input>,
+{
+    type Output = K::Output;
 
     #[inline]
     fn parse_with(

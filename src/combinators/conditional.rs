@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserSpec,
     combinators::store::ForwardRefGet, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
@@ -40,13 +40,10 @@ where
     }
 }
 
-impl<Input, C, P> Parser<Input> for Cond<C, P>
+impl<C, P> ParserInfo for Cond<C, P>
 where
-    C: ForwardRefGet<Value = bool>,
-    P: Parser<Input>,
+    P: ParserInfo,
 {
-    type Output = Option<P::Output>;
-
     fn name(&self) -> String {
         "cond".to_owned()
     }
@@ -54,6 +51,14 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, C, P> Parser<Input> for Cond<C, P>
+where
+    C: ForwardRefGet<Value = bool>,
+    P: Parser<Input>,
+{
+    type Output = Option<P::Output>;
 
     #[inline]
     fn parse_with(

@@ -1,5 +1,6 @@
+use crate::parser::ParserInfo;
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserOutput, ParserSpec,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserOutput,
     helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
@@ -10,14 +11,6 @@ where
     P: for<'a> Parser<&'a str>,
 {
     type Output = String;
-
-    fn name(&self) -> String {
-        "take_till_exc".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.inner.spec()])
-    }
 
     #[inline]
     fn parse_with(
@@ -70,14 +63,6 @@ where
     PO: ParserOutput,
 {
     type Output = (String, PO);
-
-    fn name(&self) -> String {
-        "take_till_inc".to_owned()
-    }
-
-    fn spec(&self) -> ParserSpec {
-        ParserSpec::new(self.name(), vec![self.inner.spec()])
-    }
 
     #[inline]
     fn parse_with(

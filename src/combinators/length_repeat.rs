@@ -1,8 +1,8 @@
 use num_traits::AsPrimitive;
 
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
-    parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserSpec,
+    helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
 /// Parse a length, then repeat a value parser that many times.
@@ -42,14 +42,11 @@ impl<L, V> LengthRepeat<L, V> {
     }
 }
 
-impl<Input, L, V> Parser<Input> for LengthRepeat<L, V>
+impl<L, V> ParserInfo for LengthRepeat<L, V>
 where
-    L: Parser<Input>,
-    L::Output: AsPrimitive<usize>,
-    V: Parser<Input>,
+    L: ParserInfo,
+    V: ParserInfo,
 {
-    type Output = Vec<V::Output>;
-
     #[inline]
     fn name(&self) -> String {
         "length_repeat".to_owned()
@@ -59,6 +56,15 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.length.spec(), self.value.spec()])
     }
+}
+
+impl<Input, L, V> Parser<Input> for LengthRepeat<L, V>
+where
+    L: Parser<Input>,
+    L::Output: AsPrimitive<usize>,
+    V: Parser<Input>,
+{
+    type Output = Vec<V::Output>;
 
     #[inline]
     fn parse_with(

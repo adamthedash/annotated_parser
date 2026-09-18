@@ -1,6 +1,6 @@
 use crate::{
-    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserSpec, combinators::Checkpoint,
-    helpers::FoldParseWithResult, parser::ParseWithResult,
+    Annotation, AnnotationMode, AnnotationReturn, Parser, ParserInfo, ParserSpec,
+    combinators::Checkpoint, helpers::FoldParseWithResult, parser::ParseWithResult,
 };
 
 /// Apply a parser repeatedly until it fails.
@@ -35,13 +35,10 @@ impl<P> Many<P> {
     }
 }
 
-impl<Input, P> Parser<Input> for Many<P>
+impl<P> ParserInfo for Many<P>
 where
-    P: Parser<Input>,
-    Input: Copy,
+    P: ParserInfo,
 {
-    type Output = Vec<P::Output>;
-
     fn name(&self) -> String {
         "many".to_owned()
     }
@@ -49,6 +46,14 @@ where
     fn spec(&self) -> ParserSpec {
         ParserSpec::new(self.name(), vec![self.inner.spec()])
     }
+}
+
+impl<Input, P> Parser<Input> for Many<P>
+where
+    P: Parser<Input>,
+    Input: Copy,
+{
+    type Output = Vec<P::Output>;
 
     #[inline]
     fn parse_with(

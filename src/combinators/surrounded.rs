@@ -1,5 +1,5 @@
 use crate::{
-    Annotation, AnnotationReturn, Parser, ParserSpec, helpers::FoldParseWithResult,
+    Annotation, AnnotationReturn, Parser, ParserInfo, ParserSpec, helpers::FoldParseWithResult,
     parser::ParseWithResult,
 };
 
@@ -37,14 +37,12 @@ impl<L, P, R> Surrounded<L, P, R> {
     }
 }
 
-impl<Input, L, P, R> Parser<Input> for Surrounded<L, P, R>
+impl<L, P, R> ParserInfo for Surrounded<L, P, R>
 where
-    L: Parser<Input>,
-    P: Parser<Input>,
-    R: Parser<Input>,
+    L: ParserInfo,
+    P: ParserInfo,
+    R: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         "surrounded".to_owned()
     }
@@ -55,6 +53,15 @@ where
             vec![self.left.spec(), self.inner.spec(), self.right.spec()],
         )
     }
+}
+
+impl<Input, L, P, R> Parser<Input> for Surrounded<L, P, R>
+where
+    L: Parser<Input>,
+    P: Parser<Input>,
+    R: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(
@@ -138,13 +145,11 @@ impl<P, Q> SurroundedSymmetrical<P, Q> {
     }
 }
 
-impl<Input, P, Q> Parser<Input> for SurroundedSymmetrical<P, Q>
+impl<P, Q> ParserInfo for SurroundedSymmetrical<P, Q>
 where
-    P: Parser<Input>,
-    Q: Parser<Input>,
+    P: ParserInfo,
+    Q: ParserInfo,
 {
-    type Output = P::Output;
-
     fn name(&self) -> String {
         "surrounded_sym".to_owned()
     }
@@ -152,6 +157,14 @@ where
     fn spec(&self) -> crate::ParserSpec {
         ParserSpec::new(self.name(), vec![self.outer.spec(), self.inner.spec()])
     }
+}
+
+impl<Input, P, Q> Parser<Input> for SurroundedSymmetrical<P, Q>
+where
+    P: Parser<Input>,
+    Q: Parser<Input>,
+{
+    type Output = P::Output;
 
     #[inline]
     fn parse_with(
