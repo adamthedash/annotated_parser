@@ -26,6 +26,7 @@ pub use spec::ParserSpec;
 pub mod prelude {
     pub use super::{
         ByteParser, FoldParseWithResult, ForwardRefGet, ForwardRefTuple, ForwrdRefSet,
-        IntoAnnotation, Parser, ParserAdapter, ParserTuple, SameParserTuple, StoringParser,
+        IntoAnnotation, Parser, ParserAdapter, ParserInfo, ParserTuple, SameParserTuple,
+        StoringParser,
     };
 }
